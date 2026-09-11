@@ -17,7 +17,7 @@ export function VenueGridCard({ v, i, onClick }: { v: any; i: number; onClick?: 
   React.useEffect(() => { places.photoFor(v, 400).then(setPhoto); }, [v]);
   return (
     <motion.button
-      onClick={onClick} className="text-left"
+      onClick={onClick} className="block w-full text-left"
       initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(i, 8) * .04, duration: .45, ease: [.22,1,.36,1] }}
     >
