@@ -8,6 +8,7 @@ import { timeSlot, greetingFor } from "@/lib/greeting";
 import { store, useStore, originOrFallback, requestLocation, type Plan } from "@/lib/store";
 import * as intent from "@/lib/engine/intent.js";
 import * as events from "@/lib/engine/events.js";
+import * as places from "@/lib/engine/places.js";
 import * as weather from "@/lib/engine/weather.js";
 import * as consensus from "@/lib/engine/consensus.js";
 
@@ -20,6 +21,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
 
   const [wx, setWx] = React.useState<any>(null);
   const [near, setNear] = React.useState<any[]>([]);
+  const [eats, setEats] = React.useState<any[]>([]);
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
@@ -27,8 +29,11 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
       await requestLocation();
       const o = originOrFallback();
       weather.forecast(o.lat, o.lon).then(setWx);
-      const r = await events.search({ lat: o.lat, lon: o.lon, radiusMiles: 25, limit: 6 });
-      if (r.available) setNear(r.events);
+      const today = new Date().toISOString().slice(0, 10);
+      const r = await events.search({ lat: o.lat, lon: o.lon, radiusMiles: 25, limit: 6, startDate: today });
+      if (r.available) setNear(r.events.filter((e: any) => !e.date || e.date >= today));
+      const pr = await places.search({ query: "restaurants", lat: o.lat, lon: o.lon, limit: 8 });
+      if (pr.available) setEats(pr.places);
     })();
   }, []);
 
@@ -183,6 +188,28 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
           </div>
         )}
       </Section>
+
+      {eats.length > 0 && (
+        <Section title="Nearby to eat" action="See all" onAction={() => go("discover")}>
+          <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
+            {eats.map((v, i) => (
+              <motion.button
+                key={v.providerId}
+                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: .05 * i, duration: .45, ease: [.22, 1, .36, 1] }}
+                onClick={() => go("discover")}
+                className="w-[180px] shrink-0 text-left"
+              >
+                <Glass className="p-3.5 transition-transform active:scale-[.98]">
+                  <p className="truncate text-[14px] font-semibold">{v.name}</p>
+                  <p className="mt-1 truncate text-[12px] text-white/45">{v.address}</p>
+                  {v.rating && <p className="mt-1.5 text-[12px] text-white/70">★ {v.rating}</p>}
+                </Glass>
+              </motion.button>
+            ))}
+          </div>
+        </Section>
+      )}
     </div>
   );
 }

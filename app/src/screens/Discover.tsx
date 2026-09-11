@@ -12,25 +12,40 @@ import { fmtDate } from "./Home";
 
 const CATS = ["For you", "Music", "Comedy", "Sports", "Theatre"] as const;
 
-/** Build and save a plan directly from a known event/restaurant instead of
- * routing it through the free-text intent parser — we already know exactly
- * what this is, so guessing at it from a sentence would only lose accuracy
- * and burn AI spend for nothing. */
-function seedPlanFrom(item: any, kind: "event" | "restaurant", me: { id: string; name: string }): Plan {
+/** Things to do that aren't ticketed events or restaurants — each maps to a
+ * tuned Places text query plus the verb/category used to build the idea and
+ * detail sheet. Places is a business/POI search, so results are real
+ * locations (a park, a trail head, a beach) with real addresses — not
+ * curated trail data (no mileage/difficulty). Good enough to start a plan
+ * from; not a trail app. */
+const ACTIVITIES: Record<string, { query: string; verb: string; noun: string; emoji: string }> = {
+  Hike:    { query: "hiking trail nature park", verb: "Go hiking at", noun: "trail", emoji: "🥾" },
+  Picnic:  { query: "park picnic area", verb: "Have a picnic at", noun: "picnic spot", emoji: "🧺" },
+  Swim:    { query: "public swimming lake beach pool", verb: "Go swimming at", noun: "swim spot", emoji: "🏊" },
+};
+type Kind = "event" | "restaurant" | "activity";
+
+/** Build and save a plan directly from a known event/restaurant/activity
+ * instead of routing it through the free-text intent parser — we already
+ * know exactly what this is, so guessing at it from a sentence would only
+ * lose accuracy and burn AI spend for nothing. */
+function seedPlanFrom(item: any, kind: Kind, me: { id: string; name: string }, activityKey?: string): Plan {
   const title = kind === "event" ? item.title : item.name;
+  const act = kind === "activity" && activityKey ? ACTIVITIES[activityKey] : null;
+  const idea = kind === "event" ? `Go to ${title}` : kind === "restaurant" ? `Eat at ${title}` : `${act?.verb ?? "Go to"} ${title}`;
+  const categories = kind === "event" ? [item.genre || item.category || "event"]
+    : kind === "restaurant" ? ["food"] : ["outdoors", activityKey?.toLowerCase() ?? "activity"];
   return {
     id: crypto.randomUUID().slice(0, 8),
-    idea: kind === "event" ? `Go to ${title}` : `Eat at ${title}`,
-    title,
+    idea, title,
     intent: {
-      title,
-      categories: kind === "event" ? [item.genre || item.category || "event"] : ["food"],
+      title, categories,
       needsFood: kind === "restaurant",
       confidence: 1,
       source: "seeded_from_" + kind,
       seed: kind === "event"
         ? { kind, providerId: item.providerId, venue: item.venue, date: item.date, address: item.address }
-        : { kind, providerId: item.providerId, name: item.name, address: item.address },
+        : { kind, providerId: item.providerId, name: item.name, address: item.address, activityKey },
     },
     origin: originOrFallback(),
     participants: [{ id: me.id, name: me.name, answers: {}, isCreator: true }],
@@ -49,6 +64,9 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
   const [open, setOpen] = React.useState<any>(initial ?? null);
   const [openVenue, setOpenVenue] = React.useState<any>(null);
   const [venues, setVenues] = React.useState<any[] | null>(null);
+  const [openActivity, setOpenActivity] = React.useState<any>(null);
+  const [activityKey, setActivityKey] = React.useState<string | null>(null);
+  const [activityResults, setActivityResults] = React.useState<any[] | null>(null);
 
   React.useEffect(() => {
     let dead = false;
@@ -77,6 +95,22 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
     return () => { dead = true; };
   }, [cat, q]);
 
+  // Activities are opt-in (pick Hike/Picnic/Swim) rather than always-on like
+  // restaurants, so a Discover load never spends more Places budget than the
+  // user actually asked for.
+  React.useEffect(() => {
+    if (!activityKey) { setActivityResults(null); return; }
+    let dead = false;
+    setActivityResults(null);
+    (async () => {
+      const o = originOrFallback();
+      const ar = await places.search({ query: ACTIVITIES[activityKey].query, lat: o.lat, lon: o.lon, limit: 10 });
+      if (dead) return;
+      setActivityResults(ar.available ? ar.places : []);
+    })();
+    return () => { dead = true; };
+  }, [activityKey]);
+
   // Re-rank in place as interests/memory/click-history change, without
   // re-hitting the network for the same raw event list.
   const list = React.useMemo(
@@ -84,30 +118,30 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
     [rawEvents, interests, memory, viewed],
   );
 
-  const startIdea = (item: any, kind: "event" | "restaurant") => {
+  const startIdea = (item: any, kind: Kind, actKey?: string) => {
     if (!me) return;
     store.trackView({
-      id: kind === "event" ? item.providerId : item.providerId,
-      kind, title: kind === "event" ? item.title : item.name,
-      category: kind === "event" ? (item.genre || item.category) : "restaurant",
+      id: item.providerId, kind,
+      title: kind === "event" ? item.title : item.name,
+      category: kind === "event" ? (item.genre || item.category) : kind === "restaurant" ? "restaurant" : actKey,
       at: new Date().toISOString(),
     });
-    const plan = seedPlanFrom(item, kind, me);
+    const plan = seedPlanFrom(item, kind, me, actKey);
     store.savePlan(plan);
     store.say({
       role: "planzo",
       text: `Started a plan around ${plan.title.toLowerCase()} — answer a couple quick questions and I'll work out the rest.`,
       at: new Date().toISOString(), planId: plan.id,
     });
-    setOpen(null); setOpenVenue(null);
+    setOpen(null); setOpenVenue(null); setOpenActivity(null);
     go?.("plans", plan.id);
   };
 
-  const trackViewOnly = (item: any, kind: "event" | "restaurant") => {
+  const trackViewOnly = (item: any, kind: Kind, actKey?: string) => {
     store.trackView({
       id: item.providerId, kind,
       title: kind === "event" ? item.title : item.name,
-      category: kind === "event" ? (item.genre || item.category) : "restaurant",
+      category: kind === "event" ? (item.genre || item.category) : kind === "restaurant" ? "restaurant" : actKey,
       at: new Date().toISOString(),
     });
   };
@@ -203,9 +237,50 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
         </div>
       )}
 
+      {/* Things to do beyond ticketed events — opt-in via chips since these
+          spend Places budget only when actually asked for. */}
+      <div className="mt-6">
+        <h3 className="mb-3 text-[15px] font-semibold">Something outdoors?</h3>
+        <div className="no-bar edge-fade -mx-5 mb-3 flex gap-2 overflow-x-auto px-5">
+          {Object.keys(ACTIVITIES).map(k => (
+            <button key={k} onClick={() => setActivityKey(activityKey === k ? null : k)}
+              className={`shrink-0 rounded-full px-4 py-2 text-[13.5px] font-semibold transition-colors ${
+                activityKey === k ? "text-white" : "border border-white/10 bg-white/[.06] text-white/60 hover:text-white/85"}`}
+              style={activityKey === k ? { background: "var(--grad-brand)" } : undefined}>
+              {ACTIVITIES[k].emoji} {k}
+            </button>
+          ))}
+        </div>
+
+        {activityKey && activityResults === null && (
+          <div className="space-y-3">
+            {[0, 1].map(i => <div key={i} className="skeleton h-[92px] rounded-[22px]" />)}
+          </div>
+        )}
+        {activityKey && activityResults && activityResults.length === 0 && (
+          <Notice>
+            No {ACTIVITIES[activityKey].noun}s came back nearby. Google Places needs a key set
+            (<strong>You → Settings</strong>) to search this at all.
+          </Notice>
+        )}
+        {activityKey && activityResults && activityResults.length > 0 && (
+          <div className="space-y-3">
+            {activityResults.map((v, i) => (
+              <VenueCard key={v.providerId} v={v} i={i}
+                onClick={() => { trackViewOnly(v, "activity", activityKey); setOpenActivity(v); }} />
+            ))}
+          </div>
+        )}
+      </div>
+
       <AnimatePresence>
         {open && <EventSheet e={open} onClose={() => setOpen(null)} onStartIdea={() => startIdea(open, "event")} />}
         {openVenue && <VenueSheet v={openVenue} onClose={() => setOpenVenue(null)} onStartIdea={() => startIdea(openVenue, "restaurant")} />}
+        {openActivity && activityKey && (
+          <VenueSheet v={openActivity} label={ACTIVITIES[activityKey].noun.replace(/^./, c => c.toUpperCase())}
+            onClose={() => setOpenActivity(null)}
+            onStartIdea={() => startIdea(openActivity, "activity", activityKey)} />
+        )}
       </AnimatePresence>
     </div>
   );
@@ -234,7 +309,7 @@ function VenueCard({ v, i, onClick }: { v: any; i: number; onClick?: () => void 
   );
 }
 
-function VenueSheet({ v, onClose, onStartIdea }: { v: any; onClose: () => void; onStartIdea: () => void }) {
+function VenueSheet({ v, onClose, onStartIdea, label = "Restaurant" }: { v: any; onClose: () => void; onStartIdea: () => void; label?: string }) {
   const [photo, setPhoto] = React.useState<string | null>(null);
   React.useEffect(() => { places.photoFor(v, 800).then(setPhoto); }, [v]);
   return (
@@ -242,7 +317,7 @@ function VenueSheet({ v, onClose, onStartIdea }: { v: any; onClose: () => void; 
       <div className="-mx-5 -mt-5 mb-4">
         <Img src={photo} alt={v.name} ratio="16/9" className="rounded-t-[34px]" />
       </div>
-      <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-[#C9C1FF]">Restaurant</p>
+      <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-[#C9C1FF]">{label}</p>
       <h2 className="text-[24px] leading-tight">{v.name}</h2>
 
       <div className="mt-4 space-y-2.5 text-[14px]">

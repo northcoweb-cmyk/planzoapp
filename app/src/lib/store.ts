@@ -20,7 +20,7 @@ export type Ticket = {
 };
 export type ChatTurn = { role: 'user' | 'planzo'; text: string; at: string; planId?: string };
 export type ViewedItem = {
-  id: string; kind: 'event' | 'restaurant'; title: string;
+  id: string; kind: 'event' | 'restaurant' | 'activity'; title: string;
   category?: string | null; at: string;
 };
 
