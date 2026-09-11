@@ -218,12 +218,9 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
         <Section title="Nearby to eat" action="See all" onAction={() => go("discover")}>
           <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
             {eats.map((v, i) => (
-              <motion.button key={v.providerId}
-                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: .05 * i, duration: .45, ease: [.22, 1, .36, 1] }}
-                onClick={() => go("discover")} className="w-[200px] shrink-0">
-                <VenueGridCard v={v} i={i} />
-              </motion.button>
+              <div key={v.providerId} className="w-[200px] shrink-0">
+                <VenueGridCard v={v} i={i} onClick={() => go("discover")} />
+              </div>
             ))}
           </div>
         </Section>
