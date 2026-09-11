@@ -20,6 +20,10 @@ export type Plan = {
 export type Ticket = {
   id: string; eventId: string; eventTitle: string; venue: string; dates: string;
   attendee: string; palette?: string; admitted?: boolean; issuedAt: string;
+  /** Set when this event was actually hosted on the server (api.hostEvent)
+   * rather than a local-only ticket — present means the /e/<eventId> link
+   * really works for someone else. */
+  shareUrl?: string;
 };
 export type ChatTurn = { role: 'user' | 'planzo'; text: string; at: string; planId?: string };
 export type ViewedItem = {

@@ -4,6 +4,7 @@
   "outputDirectory": "app/dist",
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" },
-    { "source": "/p/:code*", "destination": "/index.html" }
+    { "source": "/p/:code*", "destination": "/index.html" },
+    { "source": "/e/:id*", "destination": "/index.html" }
   ]
 }
