@@ -147,6 +147,39 @@ await t('the "day" question is skipped once the request itself named a day', () 
   assert.strictEqual(day.applies({ intent: { dayHint: 'saturday' } }), false);
   assert.strictEqual(day.applies({ intent: {} }), true);
 });
+await t('a raw ISO date (an event\'s own date) resolves as itself, not as an unrecognized hint', () => {
+  const s = consensus.build(mkPlan([{ availability: "I'm in" }], {
+    intent: { needsFood: false, categories: ['Rock'], title: 'Concert', dayHint: '2026-11-03' },
+  }));
+  assert.strictEqual(s.hard.date, '2026-11-03');
+});
+
+console.log('\nPLAN GENERATION — SEEDED EVENTS');
+await t('a plan seeded from a concert never asks the day question again', () => {
+  const { QUESTIONS } = require('../engine/catalog');
+  const day = QUESTIONS.find(q => q.id === 'day');
+  // This is exactly what Discover.tsx's seedPlanFrom now sets for an event.
+  assert.strictEqual(day.applies({ intent: { dayHint: '2026-11-03' } }), false);
+});
+await t('the seeded concert itself becomes a real itinerary stop, not a generic Places search', async () => {
+  const plan = mkPlan([{ availability: "I'm in", budget: 'Flexible' }], {
+    origin: { lat: 38.98, lon: -76.94, label: 'Test' },
+    intent: {
+      needsFood: false, categories: ['Rock'], title: 'Melanie C World Tour',
+      dayHint: '2026-11-03', timeOfDay: 'Evening',
+      seed: { kind: 'event', title: 'Melanie C World Tour', venue: '9:30 Club',
+        address: '815 V St NW, Washington, DC', lat: 38.9169, lon: -77.0234,
+        officialUrl: 'https://ticketmaster.example/event/abc' },
+    },
+  });
+  const fp = await planEngine.generate(plan, { origin: plan.origin });
+  const eventStop = fp.itinerary.find(i => i.kind === 'event');
+  assert.ok(eventStop, 'expected an itinerary entry with kind "event"');
+  assert.strictEqual(eventStop.place.name, 'Melanie C World Tour');
+  assert.strictEqual(eventStop.place.address, '815 V St NW, Washington, DC');
+  assert.strictEqual(eventStop.bookingUrl, 'https://ticketmaster.example/event/abc');
+  assert.strictEqual(eventStop.unresolved, false, 'a known event is never "unresolved"');
+});
 
 console.log('\nCONSENSUS — HARD CONSTRAINTS INTERSECT');
 await t("the group's budget is the LOWEST stated ceiling, not the average", () => {

@@ -26,6 +26,9 @@ const DOW = ['sunday','monday','tuesday','wednesday','thursday','friday','saturd
  * as everywhere else in this engine. */
 function resolveDate(hint) {
   if (!hint) return null;
+  // Already a real date — an event's own date (Ticketmaster gives ISO
+  // dates directly), not a hint that needs interpreting.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(hint).trim())) return String(hint).trim();
   const h = String(hint).toLowerCase().trim();
   const today = new Date(); today.setHours(12, 0, 0, 0);
   const iso = d => d.toISOString().slice(0, 10);

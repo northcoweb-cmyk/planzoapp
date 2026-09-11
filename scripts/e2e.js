@@ -191,6 +191,70 @@ await t('a missing plan 404s cleanly', async () => {
   assert.strictEqual((await call('/plans/zzzzzzzz')).status, 404);
 });
 
+console.log('\nHOSTED EVENTS + FREE TICKETS — the real HTTP surface behind "Host an event" and "Add an activity"\n');
+
+let hostSession, eventId, guestSession;
+
+await t('a host gets a session and creates a public event', async () => {
+  const s = await call('/session', { method: 'POST', body: { name: 'Priya' } });
+  hostSession = s.body.session;
+  const r = await call('/events', { method: 'POST', session: hostSession, body: {
+    title: 'Fall Tailgate', venue: 'Lot 1', startsAt: new Date(Date.now() + 3 * 864e5).toISOString(),
+    visibility: 'public',
+  } });
+  assert.strictEqual(r.status, 200);
+  eventId = r.body.event.id;
+  assert.ok(r.body.shareUrl.endsWith('/e/' + eventId));
+});
+
+await t('the event shows up in the public feed', async () => {
+  const r = await call('/events/public');
+  assert.ok(r.body.events.some(e => e.id === eventId));
+});
+
+await t('a private event does NOT show up in the public feed', async () => {
+  const r = await call('/events', { method: 'POST', session: hostSession, body: {
+    title: 'Secret Study Group', venue: 'McKeldin', startsAt: new Date(Date.now() + 864e5).toISOString(),
+    visibility: 'private',
+  } });
+  const privateId = r.body.event.id;
+  const pub = await call('/events/public');
+  assert.ok(!pub.body.events.some(e => e.id === privateId));
+  // But the direct link still works — that's the point of a private link.
+  const direct = await call('/events/' + privateId);
+  assert.strictEqual(direct.body.event.title, 'Secret Study Group');
+});
+
+await t('a guest opening the link can RSVP and claim a real free ticket', async () => {
+  const s = await call('/session', { method: 'POST', body: { name: 'Jordan' } });
+  guestSession = s.body.session;
+  const rsvp = await call(`/events/${eventId}/rsvp`, { method: 'POST', session: guestSession, body: { status: 'going' } });
+  assert.strictEqual(rsvp.body.ok, true);
+  const claim = await call(`/events/${eventId}/claim`, { method: 'POST', session: guestSession, body: {} });
+  assert.strictEqual(claim.body.ok, true);
+  assert.ok(claim.body.ticket.id);
+  assert.ok(claim.body.credential.includes('.'), 'credential should be "<id>.<rawtoken>"');
+});
+
+await t('claiming a second ticket for the same event returns the same one, not a duplicate', async () => {
+  const claim = await call(`/events/${eventId}/claim`, { method: 'POST', session: guestSession, body: {} });
+  assert.strictEqual(claim.body.alreadyHad, true);
+});
+
+await t('the going count reflects the real RSVP, not a guess', async () => {
+  const r = await call('/events/' + eventId);
+  assert.strictEqual(r.body.event.counts.going, 1);
+});
+
+await t('claiming a ticket without a session is refused', async () => {
+  const r = await call(`/events/${eventId}/claim`, { method: 'POST', body: {} });
+  assert.strictEqual(r.status, 401);
+});
+
+await t('a missing event 404s cleanly', async () => {
+  assert.strictEqual((await call('/events/zzzzzzzzzzzz')).status, 404);
+});
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);
 })();

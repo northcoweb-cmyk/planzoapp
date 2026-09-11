@@ -1,98 +1,99 @@
 # Planzo — Roadmap / Backlog
 
-Tracked from Ryan's Sep 11 feedback session (a bug list + a "build
-everything" feature list). Bugs were fixed immediately; the full feature
-list was then built the same session (see git log for both).
+Tracked across two Sep 11 feedback sessions (bug list + feature list, then
+a round of real-usage fixes after live testing). See git log for the
+actual changes; this file tracks status and honest gaps.
 
 ## On the "self-improving agent" idea
 
-Deliberately **not** building an autonomous agent that runs live tests
-against production on its own schedule — that spends real Places/AI budget
-unsupervised, and could silently break something between check-ins.
+Still deliberately **not** building an autonomous agent that runs live
+tests against production unsupervised — real budget spend, real risk of
+silently breaking something between check-ins.
 
-What actually delivers the same value safely: a growing **regression test
-suite** (`scripts/test.js`, 92 tests as of this session) that encodes every
-real bad case found — like pizza-at-2am, drinks-not-food, day/date
-resolution, transport always asked, dealbreaker context — and runs before
-every deploy. Same "gets smarter over time" property, none of the risk of
-an agent making unsupervised changes.
+What that request actually became, safely: **two real automated test
+suites**, both run before every deploy —
+- `scripts/test.js` — 95 engine-level tests (deterministic logic: intent
+  parsing, consensus, question flow, plan generation)
+- `scripts/e2e.js` — 31 real HTTP-level tests against an actual running
+  server (the full plan-sharing loop, and now the hosted-events/free-ticket
+  loop too), no mocks
 
-**Pattern going forward:** every bug fix gets a regression test alongside
-it. Worth adding, when there's time: real Playwright end-to-end scenarios
-(not just engine unit tests) covering the full chat → plan → generate flow.
+126 tests total, all passing. Same "test different scenarios, make sure
+the result is exactly right" outcome the request asked for — run
+on-demand by a person (or before a deploy), not by an agent making
+unsupervised changes to production on its own schedule.
 
-## Feature list — status
+## Round 2 fixes (after live testing) — Sep 11
 
-All 11 items were built this session. What's genuinely done vs.
-intentionally left thin, honestly:
+- **Concert plans asking "what day/time"** — fixed for real. Seeding a
+  plan from a specific event now sets `intent.dayHint`/`timeOfDay` from
+  the event's own date/time, and `consensus.js`'s `resolveDate()` was
+  extended to accept a raw ISO date (an event's date) directly rather than
+  only interpreting hints like "saturday". The day/timing questions are
+  skipped, exactly as they should be — the event already answered them.
+- **The concert itself wasn't in the generated itinerary** — `plan.js`
+  now inserts the actual seeded event (title, venue, address, official
+  link) as a real itinerary stop, using the data already known from
+  Ticketmaster, never a generic Places search. Everything else (food,
+  etc.) still fills in around it.
+- **Activities moved to the main page** — was buried in Discover as
+  "Something outdoors?"; now "Popular activities" lives directly on Home,
+  reframed as general popular activities rather than outdoors-only, with
+  season-filtered chips (confirmed correct for the current month).
+- **"Add an activity" + real sign-ups** — new: anyone can add a test/real
+  activity from Home, which hosts a real event server-side (public or
+  link-only) and lets people claim a real free ticket inline, without
+  leaving Home. Shares the same tested hosting/ticket backend as "Host an
+  event" in Tickets.
+- **College logos "didn't work"** — real bug, not just this sandbox:
+  Clearbit's public logo API has become unreliable since their
+  acquisition. Switched to Google's favicon service, which has been a
+  stable public endpoint for years.
+- **Dates collapsing to just "Tonight"/"Tomorrow"** — `fmtDate()` now
+  always includes the real date alongside the relative label.
+- **Share links not previewing richly** — `/p/<code>` and `/e/<id>` now
+  get real Open Graph / Twitter Card meta tags injected server-side (the
+  actual plan/event title, not a generic one) when opened via a direct
+  link — verified the injected page still boots the real app correctly,
+  not just the meta tags. **Render-only for now** — deliberately not
+  touched on the Vercel path this round; this session hit two real Vercel
+  routing regressions already from rewrites that looked safe and weren't,
+  so a third speculative one wasn't worth the risk without testing against
+  an actual Vercel deployment first.
+- **A real generator bug, not just a code bug**: `app/scripts-port.mjs`
+  (which mirrors server engine files for the browser bundle) had a
+  hardcoded, stale export list for `events.js`'s hand-written adapter —
+  every time the port script ran, it silently overwrote the `.d.ts` file's
+  `byId`/`idFromUrl` declarations back to just `search`/`enabled`. Fixed
+  the generator itself, not just the output, so this can't quietly
+  regress again.
 
-1. ✅ **Multi-select cuisine (up to 3)** — `food` question capped via
-   `maxPicks`, threaded through `SelectorChips`'s new `max` prop.
-2. ✅ **Music genre gating** — Discover's Music tab now filters (not just
-   sorts) to picked genres, same mechanism as interest filtering.
-3. ✅ **Seasonal activity rotation** — `ACTIVITIES` in `Discover.tsx` now
-   carries a `seasons` field; Swim/Kayak/Camp/Ski/Picnic fade in/out by month.
-4. ✅ **College selector + logos** — Profile now has a college grid with real
-   logos via Clearbit's logo API. Seeded with 15 major East Coast schools as
-   a placeholder list — **swap in Ryan's actual list** when he sends it
-   (`COLLEGES` array in `Profile.tsx`, one line per school).
-5. 🟡 **Social feed** — real, not mocked: "Public events near you" in
-   Tickets pulls from the live `GET /api/events/public` server endpoint.
-   Honestly thin in one specific way: it's every public event, not filtered
-   by school or by who you know — there's no follow-graph and the college
-   field isn't cross-referenced against events yet. That's real remaining
-   work, not a fake feature.
-6. ✅ **Private events + shareable ticket links** — "Host an event" now
-   creates a real event server-side (public or private) and issues a real,
-   claimable ticket instead of a fake local one. `/e/<id>` is the actual
-   landing page for the link.
-7. ✅ **Working shareable plan links** — `/p/<code>` rebuilt in React
-   (`ParticipantView.tsx`), verified end-to-end with two separate browser
-   contexts (two different "devices"). Banner is the gradient hero card
-   Ryan asked for ("look super sweet").
-8. ✅ **Import event link** — pasting a Ticketmaster URL into Discover's
-   search resolves that exact event via `events.byId()`. Only Ticketmaster
-   is supported (matches what the app already sources events from) — "or
-   other" providers wasn't scoped further since nothing else is wired up
-   as an events source anywhere in the app.
-9. ✅ **"What Planzo remembers" as a dropdown** — collapsed by default now.
-10. ✅ **Restaurant cards with photo + $$$, same style as events** — done on
-    both Discover's grid and Home's "Nearby to eat" row.
-11. ✅ **Expand activities** — went from 3 to 11 (Hike, Picnic, Swim, Bike,
-    Climb, Kayak, Fish, Ski, Museum, Arcade, Camp).
+## Feature list — status (from the original "build everything" session)
 
-## Bugs fixed this session (separate from the feature list above)
-
-- Restaurant/plan recs now exclude closed venues outright when the request
-  was for "right now" (`intent.rightNow`, `plan.js` `fits()`)
-- "drinks" no longer misclassified as needing a sit-down meal
-- Event browsing on "For you" now actually filters to stated interests,
-  not just sorts by them
-- Dealbreaker question no longer offers "No drinking" when the plan is
-  explicitly about nightlife/drinks
-- Transport question now asked for solo plans too (previously silently
-  picked bike/scooter/walk without asking anyone planning alone)
-- Added a "What day do you want to do this?" question + real date
-  resolution (`consensus.js` `resolveDate`), wired into weather + the
-  generated plan's date — previously `plan.date` was never actually set
-- Location label now reverse-geocodes to a real "City, ST" via a new
-  `/api/geocode` endpoint, instead of always showing "Near you" or the
-  College Park fallback
-- Session identity bug: a background read (fetching the public events feed
-  on tab mount) used to silently mint an anonymous "Guest" session before
-  the real name was ever entered, and every action after that stayed
-  attributed to "Guest" since the cached token never updated. Fixed in
-  `api.ts` — a session is only created when a real name is actually used,
-  and reused only when the cached one matches the name being used now.
-- Past events fixed on both Home and Discover (from an earlier session)
+1. ✅ Multi-select cuisine (up to 3)
+2. ✅ Music genre gating on Discover
+3. ✅ Seasonal activity rotation
+4. ✅ College selector + logos (now on Google's favicon service)
+5. 🟡 **Social feed** — real, not mocked (`GET /api/events/public`, now
+   also surfaced right on Home). Still not filtered by school/friends —
+   no follow-graph, and `state.college` isn't cross-referenced against
+   events yet. Real remaining work, not a fake feature.
+6. ✅ Private events + shareable ticket links
+7. ✅ Working shareable plan links, verified across two separate browser
+   contexts
+8. ✅ Import a Ticketmaster event link
+9. ✅ "What Planzo remembers" as a dropdown
+10. ✅ Restaurant/activity cards with photo + $$$, same style as events
+11. ✅ Activities expanded from 3 to 11, now on Home instead of Discover
 
 ## What's still genuinely open
 
-- **Social feed filtering by school/friends** (item 5 above) — needs a
-  follow-graph or at least cross-referencing `state.college` against
-  events, neither of which exists yet.
-- **Real college list** — the 15 schools in `Profile.tsx` are a reasonable
-  placeholder, not Ryan's actual list (never provided in this session).
-- **Seasons are Northern Hemisphere / US-calendar assumptions** — fine for
-  now, worth revisiting if Planzo ever needs to work somewhere the seasons
-  are flipped.
+- **Social feed filtering by school/friends** — needs a follow-graph or
+  at least cross-referencing `state.college` against events.
+- **Real college list** — 15 schools in `Profile.tsx` is a placeholder,
+  not Ryan's actual list (never provided).
+- **OG tags on Vercel** — works on Render; the Vercel serverless path
+  would need its own careful, tested implementation (reading the static
+  shell inside a function has real bundling gotchas) rather than
+  extending the same code blind.
+- **Seasons assume Northern Hemisphere / US calendar** — fine for now.

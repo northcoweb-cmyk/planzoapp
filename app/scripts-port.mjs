@@ -105,7 +105,7 @@ for (const [file, names] of [
   ['cost.js',   ['reserve','record','report','estimateAiCost','PLACES_PRICES','LIMITS']],
   ['places.js', ['search','photoFor','details','enabled']],
   ['ai.js',     ['ask','askJson','enabled','CHEAP','SMART']],
-  ['events.js', ['search','enabled']],
+  ['events.js', ['search','byId','idFromUrl','enabled']],
 ]) {
   const lines = names.map(x => `export declare const ${x}: any;`);
   lines.push('declare const _default: any;', 'export default _default;');

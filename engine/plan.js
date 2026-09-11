@@ -162,8 +162,25 @@ async function generate(plan, { origin } = {}) {
     else caveats.push("Weather data isn't available right now.");
   }
 
-  // ── Real places, one search per slot, shared across the whole group
+  // ── The seeded event (if this plan started from "Start an idea with
+  // this" on a specific concert/show) is the actual reason the plan
+  // exists — it goes in as a real stop using the venue/address/time
+  // Ticketmaster already gave us, never a Places search for something
+  // generic. Everything else in the itinerary fills in AROUND it.
   const slots = [];
+  const seed = state.intent.seed;
+  if (seed?.kind === 'event') {
+    slots.push({
+      slot: 'event', label: seed.title || plan.intent?.title || 'The show', resolved: true,
+      pick: {
+        name: seed.title || plan.title, address: seed.address, venue: seed.venue,
+        lat: seed.lat, lon: seed.lon, website: seed.officialUrl, provider: 'ticketmaster',
+      },
+      alternatives: [],
+    });
+    sources.push({ kind: 'event', provider: 'ticketmaster', title: seed.title });
+  }
+
   for (const term of searchTerms(state)) {
     const res = await places.search({
       query: term.query, lat: start?.lat, lon: start?.lon,

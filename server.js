@@ -89,6 +89,35 @@ const server = http.createServer(async (req, res) => {
       return send(res, result.status || 200, result.body, result.headers || {});
     }
 
+    // /p/<code> and /e/<id> get the real title/description injected into
+    // the page before it's sent, so a shared link previews the actual
+    // plan/event in iMessage/Slack/etc. instead of a generic app tag.
+    const pMatch = url.pathname.match(/^\/p\/([A-Za-z0-9_-]+)/);
+    const eMatch = url.pathname.match(/^\/e\/([A-Za-z0-9_-]+)/);
+    if (pMatch || eMatch) {
+      const indexPath = path.join(APP_DIST, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        const store = require('./lib/store');
+        const og = require('./lib/og');
+        const publicUrl = (process.env.PLANZO_PUBLIC_URL || `http://${req.headers.host}`).replace(/\/$/, '');
+        let meta = null;
+        if (pMatch) {
+          const plan = await store.get(`plan:${pMatch[1]}`);
+          if (plan) meta = og.planMeta(plan, publicUrl);
+        } else {
+          const event = await store.get(`event:${eMatch[1]}`);
+          if (event) meta = og.eventMeta(event, publicUrl);
+        }
+        if (meta) {
+          const html = og.inject(fs.readFileSync(indexPath, 'utf8'), meta);
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+          return res.end(html);
+        }
+      }
+      // Not found (or no server data yet) — fall through to the plain SPA;
+      // the client-side ParticipantView/EventView shows its own not-found state.
+    }
+
     // Everything else is the SPA — serve the matching static asset, or fall
     // back to index.html so client-side routes resolve on a hard refresh.
     if (serveStatic(req, res, url.pathname)) return;

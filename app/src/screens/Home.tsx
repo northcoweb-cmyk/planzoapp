@@ -1,16 +1,19 @@
 "use client";
 import * as React from "react";
-import { motion } from "framer-motion";
-import { MapPin, ArrowRight, CloudSun, Users } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MapPin, ArrowRight, CloudSun, Users, Plus, Check, Ticket as TicketIcon, Globe2, Lock } from "lucide-react";
 import { PromptInput } from "@/components/ui/ai-chat-input";
-import { Glass, Pill, Img } from "@/components/ui/glass";
-import { timeSlot, greetingFor } from "@/lib/greeting";
+import { Glass, Pill, Img, Sheet, Notice } from "@/components/ui/glass";
+import { VenueGridCard, VenueSheet } from "@/components/ui/venue-card";
 import { store, useStore, originOrFallback, requestLocation, type Plan } from "@/lib/store";
+import { timeSlot, greetingFor } from "@/lib/greeting";
+import { ACTIVITIES, inSeason, startIdea, trackViewOnly } from "@/lib/seed";
 import * as intent from "@/lib/engine/intent.js";
 import * as events from "@/lib/engine/events.js";
 import * as places from "@/lib/engine/places.js";
 import * as weather from "@/lib/engine/weather.js";
 import * as consensus from "@/lib/engine/consensus.js";
+import * as api from "@/lib/api";
 
 export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
   const me = useStore(s => s.me);
@@ -24,6 +27,12 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
   const [eats, setEats] = React.useState<any[]>([]);
   const [busy, setBusy] = React.useState(false);
 
+  const [activityKey, setActivityKey] = React.useState<string | null>(null);
+  const [activityResults, setActivityResults] = React.useState<any[] | null>(null);
+  const [openActivity, setOpenActivity] = React.useState<any>(null);
+  const [hostedActivities, setHostedActivities] = React.useState<any[] | null>(null);
+  const [addingActivity, setAddingActivity] = React.useState(false);
+
   React.useEffect(() => {
     (async () => {
       await requestLocation();
@@ -35,7 +44,23 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
       const pr = await places.search({ query: "restaurants", lat: o.lat, lon: o.lon, limit: 8 });
       if (pr.available) setEats(pr.places);
     })();
+    if (api.canShare()) api.publicEvents().then(r => setHostedActivities(r.events || []));
   }, []);
+
+  // Activities are opt-in (pick a chip) rather than always-on, so a Home
+  // load never spends more Places budget than the user actually asked for.
+  React.useEffect(() => {
+    if (!activityKey) { setActivityResults(null); return; }
+    let dead = false;
+    setActivityResults(null);
+    (async () => {
+      const o = originOrFallback();
+      const ar = await places.search({ query: ACTIVITIES[activityKey].query, lat: o.lat, lon: o.lon, limit: 10 });
+      if (dead) return;
+      setActivityResults(ar.available ? ar.places : []);
+    })();
+    return () => { dead = true; };
+  }, [activityKey]);
 
   const openPlans = Object.values(plans)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -193,43 +218,208 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
         <Section title="Nearby to eat" action="See all" onAction={() => go("discover")}>
           <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
             {eats.map((v, i) => (
-              <EatCard key={v.providerId} v={v} i={i} onClick={() => go("discover")} />
+              <motion.button key={v.providerId}
+                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: .05 * i, duration: .45, ease: [.22, 1, .36, 1] }}
+                onClick={() => go("discover")} className="w-[200px] shrink-0">
+                <VenueGridCard v={v} i={i} />
+              </motion.button>
             ))}
           </div>
         </Section>
       )}
+
+      {/* Popular activities — right on the main page, not buried under a
+          "something outdoors?" framing inside Discover. Chips are in-season
+          only (a real season check, not decoration), and anyone can add
+          their own via "Add an activity", which hosts it for real and lets
+          people sign up for a free ticket right from the card. */}
+      <div className="mb-7">
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-[17px]">Popular activities</h2>
+          {api.canShare() && (
+            <button onClick={() => setAddingActivity(true)}
+              className="flex items-center gap-1 text-[13px] font-medium text-white/40 transition-colors hover:text-white/70">
+              <Plus className="h-3.5 w-3.5" /> Add
+            </button>
+          )}
+        </div>
+
+        <div className="no-bar edge-fade -mx-5 mb-3 flex gap-2 overflow-x-auto px-5">
+          {Object.keys(ACTIVITIES).filter(k => inSeason(ACTIVITIES[k])).map(k => (
+            <button key={k} onClick={() => setActivityKey(activityKey === k ? null : k)}
+              className={`shrink-0 rounded-full px-4 py-2 text-[13.5px] font-semibold transition-colors ${
+                activityKey === k ? "text-white" : "border border-white/10 bg-white/[.06] text-white/60 hover:text-white/85"}`}
+              style={activityKey === k ? { background: "var(--grad-brand)" } : undefined}>
+              {ACTIVITIES[k].emoji} {k}
+            </button>
+          ))}
+        </div>
+
+        {activityKey && activityResults === null && (
+          <div className="grid grid-cols-2 gap-3">
+            {[0, 1].map(i => <div key={i} className="skeleton h-[168px] rounded-[22px]" />)}
+          </div>
+        )}
+        {activityKey && activityResults && activityResults.length === 0 && (
+          <Notice>
+            No {ACTIVITIES[activityKey].noun}s came back nearby. Google Places needs a key set
+            (<strong>You → Settings</strong>) to search this at all.
+          </Notice>
+        )}
+        {activityKey && activityResults && activityResults.length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
+            {activityResults.map((v, i) => (
+              <VenueGridCard key={v.providerId} v={v} i={i}
+                onClick={() => { trackViewOnly(v, "activity", activityKey); setOpenActivity(v); }} />
+            ))}
+          </div>
+        )}
+
+        {/* User-hosted activities — real events other people created via
+            "Add an activity" (or "Host an event" in Tickets), shown right
+            here since this IS the activities feed, with an inline sign-up
+            that claims a real free ticket without leaving Home. */}
+        {hostedActivities && hostedActivities.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2.5 text-[12.5px] font-medium text-white/40">Hosted by the community</p>
+            <div className="space-y-2.5">
+              {hostedActivities.map(e => <HostedActivityCard key={e.id} e={e} me={me} />)}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {openActivity && activityKey && (
+          <VenueSheet v={openActivity} label={ACTIVITIES[activityKey].noun.replace(/^./, c => c.toUpperCase())}
+            onClose={() => setOpenActivity(null)}
+            onStartIdea={() => { startIdea(openActivity, "activity", me, go, activityKey); setOpenActivity(null); }} />
+        )}
+        {addingActivity && (
+          <Sheet open onClose={() => setAddingActivity(false)} title="Add an activity">
+            <AddActivity me={me} onDone={() => setAddingActivity(false)} />
+          </Sheet>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-const PRICE_LEVELS = ["PRICE_LEVEL_FREE","PRICE_LEVEL_INEXPENSIVE","PRICE_LEVEL_MODERATE","PRICE_LEVEL_EXPENSIVE","PRICE_LEVEL_VERY_EXPENSIVE"];
-const priceTag = (level?: string) => level ? "$".repeat(Math.max(1, PRICE_LEVELS.indexOf(level))) : null;
-
-/** Same image-on-top card shape as the events row right above it, so
- * restaurants don't look like a different, lower-effort feature bolted on. */
-function EatCard({ v, i, onClick }: { v: any; i: number; onClick?: () => void }) {
-  const [photo, setPhoto] = React.useState<string | null>(null);
-  React.useEffect(() => { places.photoFor(v, 400).then(setPhoto); }, [v]);
+function HostedActivityCard({ e, me }: { e: any; me: any }) {
+  const [status, setStatus] = React.useState<"idle" | "busy" | "done">("idle");
+  const signUp = async () => {
+    if (!me) return;
+    setStatus("busy");
+    try {
+      await api.rsvpEvent(e.id, "going", me.name);
+      const r = await api.claimTicket(e.id, me.name);
+      if (r.ok) {
+        store.addTicket({
+          id: r.ticket.id, eventId: e.id, eventTitle: e.title, venue: e.venue || "TBA",
+          dates: e.startsAt ? new Date(e.startsAt).toLocaleDateString([], { month: "long", day: "numeric" }) : "TBA",
+          attendee: me.name, issuedAt: r.ticket.issuedAt,
+        });
+        setStatus("done");
+      } else setStatus("idle");
+    } catch { setStatus("idle"); }
+  };
   return (
-    <motion.button
-      initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: .05 * i, duration: .45, ease: [.22, 1, .36, 1] }}
-      onClick={onClick} className="w-[200px] shrink-0 text-left"
-    >
-      <Glass className="overflow-hidden p-0 transition-transform active:scale-[.98]">
-        <Img src={photo} alt={v.name} ratio="4/3" />
-        <div className="p-3">
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <p className="truncate text-[10px] font-bold uppercase tracking-wider text-[#C9C1FF]">
-              {v.rating ? `★ ${v.rating}` : "Restaurant"}
-            </p>
-            {priceTag(v.priceLevel) && <p className="shrink-0 text-[11px] font-bold text-white/55">{priceTag(v.priceLevel)}</p>}
-          </div>
-          <p className="line-clamp-2 text-[13.5px] font-semibold leading-snug">{v.name}</p>
-          <p className="mt-1.5 truncate text-[11.5px] text-white/45">{v.address}</p>
-        </div>
-      </Glass>
-    </motion.button>
+    <Glass className="flex items-center gap-3 p-3.5">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[14.5px] font-semibold">{e.title}</p>
+        <p className="mt-0.5 truncate text-[12px] text-white/45">
+          {e.venue}{e.counts?.going ? ` · ${e.counts.going} going` : ""}
+        </p>
+      </div>
+      <button onClick={signUp} disabled={status !== "idle"}
+        className="shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold text-white transition-transform active:scale-95 disabled:opacity-70"
+        style={{ background: "var(--grad-brand)" }}>
+        {status === "done" ? <><Check className="h-3.5 w-3.5" /> Signed up</>
+          : status === "busy" ? "…" : <><TicketIcon className="h-3.5 w-3.5" /> Sign up</>}
+      </button>
+    </Glass>
+  );
+}
+
+function AddActivity({ me, onDone }: { me: any; onDone: () => void }) {
+  const [title, setTitle] = React.useState("");
+  const [venue, setVenue] = React.useState("");
+  const [visibility, setVisibility] = React.useState<"public" | "private">("public");
+  const [when, setWhen] = React.useState(() => new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10));
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+  const [done, setDone] = React.useState<string | null>(null);
+
+  const create = async () => {
+    if (!title.trim() || !venue.trim() || !me) return;
+    setBusy(true); setErr(null);
+    try {
+      const hosted = await api.hostEvent({
+        name: me.name, title: title.trim(), venue: venue.trim(),
+        startsAt: new Date(when + "T15:00:00").toISOString(), visibility,
+      });
+      if (!hosted) { setErr("Couldn't create that — try again."); return; }
+      await api.claimTicket(hosted.event.id, me.name);
+      await navigator.clipboard?.writeText(hosted.shareUrl).catch(() => {});
+      setDone(hosted.shareUrl);
+    } finally { setBusy(false); }
+  };
+
+  if (done) {
+    return (
+      <div className="py-2 text-center">
+        <Check className="mx-auto mb-2 h-8 w-8 text-emerald-300" />
+        <p className="text-[15px] font-semibold">Added — link copied.</p>
+        <p className="mt-1 text-[13px] text-white/45">
+          {visibility === "public" ? "It's live in Popular activities for everyone nearby." : "Only people with the link can see it."}
+        </p>
+        <button onClick={onDone} className="mt-4 w-full rounded-full py-3 text-[14.5px] font-semibold"
+          style={{ background: "var(--grad-brand)" }}>Done</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[13px] leading-relaxed text-white/45">
+        Test activities, meetups, anything — this hosts a real event people can sign up
+        for and claim a free ticket to, same as anything in Tickets.
+      </p>
+      <label className="block">
+        <span className="mb-1.5 block text-[12.5px] font-medium text-white/50">What is it</span>
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Pickup basketball"
+          className="glass w-full rounded-2xl px-4 py-3.5 text-[15px] outline-none placeholder:text-white/30" />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-[12.5px] font-medium text-white/50">Where</span>
+        <input value={venue} onChange={e => setVenue(e.target.value)} placeholder="Ritchie Coliseum"
+          className="glass w-full rounded-2xl px-4 py-3.5 text-[15px] outline-none placeholder:text-white/30" />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-[12.5px] font-medium text-white/50">Date</span>
+        <input type="date" value={when} onChange={e => setWhen(e.target.value)}
+          className="glass w-full rounded-2xl px-4 py-3.5 text-[15px] outline-none [color-scheme:dark]" />
+      </label>
+      <div className="flex gap-2">
+        <button onClick={() => setVisibility("public")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl border py-3 text-[13.5px] font-medium transition-colors ${
+            visibility === "public" ? "border-[#7C6BFF]/60 bg-[#7C6BFF]/15 text-[#C9C1FF]" : "border-white/10 bg-white/[.04] text-white/55"}`}>
+          <Globe2 className="h-3.5 w-3.5" /> Public
+        </button>
+        <button onClick={() => setVisibility("private")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl border py-3 text-[13.5px] font-medium transition-colors ${
+            visibility === "private" ? "border-[#7C6BFF]/60 bg-[#7C6BFF]/15 text-[#C9C1FF]" : "border-white/10 bg-white/[.04] text-white/55"}`}>
+          <Lock className="h-3.5 w-3.5" /> Link only
+        </button>
+      </div>
+      {err && <Notice tone="warn">{err}</Notice>}
+      <button onClick={create} disabled={busy || !title.trim() || !venue.trim()}
+        className="mt-1 w-full rounded-full py-3.5 text-[15px] font-semibold disabled:opacity-40"
+        style={{ background: "var(--grad-brand)" }}>
+        {busy ? "Adding…" : "Add it"}
+      </button>
+    </div>
   );
 }
 
@@ -247,13 +437,17 @@ function Section({ title, action, onAction, children }: {
   );
 }
 
+/** Always carries the real date alongside any relative label — "Tonight"
+ * on its own used to be all a card showed, which is useless once you're
+ * not looking at it same-day anymore. */
 export function fmtDate(d?: string | null) {
   if (!d) return "Date TBA";
   const dt = new Date(d + "T12:00:00");
   const today = new Date(); today.setHours(12, 0, 0, 0);
   const days = Math.round((dt.getTime() - today.getTime()) / 86400000);
-  if (days === 0) return "Tonight";
-  if (days === 1) return "Tomorrow";
-  if (days > 1 && days < 7) return dt.toLocaleDateString([], { weekday: "long" });
-  return dt.toLocaleDateString([], { month: "short", day: "numeric" });
+  const real = dt.toLocaleDateString([], { month: "short", day: "numeric" });
+  if (days === 0) return `Tonight · ${real}`;
+  if (days === 1) return `Tomorrow · ${real}`;
+  if (days > 1 && days < 7) return `${dt.toLocaleDateString([], { weekday: "long" })} · ${real}`;
+  return real;
 }

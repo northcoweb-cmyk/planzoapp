@@ -20,9 +20,12 @@ const DIETARY = ["Vegetarian","Vegan","Gluten-free","Halal","Kosher","Nut allerg
 // into genre filtering logic.
 const MUSIC_GENRES = ["Hip-Hop", "Rock", "Pop", "EDM", "Live music"];
 
-// Seed list — logos resolved live via Clearbit's logo API (no key, no
-// asset hosting: https://logo.clearbit.com/<domain>) rather than bundling
-// image files per school. Add more here as Ryan sends the real list.
+// Seed list — logos resolved live via Google's public favicon service
+// (no key, no asset hosting) rather than bundling image files per school.
+// Originally used Clearbit's logo API, which turned out to be unreliable
+// after Clearbit's acquisition — Google's favicon endpoint has been a
+// stable, widely-used public service for years. Add more here as Ryan
+// sends the real list.
 const COLLEGES = [
   { name: "University of Maryland", domain: "umd.edu" },
   { name: "Towson University", domain: "towson.edu" },
@@ -149,7 +152,7 @@ export default function Profile() {
             <button key={c.domain} onClick={() => store.set({ college: college === c.name ? null : c.name })}
               className={`flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-center transition-colors ${
                 college === c.name ? "border-white/30 bg-white/[.10]" : "border-white/10 bg-white/[.03] hover:bg-white/[.06]"}`}>
-              <img src={`https://logo.clearbit.com/${c.domain}`} alt=""
+              <img src={`https://www.google.com/s2/favicons?sz=64&domain=${c.domain}`} alt=""
                 className="h-8 w-8 rounded-lg object-contain"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
               <span className="line-clamp-2 text-[10.5px] leading-tight text-white/70">{c.name}</span>
