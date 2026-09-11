@@ -31,6 +31,8 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
   const me = useStore(s => s.me);
   const plans = useStore(s => s.plans);
   const chat = useStore(s => s.chat);
+  const interests = useStore(s => s.interests);
+  const likesSports = interests.some(i => ["Sports", "Basketball", "Football", "Baseball"].includes(i));
   const slot = timeSlot();
   const g = greetingFor(slot);
 
@@ -49,6 +51,8 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
   const [eatCuisine, setEatCuisine] = React.useState<string | null>(null);
   const [eatSort, setEatSort] = React.useState<"rating" | "price_low" | "price_high">("rating");
 
+  const [sportsEvents, setSportsEvents] = React.useState<any[] | null>(null);
+
   React.useEffect(() => {
     (async () => {
       await requestLocation();
@@ -65,6 +69,22 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
     })();
     if (api.canShare()) api.publicEvents().then(r => setHostedActivities(r.events || []));
   }, []);
+
+  // Sports specifically, not folded into the general "Happening near you"
+  // feed — someone who says they like sports wants games, today's or
+  // coming up, not a mixed feed of concerts they have to dig through.
+  React.useEffect(() => {
+    if (!likesSports) { setSportsEvents(null); return; }
+    let dead = false;
+    (async () => {
+      const o = originOrFallback();
+      const today = new Date().toISOString().slice(0, 10);
+      const r = await events.search({ lat: o.lat, lon: o.lon, radiusMiles: 40, category: "sports", limit: 10, startDate: today });
+      if (dead) return;
+      setSportsEvents(r.available ? r.events.filter((e: any) => !e.date || e.date >= today) : []);
+    })();
+    return () => { dead = true; };
+  }, [likesSports]);
 
   // Activities are opt-in (pick a chip) rather than always-on, so a Home
   // load never spends more Places budget than the user actually asked for.
@@ -196,6 +216,35 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
                 </button>
               );
             })}
+          </div>
+        </Section>
+      )}
+
+      {likesSports && sportsEvents && sportsEvents.length > 0 && (
+        <Section title="Games coming up" action="See all" onAction={() => go("discover", undefined)}>
+          <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
+            {sportsEvents.map((e, i) => (
+              <motion.button
+                key={e.providerId}
+                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: .05 * i, duration: .45, ease: [.22, 1, .36, 1] }}
+                onClick={() => go("discover", e)}
+                className="w-[240px] shrink-0 text-left"
+              >
+                <Glass className="overflow-hidden p-0 transition-transform active:scale-[.98]">
+                  <Img src={e.imageUrl} alt={e.title} ratio="16/9" />
+                  <div className="p-3.5">
+                    <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wider text-[#C9C1FF]">
+                      {e.genre || "Sports"}
+                    </p>
+                    <p className="line-clamp-2 text-[14.5px] font-semibold leading-snug">{e.title}</p>
+                    <p className="mt-1.5 truncate text-[12px] text-white/45">
+                      {fmtDate(e.date)}{e.venue ? ` · ${e.venue}` : ""}
+                    </p>
+                  </div>
+                </Glass>
+              </motion.button>
+            ))}
           </div>
         </Section>
       )}
