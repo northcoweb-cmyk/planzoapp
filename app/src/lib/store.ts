@@ -13,6 +13,9 @@ export type Plan = {
   id: string; idea: string; title: string; intent: any;
   participants: Participant[]; origin: Origin | null;
   finalPlan: any | null; trip?: any; createdAt: string;
+  /** Set once this plan has been pushed to the server (createSharedPlan) —
+   * present means "Copy link" actually works for someone else. */
+  shareCode?: string; shareUrl?: string;
 };
 export type Ticket = {
   id: string; eventId: string; eventTitle: string; venue: string; dates: string;

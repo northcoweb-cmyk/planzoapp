@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Plus, Share2, Sparkles, Trash2, CalendarPlus } from "lucide-react";
+import { ArrowLeft, Plus, Share2, Sparkles, Trash2, CalendarPlus, Check, Link as LinkIcon } from "lucide-react";
 import { Glass, Sheet, Notice, Pill } from "@/components/ui/glass";
 import { SelectorChips } from "@/components/ui/selector-chips";
 import { store, useStore, originOrFallback, type Plan } from "@/lib/store";
@@ -9,6 +9,7 @@ import * as consensus from "@/lib/engine/consensus.js";
 import * as questions from "@/lib/engine/questions.js";
 import * as planEng from "@/lib/engine/plan.js";
 import * as calendarEng from "@/lib/engine/calendar.js";
+import * as api from "@/lib/api";
 
 export default function Plans({ focus, setFocus }: { focus?: string; setFocus: (id?: string) => void }) {
   const plans = useStore(s => s.plans);
@@ -72,6 +73,8 @@ function PlanDetail({ plan, back }: { plan: Plan; back: () => void }) {
   const [adding, setAdding] = React.useState(false);
   const [name, setName] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [sharing, setSharing] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
 
   const st = consensus.build(plan);
   const participant = plan.participants.find(p => p.id === who) || plan.participants[0];
@@ -94,6 +97,29 @@ function PlanDetail({ plan, back }: { plan: Plan; back: () => void }) {
     setWho(id); setName(""); setAdding(false);
   };
 
+  /** First click creates the plan server-side (so there's something at
+   * the other end of the link at all) and caches the code on the plan;
+   * every click after that just copies the same link. */
+  const shareLink = async () => {
+    if (!me || !api.canShare()) return;
+    setSharing(true);
+    try {
+      let url = plan.shareUrl;
+      if (!url) {
+        const shared = await api.createSharedPlan({
+          name: me.name, idea: plan.idea, date: plan.finalPlan?.date || null,
+          origin: plan.origin || originOrFallback(),
+        });
+        if (!shared) return; // no server in this build — nothing to link to
+        url = shared.shareUrl;
+        store.savePlan({ ...plan, shareCode: shared.code, shareUrl: shared.shareUrl });
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } finally { setSharing(false); }
+  };
+
   const build = async () => {
     setBusy(true);
     try {
@@ -107,8 +133,21 @@ function PlanDetail({ plan, back }: { plan: Plan; back: () => void }) {
       <button onClick={back} className="mb-4 flex items-center gap-1.5 text-[14px] text-white/45 transition-colors hover:text-white">
         <ArrowLeft className="h-4 w-4" /> Plans
       </button>
-      <h1 className="text-[26px]">{plan.title}</h1>
-      <p className="mt-1 mb-5 text-[13.5px] text-white/40">"{plan.idea}"</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[26px]">{plan.title}</h1>
+          <p className="mt-1 text-[13.5px] text-white/40">"{plan.idea}"</p>
+        </div>
+        {api.canShare() && (
+          <button onClick={shareLink} disabled={sharing}
+            className="mt-1 flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[.06] px-3.5 py-2 text-[12.5px] font-medium text-white/70 transition-colors hover:bg-white/[.12] disabled:opacity-50">
+            {copied ? <><Check className="h-3.5 w-3.5 text-emerald-300" /> Copied</>
+              : sharing ? <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" /> …</>
+              : <><Share2 className="h-3.5 w-3.5" /> {plan.shareUrl ? "Copy link" : "Share"}</>}
+          </button>
+        )}
+      </div>
+      <div className="mb-5" />
 
       <Glass className="mb-4 p-4">
         <div className="mb-3 flex items-center justify-between">
