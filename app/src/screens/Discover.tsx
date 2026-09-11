@@ -112,11 +112,19 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
   }, [activityKey]);
 
   // Re-rank in place as interests/memory/click-history change, without
-  // re-hitting the network for the same raw event list.
-  const list = React.useMemo(
-    () => (rawEvents ? rank(rawEvents, interests, memory, viewed) : null),
-    [rawEvents, interests, memory, viewed],
-  );
+  // re-hitting the network for the same raw event list. On "For you"
+  // specifically, explicit interests actually FILTER now, not just sort —
+  // picking Food + Sports used to still show plays and concerts, just
+  // ranked slightly lower, which isn't what "only show me this" means.
+  const list = React.useMemo(() => {
+    if (!rawEvents) return null;
+    const ranked = rank(rawEvents, interests, memory, viewed);
+    if (cat !== "For you" || interests.length === 0) return ranked;
+    const filtered = filterToInterests(ranked, interests);
+    // Never leave the screen empty over a mismatch (e.g. "Food" has no
+    // ticketed-event equivalent) — fall back to the ranked, unfiltered list.
+    return filtered.length > 0 ? filtered : ranked;
+  }, [rawEvents, interests, memory, viewed, cat]);
 
   const startIdea = (item: any, kind: Kind, actKey?: string) => {
     if (!me) return;
@@ -404,6 +412,22 @@ function fmt12(t: string) {
   const [h, m] = t.split(":").map(Number);
   const ap = h >= 12 ? "PM" : "AM";
   return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${ap}`;
+}
+
+/**
+ * Actually exclude events outside the person's stated interests, rather than
+ * just nudging them down the list. Matches loosely (either string contains
+ * the other) since Ticketmaster's genres ("Rock", "Hip-Hop") and Planzo's
+ * onboarding interests ("Live music", "Hip-Hop") don't share one vocabulary.
+ */
+function filterToInterests(list: any[], interests: string[]) {
+  const liked = interests.map(s => s.toLowerCase()).filter(Boolean);
+  if (!liked.length) return list;
+  return list.filter(e => {
+    const genreWords = `${e.genre || ""} ${e.category || ""}`.toLowerCase().split(/\s+/).filter(Boolean);
+    const hay = `${e.genre || ""} ${e.category || ""} ${e.title || ""}`.toLowerCase();
+    return liked.some(k => hay.includes(k) || genreWords.some(w => k.includes(w) && w.length > 2));
+  });
 }
 
 /**

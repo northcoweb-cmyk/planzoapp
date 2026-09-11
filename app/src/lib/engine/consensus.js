@@ -18,6 +18,32 @@
  */
 import { BUDGET_CEILING, DISTANCE_MINUTES, NARROWING } from './catalog.js';
 
+const DOW = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+
+/** Turn a day hint ("saturday", "tomorrow", "this weekend", "This Friday",
+ * "Next week", free text like "dinner Saturday") into an actual ISO date.
+ * Never invents a date it can't resolve — returns null instead, same rule
+ * as everywhere else in this engine. */
+function resolveDate(hint) {
+  if (!hint) return null;
+  const h = String(hint).toLowerCase().trim();
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  const iso = d => d.toISOString().slice(0, 10);
+
+  if (h === 'today' || h === 'tonight') return iso(today);
+  if (h === 'tomorrow') return iso(new Date(today.getTime() + 86400000));
+  if (h === 'next week') return iso(new Date(today.getTime() + 7 * 86400000));
+
+  const named = DOW.find(d => h.includes(d));
+  if (named || h === 'weekend' || h === 'this weekend') {
+    const targetDow = named ? DOW.indexOf(named) : 6; // "weekend" -> Saturday
+    let delta = (targetDow - today.getDay() + 7) % 7;
+    if (delta === 0) delta = 7; // "this Saturday" said on a Saturday means next one
+    return iso(new Date(today.getTime() + delta * 86400000));
+  }
+  return null;
+}
+
 function tally(participants, questionId) {
   const counts = new Map();
   for (const p of participants) {
@@ -59,6 +85,12 @@ function build(plan) {
     const m = DISTANCE_MINUTES[v];
     maxMinutes = maxMinutes === null ? m : Math.min(maxMinutes, m);
   }
+
+  // ── HARD: the date. The organizer's own words win ("dinner Saturday");
+  // otherwise the group's "day" answer, once anyone has given one.
+  const dayAnswers = tally(attending, 'day');
+  const dayLeader = [...dayAnswers.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const date = resolveDate(plan.intent?.dayHint) || resolveDate(dayLeader);
 
   // ── HARD: dietary restrictions union. Every one of them must be satisfied.
   const dietary = new Set();
@@ -110,6 +142,7 @@ function build(plan) {
       maxMinutes,
       dietary: [...dietary],
       dealbreakers: [...dealbreakers],
+      date,
     },
     soft,
     answeredQuestions: answeredQuestions.size,

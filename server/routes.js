@@ -20,6 +20,7 @@ const trips = require('../engine/trips');
 const search = require('../engine/search');
 const weather = require('../services/weather');
 const places = require('../services/places');
+const geocode = require('../services/geocode');
 const events = require('../services/events');
 const ai = require('../services/ai');
 
@@ -205,6 +206,12 @@ async function handle({ method, url, body, ip, headers }) {
     const lat = parseFloat(url.searchParams.get('lat'));
     const lon = parseFloat(url.searchParams.get('lon'));
     return ok(await weather.forecast(lat, lon, url.searchParams.get('date')));
+  }
+
+  if (p === '/geocode' && method === 'GET') {
+    const lat = parseFloat(url.searchParams.get('lat'));
+    const lon = parseFloat(url.searchParams.get('lon'));
+    return ok(await geocode.cityFor(lat, lon));
   }
 
   if (p === '/discover' && method === 'GET') {

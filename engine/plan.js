@@ -107,6 +107,12 @@ function fits(place, state) {
     const level = priceLevelNum(place.priceLevel);
     if (level !== null && (PER_PERSON_FOOD[level] || 0) > state.hard.budgetCeiling) return false;
   }
+  // "pizza right now" at 1:59am must never hand back a place that opens at
+  // 11am — openNow===false is a hard exclusion here, not just a scoring
+  // penalty, and only when the request was actually for right now (a plan
+  // for Saturday shouldn't be filtered by whether a place happens to be
+  // open at the moment the plan was created).
+  if (state.intent.rightNow && place.openNow === false) return false;
   return true;
 }
 
@@ -146,10 +152,12 @@ async function generate(plan, { origin } = {}) {
   const caveats = [];
   const sources = [];
 
+  const resolvedDate = plan.date || state.hard.date;
+
   // ── Weather (free, so always attempted for outdoor-capable plans)
   let wx = { available: false, reason: 'no_location' };
   if (start?.lat != null) {
-    wx = await weather.forecast(start.lat, start.lon, plan.date);
+    wx = await weather.forecast(start.lat, start.lon, resolvedDate);
     if (wx.available) sources.push({ kind: 'weather', provider: 'open-meteo', fetchedAt: wx.fetchedAt });
     else caveats.push("Weather data isn't available right now.");
   }
@@ -285,7 +293,7 @@ async function generate(plan, { origin } = {}) {
   return {
     generatedAt: new Date().toISOString(),
     title: plan.intent?.title || plan.title || 'Your plan',
-    date: plan.date || null,
+    date: resolvedDate || null,
     groupSize: group,
     confirmed: state.confirmedCount,
     window: `${fmt(baseHour * 60)} – ${fmt(clock)}`,
@@ -312,4 +320,4 @@ function fmt(minutes) {
   return `${h12}:${mm} ${ampm}`;
 }
 
-module.exports = { generate, transportOptions, milesBetween, fmt, searchTerms };
+module.exports = { generate, transportOptions, milesBetween, fmt, searchTerms, fits };

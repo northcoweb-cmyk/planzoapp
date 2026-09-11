@@ -138,11 +138,25 @@ export function requestLocation(force = false): Promise<Origin | null> {
         };
         store.set({ origin: o });
         resolve(o);
+        // Fill in a real "City, ST" label in the background — the coarse
+        // "Near you" placeholder above is what renders immediately so the
+        // pin never sits blank while this resolves.
+        resolveCityLabel(o);
       },
       () => resolve(null),
       { timeout: 9000, maximumAge: 600000 },
     );
   });
+}
+
+async function resolveCityLabel(o: Origin) {
+  try {
+    const res = await fetch(`/api/geocode?lat=${o.lat}&lon=${o.lon}`);
+    const j = await res.json();
+    if (j.available && j.city && store.get().origin?.lat === o.lat) {
+      store.set({ origin: { ...o, label: j.city } });
+    }
+  } catch { /* keep "Near you" — never guess a city */ }
 }
 
 /** Falls back to UMD so the demo has something to show without permission. */

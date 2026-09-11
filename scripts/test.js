@@ -49,6 +49,91 @@ await t('detects food intent and evening timing from "dinner tonight"', () => {
 await t('treats "my girlfriend" as a group of 2', () => {
   assert.strictEqual(intent.parse('what should me and my girlfriend do tonight').groupSize, 2);
 });
+await t('"pizza rn" is flagged rightNow, so closed places get excluded not just deprioritized', () => {
+  const i = intent.parse('I want pizza rn');
+  assert.strictEqual(i.rightNow, true);
+  assert.strictEqual(i.dayHint, 'today');
+});
+await t('"asap" and "immediately" are also right-now signals', () => {
+  assert.strictEqual(intent.parse('need a table asap').rightNow, true);
+  assert.strictEqual(intent.parse('get there immediately').rightNow, true);
+});
+await t('"let\'s go get drinks" is nightlife, not a sit-down meal', () => {
+  const i = intent.parse("let's go get drinks tonight");
+  assert.ok(i.categories.includes('nightlife'));
+  assert.strictEqual(i.needsFood, false);
+});
+await t('"dinner and drinks" still detects food from "dinner" alone', () => {
+  const i = intent.parse('dinner and drinks tonight');
+  assert.ok(i.needsFood);
+  assert.ok(i.categories.includes('nightlife'));
+});
+
+console.log('\nPLAN GENERATION — OPEN-NOW FILTERING');
+await t('a closed place is excluded outright when the request was for right now', () => {
+  const state = { hard: {}, intent: { rightNow: true } };
+  assert.strictEqual(planEngine.fits({ openNow: false }, state), false);
+  assert.strictEqual(planEngine.fits({ openNow: true }, state), true);
+});
+await t('a closed place is NOT excluded for a plan that has no "right now" urgency', () => {
+  const state = { hard: {}, intent: { rightNow: false } };
+  assert.strictEqual(planEngine.fits({ openNow: false }, state), true);
+});
+await t('unknown open-status (openNow undefined) is never excluded — only a confirmed "closed" is', () => {
+  const state = { hard: {}, intent: { rightNow: true } };
+  assert.strictEqual(planEngine.fits({}, state), true);
+});
+
+console.log('\nQUESTIONS — CONTEXT-AWARE OPTIONS');
+await t('the dealbreaker question drops "No drinking" when the group explicitly wants nightlife', () => {
+  const { QUESTIONS } = require('../engine/catalog');
+  const dealbreaker = QUESTIONS.find(q => q.id === 'dealbreaker');
+  const opts = dealbreaker.options({ intent: { categories: ['nightlife'] } });
+  assert.ok(!opts.includes('No drinking'));
+});
+await t('the dealbreaker question KEEPS "No drinking" for an ordinary (non-nightlife) plan', () => {
+  const consensusState = consensus.build(mkPlan([{ availability: "I'm in" }], {
+    intent: { needsFood: true, categories: ['food'], title: 'Dinner' },
+  }));
+  const { QUESTIONS } = require('../engine/catalog');
+  const dealbreaker = QUESTIONS.find(q => q.id === 'dealbreaker');
+  const opts = dealbreaker.options(consensusState);
+  assert.ok(opts.includes('No drinking'));
+});
+await t('the transport question now applies to a solo plan too (used to require 2+ people)', () => {
+  const { QUESTIONS } = require('../engine/catalog');
+  const transport = QUESTIONS.find(q => q.id === 'transport');
+  assert.strictEqual(transport.applies({ participantCount: 1 }), true);
+});
+
+console.log('\nCONSENSUS — DATE RESOLUTION');
+await t('an explicit day in the request ("dinner Saturday") resolves to an actual date', () => {
+  const s = consensus.build(mkPlan([{ availability: "I'm in" }], {
+    intent: { needsFood: true, categories: ['food'], title: 'Saturday dinner', dayHint: 'saturday' },
+  }));
+  assert.ok(s.hard.date, 'expected a resolved ISO date');
+  assert.match(s.hard.date, /^\d{4}-\d{2}-\d{2}$/);
+  assert.strictEqual(new Date(s.hard.date + 'T12:00:00').getDay(), 6); // Saturday
+});
+await t('"today" resolves to today\'s actual date', () => {
+  const s = consensus.build(mkPlan([{ availability: "I'm in" }], {
+    intent: { needsFood: true, categories: ['food'], title: 'Test', dayHint: 'today' },
+  }));
+  assert.strictEqual(s.hard.date, new Date().toISOString().slice(0, 10));
+});
+await t('the group\'s "day" answer resolves a date when the request itself named no day', () => {
+  const s = consensus.build(mkPlan([
+    { availability: "I'm in", day: 'Tomorrow' },
+  ], { intent: { needsFood: true, categories: ['food'], title: 'Test' } }));
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  assert.strictEqual(s.hard.date, tomorrow.toISOString().slice(0, 10));
+});
+await t('the "day" question is skipped once the request itself named a day', () => {
+  const { QUESTIONS } = require('../engine/catalog');
+  const day = QUESTIONS.find(q => q.id === 'day');
+  assert.strictEqual(day.applies({ intent: { dayHint: 'saturday' } }), false);
+  assert.strictEqual(day.applies({ intent: {} }), true);
+});
 
 console.log('\nCONSENSUS — HARD CONSTRAINTS INTERSECT');
 await t("the group's budget is the LOWEST stated ceiling, not the average", () => {

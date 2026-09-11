@@ -75,7 +75,7 @@ function frame(q, state, plan, participant) {
     question: {
       id: q.id,
       text: q.text,
-      options: q.options,
+      options: typeof q.options === 'function' ? q.options(state) : q.options,
       multi: Boolean(q.multi),
       kind: q.kind,
       because: q.because || null,

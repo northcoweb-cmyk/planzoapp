@@ -22,6 +22,7 @@ const CATEGORIES = {
   budget:    ['$0 — free only', 'Under $25', 'Under $50', '$50–$100', 'Flexible'],
   transport: ['Driving', 'Rideshare', 'Public transit', 'Walking', 'Whatever works'],
   timing:    ['Morning', 'Afternoon', 'Evening', 'Late night', 'Flexible'],
+  day:       ['Today', 'Tomorrow', 'This Friday', 'This Saturday', 'This Sunday', 'Next week'],
 };
 
 const DISTANCE_MINUTES = {
@@ -66,6 +67,16 @@ const QUESTIONS = [
     applies: () => true,
   },
   {
+    id: 'day', kind: 'hard', weight: 9,
+    text: 'What day do you want to do this?',
+    options: CATEGORIES.day,
+    // Skipped only when the organizer's own words already named a day
+    // ("dinner Saturday") — otherwise every plan asked for a time of day
+    // but never an actual date, so plans could generate for "tonight"
+    // even when nobody meant tonight.
+    applies: st => !st.intent.dayHint,
+  },
+  {
     id: 'timing', kind: 'soft', weight: 6,
     text: 'When works for you?',
     options: CATEGORIES.timing,
@@ -87,7 +98,10 @@ const QUESTIONS = [
     id: 'transport', kind: 'soft', weight: 4,
     text: 'How are you getting there?',
     options: CATEGORIES.transport,
-    applies: st => st.participantCount >= 2,
+    // Used to only apply for groups of 2+, so a solo plan never asked and
+    // silently defaulted to whatever transportOptions() ranked cheapest —
+    // which could hand someone a "bike or scooter" plan they never chose.
+    applies: () => true,
   },
   {
     id: 'dietary', kind: 'hard', weight: 6,
@@ -99,7 +113,13 @@ const QUESTIONS = [
   {
     id: 'dealbreaker', kind: 'hard', weight: 3,
     text: 'Anything you definitely do not want to do?',
-    options: ['Nothing — I’m easy', 'Nothing expensive', 'No long drive', 'No late night', 'No crowds', 'No drinking'],
+    // A function, not a fixed list: someone who explicitly asked for drinks
+    // ("let's go get drinks") should never be offered "No drinking" as a
+    // thing to rule out — that directly contradicts what they just said.
+    options: st => {
+      const opts = ['Nothing — I’m easy', 'Nothing expensive', 'No long drive', 'No late night', 'No crowds', 'No drinking'];
+      return (st.intent.categories || []).includes('nightlife') ? opts.filter(o => o !== 'No drinking') : opts;
+    },
     applies: st => st.answeredQuestions >= 3,
   },
 ];

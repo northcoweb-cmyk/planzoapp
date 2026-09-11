@@ -15,8 +15,12 @@ const store = require('../lib/store');
 
 const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
-const FOOD_WORDS   = /\b(dinner|lunch|brunch|breakfast|eat|food|restaurant|pizza|burgers?|sushi|tacos?|wings|bbq|drinks?)\b/i;
+// "drinks" alone means a bar, not a sit-down meal — it used to also match
+// FOOD_WORDS, which made "let's go get drinks" ask a "what do you want to
+// eat, Pizza/Burgers/..." question that had nothing to do with the request.
+const FOOD_WORDS   = /\b(dinner|lunch|brunch|breakfast|eat|food|restaurant|pizza|burgers?|sushi|tacos?|wings|bbq)\b/i;
 const NIGHT_WORDS  = /\b(bar|bars|club|clubbing|nightlife|party|night out|drinks?)\b/i;
+const RIGHT_NOW_WORDS = /\b(right now|rn|asap|immediately)\b/i;
 const OUTDOOR_WORDS= /\b(beach|hike|hiking|park|outdoors?|trail|lake|camping|picnic|sunset)\b/i;
 const EVENT_WORDS  = /\b(concert|show|game|festival|comedy|tickets?|match)\b/i;
 const TRIP_WORDS   = /\b(trip|weekend away|vacation|flight|hotel|airbnb|road ?trip)\b/i;
@@ -30,11 +34,16 @@ function parse(text) {
     raw: t,
     title: null, groupSize: null, dayHint: null, timeOfDay: null,
     needsFood: false, multiStop: false, categories: [],
-    budgetSignal: null, confidence: 0, source: 'parser',
+    budgetSignal: null, confidence: 0, source: 'parser', rightNow: false,
   };
   if (!t) return intent;
 
   let signals = 0;
+
+  // "pizza rn" means the plan should only suggest places open at this exact
+  // moment — a place that opens at 11am is worthless to someone asking for
+  // it at 1:59am, however good a match it is on cuisine.
+  if (RIGHT_NOW_WORDS.test(lower)) { intent.rightNow = true; intent.dayHint = intent.dayHint || 'today'; signals++; }
 
   // Group size: "7 of us", "me and 4 friends", "6 people"
   const m1 = lower.match(/(\d{1,2})\s*(?:of us|people|friends|guys|girls)/);
