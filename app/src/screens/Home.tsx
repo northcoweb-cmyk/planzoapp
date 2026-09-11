@@ -193,24 +193,43 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
         <Section title="Nearby to eat" action="See all" onAction={() => go("discover")}>
           <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
             {eats.map((v, i) => (
-              <motion.button
-                key={v.providerId}
-                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: .05 * i, duration: .45, ease: [.22, 1, .36, 1] }}
-                onClick={() => go("discover")}
-                className="w-[180px] shrink-0 text-left"
-              >
-                <Glass className="p-3.5 transition-transform active:scale-[.98]">
-                  <p className="truncate text-[14px] font-semibold">{v.name}</p>
-                  <p className="mt-1 truncate text-[12px] text-white/45">{v.address}</p>
-                  {v.rating && <p className="mt-1.5 text-[12px] text-white/70">★ {v.rating}</p>}
-                </Glass>
-              </motion.button>
+              <EatCard key={v.providerId} v={v} i={i} onClick={() => go("discover")} />
             ))}
           </div>
         </Section>
       )}
     </div>
+  );
+}
+
+const PRICE_LEVELS = ["PRICE_LEVEL_FREE","PRICE_LEVEL_INEXPENSIVE","PRICE_LEVEL_MODERATE","PRICE_LEVEL_EXPENSIVE","PRICE_LEVEL_VERY_EXPENSIVE"];
+const priceTag = (level?: string) => level ? "$".repeat(Math.max(1, PRICE_LEVELS.indexOf(level))) : null;
+
+/** Same image-on-top card shape as the events row right above it, so
+ * restaurants don't look like a different, lower-effort feature bolted on. */
+function EatCard({ v, i, onClick }: { v: any; i: number; onClick?: () => void }) {
+  const [photo, setPhoto] = React.useState<string | null>(null);
+  React.useEffect(() => { places.photoFor(v, 400).then(setPhoto); }, [v]);
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: .05 * i, duration: .45, ease: [.22, 1, .36, 1] }}
+      onClick={onClick} className="w-[200px] shrink-0 text-left"
+    >
+      <Glass className="overflow-hidden p-0 transition-transform active:scale-[.98]">
+        <Img src={photo} alt={v.name} ratio="4/3" />
+        <div className="p-3">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <p className="truncate text-[10px] font-bold uppercase tracking-wider text-[#C9C1FF]">
+              {v.rating ? `★ ${v.rating}` : "Restaurant"}
+            </p>
+            {priceTag(v.priceLevel) && <p className="shrink-0 text-[11px] font-bold text-white/55">{priceTag(v.priceLevel)}</p>}
+          </div>
+          <p className="line-clamp-2 text-[13.5px] font-semibold leading-snug">{v.name}</p>
+          <p className="mt-1.5 truncate text-[11.5px] text-white/45">{v.address}</p>
+        </div>
+      </Glass>
+    </motion.button>
   );
 }
 

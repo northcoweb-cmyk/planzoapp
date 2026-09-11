@@ -77,6 +77,7 @@ function frame(q, state, plan, participant) {
       text: q.text,
       options: typeof q.options === 'function' ? q.options(state) : q.options,
       multi: Boolean(q.multi),
+      maxPicks: q.maxPicks || null,
       kind: q.kind,
       because: q.because || null,
     },

@@ -18,11 +18,26 @@ const CATS = ["For you", "Music", "Comedy", "Sports", "Theatre"] as const;
  * locations (a park, a trail head, a beach) with real addresses — not
  * curated trail data (no mileage/difficulty). Good enough to start a plan
  * from; not a trail app. */
-const ACTIVITIES: Record<string, { query: string; verb: string; noun: string; emoji: string }> = {
-  Hike:    { query: "hiking trail nature park", verb: "Go hiking at", noun: "trail", emoji: "🥾" },
-  Picnic:  { query: "park picnic area", verb: "Have a picnic at", noun: "picnic spot", emoji: "🧺" },
-  Swim:    { query: "public swimming lake beach pool", verb: "Go swimming at", noun: "swim spot", emoji: "🏊" },
+type Activity = { query: string; verb: string; noun: string; emoji: string; seasons?: number[] };
+// seasons: months (0=Jan..11=Dec) an activity makes sense in. Omitted means
+// year-round. Ranges wrap where relevant (e.g. skiing spans Nov-Mar).
+const ACTIVITIES: Record<string, Activity> = {
+  Hike:     { query: "hiking trail nature park", verb: "Go hiking at", noun: "trail", emoji: "🥾" },
+  Picnic:   { query: "park picnic area", verb: "Have a picnic at", noun: "picnic spot", emoji: "🧺", seasons: [2,3,4,5,6,7,8,9] },
+  Swim:     { query: "public swimming lake beach pool", verb: "Go swimming at", noun: "swim spot", emoji: "🏊", seasons: [4,5,6,7,8,9] },
+  Bike:     { query: "bike trail rail trail", verb: "Go biking at", noun: "bike trail", emoji: "🚴", seasons: [2,3,4,5,6,7,8,9,10] },
+  Climb:    { query: "rock climbing gym bouldering", verb: "Go climbing at", noun: "climbing spot", emoji: "🧗" },
+  Kayak:    { query: "kayak rental launch river lake", verb: "Go kayaking at", noun: "put-in", emoji: "🛶", seasons: [3,4,5,6,7,8,9] },
+  Fish:     { query: "fishing spot pier lake", verb: "Go fishing at", noun: "fishing spot", emoji: "🎣", seasons: [2,3,4,5,6,7,8,9,10] },
+  Ski:      { query: "ski resort snowboarding", verb: "Go skiing at", noun: "ski spot", emoji: "🎿", seasons: [10,11,0,1,2] },
+  Museum:   { query: "museum gallery exhibit", verb: "Check out", noun: "museum", emoji: "🖼️" },
+  Arcade:   { query: "arcade bowling mini golf", verb: "Go play at", noun: "spot", emoji: "🕹️" },
+  Camp:     { query: "campground camping site", verb: "Go camping at", noun: "campground", emoji: "🏕️", seasons: [3,4,5,6,7,8,9] },
 };
+
+function inSeason(a: Activity, month = new Date().getMonth()) {
+  return !a.seasons || a.seasons.includes(month);
+}
 type Kind = "event" | "restaurant" | "activity";
 
 /** Build and save a plan directly from a known event/restaurant/activity
@@ -119,7 +134,11 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
   const list = React.useMemo(() => {
     if (!rawEvents) return null;
     const ranked = rank(rawEvents, interests, memory, viewed);
-    if (cat !== "For you" || interests.length === 0) return ranked;
+    // Music specifically: if the person picked genres (Rock, Hip-Hop, ...),
+    // only show shows in those genres rather than every concert nearby —
+    // picking a genre should narrow the results, not just reorder them.
+    if (cat !== "For you" && cat !== "Music") return ranked;
+    if (interests.length === 0) return ranked;
     const filtered = filterToInterests(ranked, interests);
     // Never leave the screen empty over a mismatch (e.g. "Food" has no
     // ticketed-event equivalent) — fall back to the ranked, unfiltered list.
@@ -225,13 +244,15 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
       )}
 
       {/* Restaurants live under the events feed, not as a separate tab —
-          a place to eat near whatever you're doing, not its own category. */}
+          a place to eat near whatever you're doing, not its own category.
+          Same 2-column, image-on-top card style as events, for visual
+          consistency across the whole feed. */}
       {venues && venues.length > 0 && (
         <div className="mt-6">
           <h3 className="mb-3 text-[15px] font-semibold">Nearby restaurants</h3>
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {venues.map((v, i) => (
-              <VenueCard key={v.providerId} v={v} i={i} onClick={() => { trackViewOnly(v, "restaurant"); setOpenVenue(v); }} />
+              <VenueGridCard key={v.providerId} v={v} i={i} onClick={() => { trackViewOnly(v, "restaurant"); setOpenVenue(v); }} />
             ))}
           </div>
         </div>
@@ -250,7 +271,7 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
       <div className="mt-6">
         <h3 className="mb-3 text-[15px] font-semibold">Something outdoors?</h3>
         <div className="no-bar edge-fade -mx-5 mb-3 flex gap-2 overflow-x-auto px-5">
-          {Object.keys(ACTIVITIES).map(k => (
+          {Object.keys(ACTIVITIES).filter(k => inSeason(ACTIVITIES[k])).map(k => (
             <button key={k} onClick={() => setActivityKey(activityKey === k ? null : k)}
               className={`shrink-0 rounded-full px-4 py-2 text-[13.5px] font-semibold transition-colors ${
                 activityKey === k ? "text-white" : "border border-white/10 bg-white/[.06] text-white/60 hover:text-white/85"}`}
@@ -272,9 +293,9 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
           </Notice>
         )}
         {activityKey && activityResults && activityResults.length > 0 && (
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {activityResults.map((v, i) => (
-              <VenueCard key={v.providerId} v={v} i={i}
+              <VenueGridCard key={v.providerId} v={v} i={i}
                 onClick={() => { trackViewOnly(v, "activity", activityKey); setOpenActivity(v); }} />
             ))}
           </div>
@@ -294,23 +315,33 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
   );
 }
 
-/** One photo per venue, fetched lazily and cached forever against the place id. */
-function VenueCard({ v, i, onClick }: { v: any; i: number; onClick?: () => void }) {
+const PRICE_LEVELS = ["PRICE_LEVEL_FREE","PRICE_LEVEL_INEXPENSIVE","PRICE_LEVEL_MODERATE","PRICE_LEVEL_EXPENSIVE","PRICE_LEVEL_VERY_EXPENSIVE"];
+const priceTag = (level?: string) => level ? "$".repeat(Math.max(1, PRICE_LEVELS.indexOf(level))) : null;
+
+/** Restaurant/activity card — same 2-column, image-on-top shape as an event
+ * card, so the whole Discover feed reads as one visual system instead of
+ * events looking like a different app than everything below them. */
+function VenueGridCard({ v, i, onClick }: { v: any; i: number; onClick?: () => void }) {
   const [photo, setPhoto] = React.useState<string | null>(null);
   React.useEffect(() => { places.photoFor(v, 400).then(setPhoto); }, [v]);
   return (
-    <motion.button onClick={onClick} className="block w-full text-left"
-      initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * .04 }}>
-      <Glass className="flex gap-3 overflow-hidden p-0 transition-transform active:scale-[.98]">
-        <Img src={photo} alt={v.name} ratio="1/1" className="w-[104px] shrink-0" />
-        <div className="min-w-0 flex-1 py-3 pr-3">
-          <p className="truncate text-[14.5px] font-semibold">{v.name}</p>
-          <p className="mt-0.5 truncate text-[12px] text-white/45">{v.address}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {v.rating && <Pill>★ {v.rating}</Pill>}
-            {v.priceLevel && <Pill>{"$".repeat(Math.max(1, ["PRICE_LEVEL_FREE","PRICE_LEVEL_INEXPENSIVE","PRICE_LEVEL_MODERATE","PRICE_LEVEL_EXPENSIVE","PRICE_LEVEL_VERY_EXPENSIVE"].indexOf(v.priceLevel)))}</Pill>}
-            {v.openNow === true && <Pill className="!text-emerald-300">Open now</Pill>}
+    <motion.button
+      onClick={onClick} className="text-left"
+      initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(i, 8) * .04, duration: .45, ease: [.22,1,.36,1] }}
+    >
+      <Glass className="h-full overflow-hidden p-0 transition-transform active:scale-[.98]">
+        <Img src={photo} alt={v.name} ratio="4/3" />
+        <div className="p-3">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <p className="truncate text-[10px] font-bold uppercase tracking-wider text-[#C9C1FF]">
+              {v.rating ? `★ ${v.rating}` : "Restaurant"}
+            </p>
+            {priceTag(v.priceLevel) && <p className="shrink-0 text-[11px] font-bold text-white/55">{priceTag(v.priceLevel)}</p>}
           </div>
+          <p className="line-clamp-2 text-[13.5px] font-semibold leading-snug">{v.name}</p>
+          <p className="mt-1.5 truncate text-[11.5px] text-white/45">{v.address}</p>
+          {v.openNow === true && <p className="mt-1 text-[11px] font-semibold text-emerald-300">Open now</p>}
         </div>
       </Glass>
     </motion.button>

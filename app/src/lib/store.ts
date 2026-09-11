@@ -35,12 +35,13 @@ export type State = {
   chat: ChatTurn[];
   viewed: ViewedItem[];
   seenOnboarding: boolean;
+  college: string | null;
 };
 
 const KEY = 'planzo.state.v3';
 const EMPTY: State = {
   me: null, origin: null, interests: [], dietary: [],
-  plans: {}, tickets: {}, memory: [], chat: [], viewed: [], seenOnboarding: false,
+  plans: {}, tickets: {}, memory: [], chat: [], viewed: [], seenOnboarding: false, college: null,
 };
 
 function load(): State {

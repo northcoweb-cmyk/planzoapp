@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, KeyRound, Brain, Trash2, MapPin, Check, Activity } from "lucide-react";
+import { Sparkles, KeyRound, Brain, Trash2, MapPin, Check, Activity, ChevronDown, GraduationCap } from "lucide-react";
 import { Glass, Sheet, Notice, Pill } from "@/components/ui/glass";
 import { SelectorChips } from "@/components/ui/selector-chips";
 import { store, useStore, requestLocation, originOrFallback } from "@/lib/store";
@@ -15,15 +15,42 @@ import Ops from "@/screens/Ops";
 const INTERESTS = ["Live music","Hip-Hop","Rock","Pop","EDM","Comedy","Theatre","Sports",
   "Basketball","Football","Baseball","Festivals","Nightlife","Food","Coffee","Outdoors","Art","Film"];
 const DIETARY = ["Vegetarian","Vegan","Gluten-free","Halal","Kosher","Nut allergy","Dairy-free"];
+// Genres, specifically — a subset of INTERESTS Discover's Music category can
+// gate on. Kept separate from INTERESTS itself so "Sports" etc. don't leak
+// into genre filtering logic.
+const MUSIC_GENRES = ["Hip-Hop", "Rock", "Pop", "EDM", "Live music"];
+
+// Seed list — logos resolved live via Clearbit's logo API (no key, no
+// asset hosting: https://logo.clearbit.com/<domain>) rather than bundling
+// image files per school. Add more here as Ryan sends the real list.
+const COLLEGES = [
+  { name: "University of Maryland", domain: "umd.edu" },
+  { name: "Towson University", domain: "towson.edu" },
+  { name: "University of Delaware", domain: "udel.edu" },
+  { name: "Penn State", domain: "psu.edu" },
+  { name: "University of Virginia", domain: "virginia.edu" },
+  { name: "Virginia Tech", domain: "vt.edu" },
+  { name: "George Mason University", domain: "gmu.edu" },
+  { name: "Georgetown University", domain: "georgetown.edu" },
+  { name: "George Washington University", domain: "gwu.edu" },
+  { name: "American University", domain: "american.edu" },
+  { name: "Howard University", domain: "howard.edu" },
+  { name: "Rutgers University", domain: "rutgers.edu" },
+  { name: "NYU", domain: "nyu.edu" },
+  { name: "Temple University", domain: "temple.edu" },
+  { name: "Ohio State University", domain: "osu.edu" },
+];
 
 export default function Profile() {
   const me = useStore(s => s.me);
   const interests = useStore(s => s.interests);
   const dietary = useStore(s => s.dietary);
   const memory = useStore(s => s.memory);
+  const college = useStore(s => s.college);
   const [keys, setKeys] = React.useState(false);
   const [pro, setPro] = React.useState(false);
   const [ops, setOps] = React.useState(false);
+  const [rememberOpen, setRememberOpen] = React.useState(false);
   const active = memoryEng.prune(memory) as any[];
   const spend = spendUsed();
 
@@ -69,27 +96,70 @@ export default function Profile() {
           }} />
       </Card>
 
-      <Card title="What Planzo remembers"
-        sub="Stable preferences last. A one-off stays with that plan and never becomes who you are.">
-        {active.length === 0 ? (
-          <p className="text-[13.5px] text-white/35">Nothing yet — it learns from the plans you actually make.</p>
-        ) : (
-          <div className="space-y-2">
-            {active.map((m: any) => (
-              <div key={m.id} className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-[14px]">{m.value}</p>
-                  <p className="text-[11.5px] text-white/35">
-                    {m.category} · {m.stability} · {m.source} · {Math.round(m.confidence * 100)}%
-                  </p>
-                </div>
-                <button onClick={() => store.forget(m.id)}
-                  className="shrink-0 rounded-full p-2 text-white/25 transition-colors hover:text-red-300">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
+      <Glass className="mb-4 p-5">
+        <button onClick={() => setRememberOpen(v => !v)}
+          className="flex w-full items-center justify-between text-left">
+          <div>
+            <h4 className="text-[16px]">What Planzo remembers</h4>
+            {!rememberOpen && (
+              <p className="mt-1 text-[12.5px] text-white/40">
+                {active.length === 0 ? "Nothing yet" : `${active.length} thing${active.length === 1 ? "" : "s"} — tap to view`}
+              </p>
+            )}
           </div>
+          <ChevronDown className={`h-4 w-4 shrink-0 text-white/40 transition-transform ${rememberOpen ? "rotate-180" : ""}`} />
+        </button>
+        <AnimatePresence initial={false}>
+          {rememberOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: .25, ease: [.22, 1, .36, 1] }} className="overflow-hidden"
+            >
+              <p className="mb-3.5 mt-3 text-[12.5px] leading-relaxed text-white/40">
+                Stable preferences last. A one-off stays with that plan and never becomes who you are.
+              </p>
+              {active.length === 0 ? (
+                <p className="text-[13.5px] text-white/35">Nothing yet — it learns from the plans you actually make.</p>
+              ) : (
+                <div className="space-y-2">
+                  {active.map((m: any) => (
+                    <div key={m.id} className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-[14px]">{m.value}</p>
+                        <p className="text-[11.5px] text-white/35">
+                          {m.category} · {m.stability} · {m.source} · {Math.round(m.confidence * 100)}%
+                        </p>
+                      </div>
+                      <button onClick={() => store.forget(m.id)}
+                        className="shrink-0 rounded-full p-2 text-white/25 transition-colors hover:text-red-300">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Glass>
+
+      <Card title="Your college" sub="Unlocks school-linked events in Social">
+        <div className="grid grid-cols-3 gap-2.5">
+          {COLLEGES.map(c => (
+            <button key={c.domain} onClick={() => store.set({ college: college === c.name ? null : c.name })}
+              className={`flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-center transition-colors ${
+                college === c.name ? "border-white/30 bg-white/[.10]" : "border-white/10 bg-white/[.03] hover:bg-white/[.06]"}`}>
+              <img src={`https://logo.clearbit.com/${c.domain}`} alt=""
+                className="h-8 w-8 rounded-lg object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              <span className="line-clamp-2 text-[10.5px] leading-tight text-white/70">{c.name}</span>
+            </button>
+          ))}
+        </div>
+        {college && (
+          <p className="mt-3 flex items-center gap-1.5 text-[12.5px] text-white/50">
+            <GraduationCap className="h-3.5 w-3.5" /> Connected to {college}
+          </p>
         )}
       </Card>
 

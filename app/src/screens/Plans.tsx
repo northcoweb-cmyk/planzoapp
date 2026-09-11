@@ -211,7 +211,8 @@ function MultiOrSingle({ q, onPick }: { q: any; onPick: (v: any) => void }) {
   }
   return (
     <>
-      <SelectorChips options={q.options} value={sel} onChange={setSel} />
+      <SelectorChips options={q.options} value={sel} onChange={setSel} max={q.maxPicks || undefined} />
+      {q.maxPicks && <p className="mt-2 text-[12px] text-white/35">Pick up to {q.maxPicks}</p>}
       <button disabled={!sel.length} onClick={() => onPick(sel)}
         className="mt-4 w-full rounded-full py-3 text-[14.5px] font-semibold disabled:opacity-40"
         style={{ background: "var(--grad-brand)" }}>Continue</button>

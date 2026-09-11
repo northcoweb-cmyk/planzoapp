@@ -17,14 +17,20 @@ export type SelectorChipsProps = {
   single?: boolean;
   className?: string;
   size?: "sm" | "md";
+  /** Cap how many can be selected at once (multi mode only) — picking a
+   * new one past the cap replaces the first pick rather than doing nothing,
+   * so the interaction never just silently fails to respond to a tap. */
+  max?: number;
 };
 
 const spring = { type: "spring" as const, stiffness: 500, damping: 30, mass: 0.5 };
 
-export function SelectorChips({ options, value, onChange, single, className, size = "md" }: SelectorChipsProps) {
+export function SelectorChips({ options, value, onChange, single, className, size = "md", max }: SelectorChipsProps) {
   const toggle = (opt: string) => {
     if (single) return onChange(value.includes(opt) ? [] : [opt]);
-    onChange(value.includes(opt) ? value.filter(v => v !== opt) : [...value, opt]);
+    if (value.includes(opt)) return onChange(value.filter(v => v !== opt));
+    if (max && value.length >= max) return onChange([...value.slice(1), opt]);
+    onChange([...value, opt]);
   };
 
   return (

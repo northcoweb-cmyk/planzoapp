@@ -87,6 +87,7 @@ const QUESTIONS = [
     text: 'What do you want to eat?',
     options: CATEGORIES.food,
     applies: st => st.intent.needsFood,
+    multi: true, maxPicks: 3,
   },
   {
     id: 'vibe', kind: 'soft', weight: 5,

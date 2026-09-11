@@ -105,6 +105,19 @@ await t('the transport question now applies to a solo plan too (used to require 
   const transport = QUESTIONS.find(q => q.id === 'transport');
   assert.strictEqual(transport.applies({ participantCount: 1 }), true);
 });
+await t('the food question allows picking multiple cuisines, capped at 3', () => {
+  const { QUESTIONS } = require('../engine/catalog');
+  const food = QUESTIONS.find(q => q.id === 'food');
+  assert.strictEqual(food.multi, true);
+  assert.strictEqual(food.maxPicks, 3);
+});
+await t('maxPicks is threaded through to the framed question a participant sees', () => {
+  const plan = mkPlan([{ availability: "I'm in", budget: 'Flexible', day: 'Today', distance: 'Anywhere reasonable' }]);
+  const q = questions.next(plan, { id: 'p0', name: 'P0', answers: { availability: "I'm in", budget: 'Flexible', day: 'Today', distance: 'Anywhere reasonable' } });
+  assert.strictEqual(q.done, false);
+  assert.strictEqual(q.question.id, 'food');
+  assert.strictEqual(q.question.maxPicks, 3);
+});
 
 console.log('\nCONSENSUS — DATE RESOLUTION');
 await t('an explicit day in the request ("dinner Saturday") resolves to an actual date', () => {
