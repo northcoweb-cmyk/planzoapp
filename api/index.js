@@ -6,11 +6,25 @@
  * the Render deployment (server.js, long-running http.Server) and Vercel
  * (this file, one invocation per request).
  */
-require('../lib/env');
-const routes = require('../server/routes');
+// Deferred into the handler (not required at module top level) so that if
+// anything in this chain throws during cold start, it surfaces as a normal
+// JSON 500 with the real error instead of Vercel's opaque platform crash
+// page — that opaque crash is exactly what happened before this change.
+let routes;
+let loadError = null;
+try {
+  require('../lib/env');
+  routes = require('../server/routes');
+} catch (err) {
+  loadError = err;
+}
 
 module.exports = async (req, res) => {
   try {
+    if (loadError) {
+      console.error('[planzo:vercel] module load failed', loadError);
+      return json(res, 500, { error: 'module_load_failed', message: loadError.message });
+    }
     if (req.method === 'OPTIONS') {
       res.statusCode = 204;
       return res.end();
