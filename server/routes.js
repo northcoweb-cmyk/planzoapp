@@ -26,7 +26,22 @@ const ai = require('../services/ai');
 
 const ok   = (body, headers) => ({ status: 200, body, headers });
 const bad  = (error, status = 400) => ({ status, body: { error } });
-const PUBLIC_URL = () => (process.env.PLANZO_PUBLIC_URL || 'http://localhost:4000').replace(/\/$/, '');
+/** The real deployment's own origin, not a hardcoded fallback. A share
+ * link built from PLANZO_PUBLIC_URL alone silently pointed at
+ * localhost:4000 in production whenever that env var was never set (it
+ * wasn't, on the live Vercel deploy) — the request's own Host header is
+ * always correct and never needs remembering to configure. The env var
+ * still wins if explicitly set, for setups that front the app with a
+ * different public domain than what the server itself sees. */
+const PUBLIC_URL = (headers = {}) => {
+  if (process.env.PLANZO_PUBLIC_URL) return process.env.PLANZO_PUBLIC_URL.replace(/\/$/, '');
+  const host = headers['x-forwarded-host'] || headers.host;
+  if (host) {
+    const proto = (headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https')).split(',')[0];
+    return `${proto}://${host}`;
+  }
+  return 'http://localhost:4000';
+};
 
 const str = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
@@ -115,7 +130,7 @@ async function handle({ method, url, body, ip, headers }) {
     };
     await store.set(`plan:${code}`, plan);
     await store.push(`user_plans:${me.pid}`, code, 200);
-    return ok({ ok: true, plan: publicPlan(plan), shareUrl: `${PUBLIC_URL()}/p/${code}` });
+    return ok({ ok: true, plan: publicPlan(plan), shareUrl: `${PUBLIC_URL(headers)}/p/${code}` });
   }
 
   if (seg[0] === 'plans' && seg[1] && method === 'GET' && seg.length === 2) {
@@ -370,7 +385,7 @@ async function handle({ method, url, body, ip, headers }) {
     await store.push(`user_events:${me.pid}`, event.id, 200);
     if (event.visibility === 'public') await store.push('public_events', event.id, 500);
     return ok({ ok: true, event: hosting.publicView(event, { userId: me.pid }),
-      shareUrl: `${PUBLIC_URL()}/e/${event.id}` });
+      shareUrl: `${PUBLIC_URL(headers)}/e/${event.id}` });
   }
 
   if (p === '/events/mine' && method === 'GET') {

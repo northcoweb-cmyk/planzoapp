@@ -249,7 +249,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               </button>
 
               <div style={{ transformOrigin: "bottom left" }}
-                className={cn("glass absolute bottom-full left-0 z-50 mb-2.5 flex w-52 flex-col gap-0.5 rounded-2xl p-1.5 transition-all duration-300",
+                className={cn("glass !absolute bottom-full left-0 z-50 mb-2.5 flex w-52 flex-col gap-0.5 rounded-2xl p-1.5 transition-all duration-300",
                   tierOpen ? "pointer-events-auto translate-y-0 scale-100 opacity-100 ease-[cubic-bezier(.34,1.56,.64,1)]"
                            : "pointer-events-none translate-y-3 scale-95 opacity-0")}>
                 {tiers.map((t) => {
