@@ -1,0 +1,144 @@
+'use strict';
+/**
+ * Turn "7 of us want something cheap Saturday" into structured intent.
+ *
+ * Deterministic parser FIRST. It handles the overwhelming majority of real
+ * inputs — group size, day, budget signal, activity type — at zero cost.
+ * The model is consulted only when the parser's confidence is low, and even
+ * then it may only fill fields the parser left empty. It can never override
+ * something the parser read directly out of the user's own words.
+ */
+const ai = require('../services/ai');
+const cache = require('../lib/cache');
+const { hash } = require('../lib/ids');
+const store = require('../lib/store');
+
+const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+
+const FOOD_WORDS   = /\b(dinner|lunch|brunch|breakfast|eat|food|restaurant|pizza|burgers?|sushi|tacos?|wings|bbq|drinks?)\b/i;
+const NIGHT_WORDS  = /\b(bar|bars|club|clubbing|nightlife|party|night out|drinks?)\b/i;
+const OUTDOOR_WORDS= /\b(beach|hike|hiking|park|outdoors?|trail|lake|camping|picnic|sunset)\b/i;
+const EVENT_WORDS  = /\b(concert|show|game|festival|comedy|tickets?|match)\b/i;
+const TRIP_WORDS   = /\b(trip|weekend away|vacation|flight|hotel|airbnb|road ?trip)\b/i;
+const FREE_WORDS   = /\b(free|no money|broke|\$0|cheap as possible)\b/i;
+const CHEAP_WORDS  = /\b(cheap|budget|affordable|inexpensive)\b/i;
+
+function parse(text) {
+  const t = String(text || '').trim();
+  const lower = t.toLowerCase();
+  const intent = {
+    raw: t,
+    title: null, groupSize: null, dayHint: null, timeOfDay: null,
+    needsFood: false, multiStop: false, categories: [],
+    budgetSignal: null, confidence: 0, source: 'parser',
+  };
+  if (!t) return intent;
+
+  let signals = 0;
+
+  // Group size: "7 of us", "me and 4 friends", "6 people"
+  const m1 = lower.match(/(\d{1,2})\s*(?:of us|people|friends|guys|girls)/);
+  const m2 = lower.match(/me and (\d{1,2})/);
+  const m3 = lower.match(/\b(?:group of|party of)\s*(\d{1,2})/);
+  // "me and 4 friends" is 5, and must be tested BEFORE the bare "N friends"
+  // pattern, which would otherwise read the same phrase as 4.
+  if (m2) { intent.groupSize = +m2[1] + 1; signals++; }
+  else if (m1) { intent.groupSize = +m1[1]; signals++; }
+  else if (m3) { intent.groupSize = +m3[1]; signals++; }
+  else if (/\bmy (girlfriend|boyfriend|partner|wife|husband)\b/.test(lower)) { intent.groupSize = 2; signals++; }
+
+  for (const d of DAYS) if (lower.includes(d)) { intent.dayHint = d; signals++; break; }
+  if (/\btonight\b/.test(lower))        { intent.dayHint = 'today';    intent.timeOfDay = 'Evening'; signals++; }
+  else if (/\btomorrow\b/.test(lower))  { intent.dayHint = 'tomorrow'; signals++; }
+  else if (/\bthis weekend\b/.test(lower)) { intent.dayHint = 'weekend'; signals++; }
+  if (/\bmorning\b/.test(lower))   intent.timeOfDay = 'Morning';
+  if (/\bafternoon\b/.test(lower)) intent.timeOfDay = 'Afternoon';
+  if (/\blate night\b/.test(lower)) intent.timeOfDay = 'Late night';
+
+  if (FOOD_WORDS.test(lower))    { intent.needsFood = true; intent.categories.push('food'); signals++; }
+  // A named meal is a time signal, not just a food signal — "dinner Saturday"
+  // should never be scheduled for 10am because the group happened to vote
+  // "Morning" on a question it should not have been asked.
+  if (/\bdinner\b/.test(lower))         intent.timeOfDay = intent.timeOfDay || 'Evening';
+  else if (/\blunch\b/.test(lower))     intent.timeOfDay = intent.timeOfDay || 'Afternoon';
+  else if (/\b(breakfast|brunch)\b/.test(lower)) intent.timeOfDay = intent.timeOfDay || 'Morning';
+  if (NIGHT_WORDS.test(lower))   { intent.categories.push('nightlife'); signals++; }
+  if (OUTDOOR_WORDS.test(lower)) { intent.categories.push('outdoors'); signals++; }
+  if (EVENT_WORDS.test(lower))   { intent.categories.push('event'); signals++; }
+  if (TRIP_WORDS.test(lower))    { intent.categories.push('trip'); intent.multiStop = true; signals++; }
+
+  if (FREE_WORDS.test(lower))       { intent.budgetSignal = 'free'; signals++; }
+  else if (CHEAP_WORDS.test(lower)) { intent.budgetSignal = 'cheap'; signals++; }
+  const money = lower.match(/\$(\d{1,4})/);
+  if (money) { intent.budgetSignal = `under_${money[1]}`; signals++; }
+
+  intent.multiStop = intent.multiStop || intent.categories.length >= 2;
+  intent.title = titleFor(t, intent);
+  intent.confidence = Math.min(1, signals / 4);
+  return intent;
+}
+
+/**
+ * A short headline for the plan. The full idea is shown separately, so this
+ * should read like a label ("Saturday dinner"), not repeat the sentence.
+ */
+function titleFor(text, intent) {
+  const day = intent.dayHint && intent.dayHint !== 'today' && intent.dayHint !== 'tomorrow'
+    ? intent.dayHint.charAt(0).toUpperCase() + intent.dayHint.slice(1)
+    : intent.dayHint === 'today' ? 'Tonight'
+    : intent.dayHint === 'tomorrow' ? 'Tomorrow' : null;
+
+  const KIND = { food: 'dinner', nightlife: 'night out', outdoors: 'day out', event: 'event', trip: 'trip' };
+  const kind = intent.categories.map(c => KIND[c]).find(Boolean);
+
+  if (day && kind) return `${day} ${kind}`;
+  if (kind) return kind.charAt(0).toUpperCase() + kind.slice(1);
+  if (day) return `${day} plans`;
+
+  const clean = text.replace(/\s+/g, ' ').trim();
+  const short = clean.length <= 32 ? clean : clean.slice(0, 30).replace(/\s\S*$/, '') + '…';
+  return short.charAt(0).toUpperCase() + short.slice(1);
+}
+
+/**
+ * Parse, then optionally enrich with the model — but only if the parser is
+ * unsure, AI is enabled and under budget. Enrichment is cached for 14 days
+ * keyed on the text, so the same phrasing is never paid for twice.
+ */
+async function extract(text, { planId } = {}) {
+  const base = parse(text);
+  if (base.confidence >= 0.5 || !ai.enabled()) return base;
+
+  const key = `cache:ai:intent:${hash(text).slice(0, 24)}`;
+  const hit = await store.get(key);
+  if (hit?.v) return { ...base, ...hit.v, source: 'parser+ai(cached)' };
+
+  const r = await ai.askJson({
+    planId, tier: 'cheap', maxTokens: 300,
+    system: 'You extract structured planning intent. You never invent venues, addresses, prices or dates. '
+      + 'Only fill fields you can infer from the text itself. Use null when unsure.',
+    prompt: `Extract intent from this group planning request.\n\nText: ${JSON.stringify(text)}\n\n`
+      + `Return keys: groupSize (int|null), dayHint (string|null), timeOfDay `
+      + `("Morning"|"Afternoon"|"Evening"|"Late night"|null), needsFood (bool), `
+      + `categories (array from: food, nightlife, outdoors, event, trip, activity), `
+      + `budgetSignal ("free"|"cheap"|"under_N"|null), title (short, max 6 words).`,
+  });
+  if (!r.ok) return base;
+
+  const d = r.data || {};
+  const merged = { ...base, source: 'parser+ai' };
+  // The parser wins every field it actually read. AI only fills blanks.
+  if (base.groupSize == null && Number.isInteger(d.groupSize)) merged.groupSize = d.groupSize;
+  if (!base.dayHint && typeof d.dayHint === 'string') merged.dayHint = d.dayHint;
+  if (!base.timeOfDay && typeof d.timeOfDay === 'string') merged.timeOfDay = d.timeOfDay;
+  if (!base.needsFood && d.needsFood === true) merged.needsFood = true;
+  if (!base.categories.length && Array.isArray(d.categories)) merged.categories = d.categories.slice(0, 4);
+  if (!base.budgetSignal && typeof d.budgetSignal === 'string') merged.budgetSignal = d.budgetSignal;
+  if (typeof d.title === 'string' && d.title.length <= 60) merged.title = d.title;
+  merged.confidence = Math.max(base.confidence, 0.6);
+
+  await store.set(key, { v: { ...merged, raw: undefined } }, cache.TTL.ai_intent);
+  return merged;
+}
+
+module.exports = { parse, extract };

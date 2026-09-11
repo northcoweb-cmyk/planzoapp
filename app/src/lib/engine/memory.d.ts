@@ -1,0 +1,10 @@
+export declare const observe: any;
+export declare const contradict: any;
+export declare const prune: any;
+export declare const active: any;
+export declare const learnFromPlan: any;
+export declare const groupProfile: any;
+export declare const STABILITY: any;
+export declare const SOURCE: any;
+declare const _default: any;
+export default _default;

@@ -1,0 +1,14 @@
+{
+  "name": "planzo",
+  "version": "0.1.0",
+  "description": "Planzo — group planning and real-world decision engine",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node scripts/test.js",
+    "build": "node scripts/build-standalone.js"
+  },
+  "engines": { "node": ">=18.0.0" },
+  "dependencies": {}
+}
