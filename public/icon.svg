@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Planzo">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#6366F1"/><stop offset=".55" stop-color="#8B5CF6"/><stop offset="1" stop-color="#A855F7"/>
-  </linearGradient></defs>
-  <rect width="64" height="64" rx="17" fill="url(#g)"/>
-  <path d="M23 46V18h11.6c6.2 0 10.4 3.8 10.4 9.6 0 5.9-4.2 9.7-10.4 9.7H30V46h-7zm7-14.6h3.6c2.6 0 4.2-1.5 4.2-3.8 0-2.2-1.6-3.7-4.2-3.7H30v7.5z" fill="#fff"/>
-</svg>

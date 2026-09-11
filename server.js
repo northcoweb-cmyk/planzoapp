@@ -2,8 +2,9 @@
 /**
  * Planzo server — zero external dependencies, Node 18+.
  *
- * Serves: the waitlist site, the PWA, the anonymous participant flow, and
- * the JSON API that all three (and any future native app) share.
+ * Serves the React app (built to app/dist) at the domain root, plus the
+ * JSON API. This is the Render/any-Node-host deploy path; api/index.js is
+ * the equivalent for Vercel, sharing the same server/routes.js.
  */
 require('./lib/env');
 
@@ -13,9 +14,6 @@ const path = require('path');
 const routes = require('./server/routes');
 
 const PORT = Number(process.env.PORT) || 4000;
-const PUBLIC = path.join(__dirname, 'public');
-// The React app (planzo/app) builds to app/dist and is served at /app —
-// this is a separate root from PUBLIC/app, which is the old vanilla PWA.
 const APP_DIST = path.join(__dirname, 'app', 'dist');
 
 const MIME = {
@@ -36,7 +34,7 @@ function send(res, status, body, headers = {}) {
   res.end(payload);
 }
 
-function serveStatic(req, res, urlPath, root = PUBLIC) {
+function serveStatic(req, res, urlPath, root = APP_DIST) {
   let rel = decodeURIComponent(urlPath.split('?')[0]);
   if (rel.endsWith('/')) rel += 'index.html';
   const full = path.normalize(path.join(root, rel));
@@ -91,18 +89,10 @@ const server = http.createServer(async (req, res) => {
       return send(res, result.status || 200, result.body, result.headers || {});
     }
 
-    // Pretty routes for the participant flow and the app shell.
-    if (url.pathname.startsWith('/p/')) {
-      return serveStatic(req, res, '/p/index.html') || send(res, 404, { error: 'not_found' });
-    }
-    if (url.pathname === '/app' || url.pathname.startsWith('/app/')) {
-      const rel = url.pathname.slice('/app'.length) || '/';
-      if (serveStatic(req, res, rel, APP_DIST)) return;
-      return serveStatic(req, res, '/index.html', APP_DIST) || send(res, 404, { error: 'not_found' });
-    }
-
+    // Everything else is the SPA — serve the matching static asset, or fall
+    // back to index.html so client-side routes resolve on a hard refresh.
     if (serveStatic(req, res, url.pathname)) return;
-    return send(res, 404, { error: 'not_found' });
+    return serveStatic(req, res, '/index.html') || send(res, 404, { error: 'not_found' });
   } catch (err) {
     console.error('[planzo] unhandled', url.pathname, err);
     return send(res, 500, { error: 'server_error' });
@@ -120,10 +110,8 @@ server.listen(PORT, () => {
   console.log(`
   PLANZO  →  http://localhost:${PORT}
   ────────────────────────────────────────────
-  Waitlist     /                 
-  App (PWA)    /app              
-  Participant  /p/<code>         
-  Cost report  /api/admin/cost   
+  App          /
+  Cost report  /api/admin/cost
   ────────────────────────────────────────────
   Storage      ${store.remote ? `Upstash Redis (prefix ${store.PREFIX})` : 'local files ./data'}
   AI           ${ai.enabled() ? 'enabled — capped' : 'DISABLED — $0 spend, rules engine only'}

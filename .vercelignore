@@ -1,6 +1,0 @@
-# Vercel auto-serves any root /public folder as static files, which was
-# silently overriding the real app build (app/dist, via outputDirectory in
-# vercel.json) at the domain root with this repo's old Render-era waitlist
-# page instead. That folder is only used by the Node server (server.js) —
-# irrelevant to the Vercel deploy, so it's excluded here entirely.
-/public

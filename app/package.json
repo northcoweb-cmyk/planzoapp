@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "vite build",
     "build:single": "vite build --mode single",
-    "build:vercel": "vite build --mode vercel",
     "preview": "vite preview"
   },
   "dependencies": {

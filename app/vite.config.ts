@@ -4,10 +4,11 @@ import tailwindcss from '@tailwindcss/vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 
 /**
- * Three builds from one source:
- *   vite build              → normal assets, served under /app/ by the Planzo (Render) server
+ * Two builds from one source:
+ *   vite build              → normal assets, served at the domain root by
+ *                              either server.js (Render/any Node host) or
+ *                              Vercel (via outputDirectory in vercel.json)
  *   vite build --mode single → one self-contained HTML file, double-clickable
- *   vite build --mode vercel → normal assets, served at the domain root on Vercel
  */
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -17,10 +18,7 @@ export default defineConfig(({ mode }) => ({
   ],
   resolve: { alias: { '@': new URL('./src', import.meta.url).pathname } },
   define: { __SINGLE_FILE__: JSON.stringify(mode === 'single') },
-  // The Render build is served under /app/, not at root — without this,
-  // asset URLs come out as /assets/... and 404. Vercel serves the app at
-  // the domain root instead, so it needs a plain '/' base.
-  base: mode === 'single' ? './' : mode === 'vercel' ? '/' : '/app/',
+  base: mode === 'single' ? './' : '/',
   build: {
     outDir: mode === 'single' ? 'dist-single' : 'dist',
     assetsInlineLimit: mode === 'single' ? 100_000_000 : 4096,
