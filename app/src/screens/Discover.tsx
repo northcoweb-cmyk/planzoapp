@@ -83,11 +83,28 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
   const [activityKey, setActivityKey] = React.useState<string | null>(null);
   const [activityResults, setActivityResults] = React.useState<any[] | null>(null);
 
+  const [linkImportError, setLinkImportError] = React.useState<string | null>(null);
+
   React.useEffect(() => {
     let dead = false;
     setRawEvents(null);
+    setLinkImportError(null);
     (async () => {
       const o = originOrFallback();
+
+      // Pasting a Ticketmaster event link resolves that exact event instead
+      // of running it through as a keyword search (which would return
+      // nothing useful for a URL) — opens straight to its detail sheet.
+      const pastedId = events.idFromUrl?.(q);
+      if (pastedId) {
+        const r = await events.byId(pastedId);
+        if (dead) return;
+        if (r.available) { setOpen(r.event); setRawEvents([]); }
+        else setLinkImportError("Couldn't find that event — double-check the link.");
+        setVenues([]);
+        return;
+      }
+
       const map: Record<string, string | undefined> = {
         "For you": undefined, Music: "concert", Comedy: "comedy", Sports: "sports", Theatre: "theatre",
       };
@@ -182,14 +199,15 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
           : "Real events near you, straight from the box office"}
       </p>
 
-      <Glass className="mb-4 flex items-center gap-2.5 rounded-full px-4 py-3">
+      <Glass className={linkImportError ? "mb-2 flex items-center gap-2.5 rounded-full px-4 py-3" : "mb-5 flex items-center gap-2.5 rounded-full px-4 py-3"}>
         <Search className="h-4 w-4 shrink-0 text-white/35" />
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
-          placeholder="Search artists, teams, shows…"
+          placeholder="Search, or paste a Ticketmaster link…"
           className="w-full bg-transparent text-[15px] outline-none placeholder:text-white/30"
         />
       </Glass>
+      {linkImportError && <p className="mb-5 text-[12.5px] text-red-300/80">{linkImportError}</p>}
 
       <div className="no-bar edge-fade -mx-5 mb-5 flex gap-2 overflow-x-auto px-5">
         {CATS.map(c => (

@@ -88,4 +88,38 @@ export async function search({ lat, lon, radiusMiles = 25, category, keyword, st
   if (!value) return { available: false, reason: 'provider_unavailable', message: "We couldn't verify event listings right now." };
   return { available: true, cached: wasCached, events: value.slice(0, limit) };
 }
-export default { search, enabled };
+/** Look up one event by Ticketmaster's own id — what a pasted event link
+ * resolves to. Never guesses: an id that doesn't resolve just reports
+ * unavailable rather than fabricating anything. */
+export async function byId(id) {
+  if (!enabled()) return { available: false, reason: 'events_not_configured' };
+  if (!id) return { available: false, reason: 'no_id' };
+  const key = `events:tm:byid:${id}`;
+  const { value } = await cache.wrap(key, cache.TTL.event, async () => {
+    try {
+      const res = await fetch(`https://app.ticketmaster.com/discovery/v2/events/${encodeURIComponent(id)}.json?apikey=${config.get().ticketmaster}`);
+      if (!res.ok) return undefined;
+      const j = await res.json();
+      if (j.fault || j.errors) return undefined;
+      return normalize(j);
+    } catch { return undefined; }
+  });
+  if (!value) return { available: false, reason: 'not_found' };
+  return { available: true, event: value };
+}
+
+/** A pasted Ticketmaster URL's event id is its last path segment —
+ * https://www.ticketmaster.com/some-artist-tickets/event/0C00611229F540A2
+ * The exact format has varied over the years, so this is deliberately
+ * permissive: whatever's after the last "/" is tried against the API,
+ * and byId() itself is what actually validates it resolves to a real event. */
+export function idFromUrl(url) {
+  try {
+    const u = new URL(String(url).trim());
+    if (!/ticketmaster\./i.test(u.hostname)) return null;
+    const seg = u.pathname.split('/').filter(Boolean).pop();
+    return seg || null;
+  } catch { return null; }
+}
+
+export default { search, byId, idFromUrl, enabled };
