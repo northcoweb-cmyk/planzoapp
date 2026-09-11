@@ -33,28 +33,47 @@ export default function Tickets() {
       </div>
       <p className="mb-6 text-[14px] text-white/45">Events Planzo hosts issue their own ticket</p>
 
-      {/* Social — public events other people have hosted. Not filtered by
-          school/friends yet (needs a real follow-graph and the college
-          field wired through, both tracked in ROADMAP.md); everyone public
-          shows for now rather than pretending a narrower feed exists. */}
-      {publicEvents && publicEvents.length > 0 && (
+      {/* Social — public events other people have hosted. This used to only
+          render when publicEvents had something in it, which meant on an
+          empty feed the whole section silently vanished — indistinguishable
+          from the feature not existing at all. It's now always visible with
+          its own header once the fetch resolves, with an honest empty state,
+          so "the social section isn't built" isn't what an empty day looks
+          like. Not filtered by school/friends yet (needs a real follow-graph
+          and the college field wired through, tracked in ROADMAP.md) —
+          everyone public shows for now rather than pretending a narrower
+          feed exists. */}
+      {api.canShare() && (
         <div className="mb-6">
-          <h3 className="mb-3 text-[15px] font-semibold">Public events near you</h3>
-          <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
-            {publicEvents.map((e, i) => (
-              <a key={e.id} href={`/e/${e.id}`}
-                className="block w-[200px] shrink-0 text-left">
-                <Glass className="p-4 transition-transform active:scale-[.98]">
-                  <p className="mb-1 truncate text-[10px] font-bold uppercase tracking-wider text-[#C9C1FF]">
-                    {e.ownerName || "Hosted event"}
-                  </p>
-                  <p className="line-clamp-2 text-[14px] font-semibold leading-snug">{e.title}</p>
-                  <p className="mt-1.5 truncate text-[11.5px] text-white/45">{e.venue}</p>
-                  <p className="mt-1.5 text-[11px] text-white/35">{e.counts?.going ?? 0} going</p>
-                </Glass>
-              </a>
-            ))}
+          <div className="mb-3 flex items-center gap-1.5">
+            <Globe2 className="h-4 w-4 text-[#C9C1FF]" />
+            <h3 className="text-[15px] font-semibold">Social — public events near you</h3>
           </div>
+          {publicEvents === null ? (
+            <div className="flex gap-3">
+              {[0, 1].map(i => <div key={i} className="skeleton h-[92px] w-[200px] shrink-0 rounded-[22px]" />)}
+            </div>
+          ) : publicEvents.length === 0 ? (
+            <Glass className="p-4 text-[13.5px] text-white/45">
+              No public events near you yet. Host one and check "Public" — it'll show up here for everyone nearby.
+            </Glass>
+          ) : (
+            <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
+              {publicEvents.map((e, i) => (
+                <a key={e.id} href={`/e/${e.id}`}
+                  className="block w-[200px] shrink-0 text-left">
+                  <Glass className="p-4 transition-transform active:scale-[.98]">
+                    <p className="mb-1 truncate text-[10px] font-bold uppercase tracking-wider text-[#C9C1FF]">
+                      {e.ownerName || "Hosted event"}
+                    </p>
+                    <p className="line-clamp-2 text-[14px] font-semibold leading-snug">{e.title}</p>
+                    <p className="mt-1.5 truncate text-[11.5px] text-white/45">{e.venue}</p>
+                    <p className="mt-1.5 text-[11px] text-white/35">{e.counts?.going ?? 0} going</p>
+                  </Glass>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
