@@ -53,6 +53,16 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
 
   const [sportsEvents, setSportsEvents] = React.useState<any[] | null>(null);
 
+  const [locating, setLocating] = React.useState(false);
+  const refreshLocation = React.useCallback(async () => {
+    setLocating(true);
+    try {
+      await requestLocation(true);
+      const o = originOrFallback();
+      weather.forecast(o.lat, o.lon).then(setWx);
+    } finally { setLocating(false); }
+  }, []);
+
   React.useEffect(() => {
     (async () => {
       await requestLocation();
@@ -135,7 +145,9 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
         className="mb-5"
       >
         <div className="mb-3 flex items-center justify-between">
-          <Pill><MapPin className="h-3 w-3" />{originOrFallback().label}</Pill>
+          <button onClick={refreshLocation} disabled={locating} className="disabled:opacity-60">
+            <Pill><MapPin className={`h-3 w-3 ${locating ? "animate-pulse" : ""}`} />{originOrFallback().label}</Pill>
+          </button>
           {wx?.available && (
             <Pill><CloudSun className="h-3 w-3" />{wx.highF}° · {wx.summary}</Pill>
           )}

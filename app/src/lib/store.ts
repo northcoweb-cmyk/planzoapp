@@ -152,7 +152,14 @@ export function requestLocation(force = false): Promise<Origin | null> {
         resolveCityLabel(o);
       },
       () => resolve(null),
-      { timeout: 9000, maximumAge: 600000 },
+      // A short timeout here used to fire while the browser's own
+      // permission prompt was still sitting on screen — someone who took
+      // more than 9s to tap "Allow" got silently locked onto the College
+      // Park fallback for the rest of the session (a one-shot effect never
+      // retried), which is exactly what "weather is wrong" looks like from
+      // the outside. 20s covers that; high accuracy trades a little more
+      // battery for a fix that isn't several miles off at a city boundary.
+      { timeout: 20000, maximumAge: 300000, enableHighAccuracy: true },
     );
   });
 }

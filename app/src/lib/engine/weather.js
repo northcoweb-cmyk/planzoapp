@@ -14,6 +14,17 @@ const CODES = {
   95:'Thunderstorms', 96:'Thunderstorms with hail', 99:'Severe thunderstorms',
 };
 
+// new Date().toISOString().slice(0,10) is the UTC date — for anyone west
+// of Greenwich in the evening, UTC has already rolled to tomorrow, so
+// "today's weather" with no explicit date silently became tomorrow's
+// forecast. This uses the wall-clock local date of whatever runs it
+// instead; the caller should still pass an explicit dateISO when it knows
+// the user's own local date (the browser client does).
+function localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /**
  * @returns {{available:true, ...}|{available:false, reason:string}}
  * Never returns invented weather. An outage reports unavailable.
@@ -22,7 +33,7 @@ async function forecast(lat, lon, dateISO) {
   if ((globalThis.__PLANZO_ENV__?.PLANZO_WEATHER_ENABLED) === 'false') return { available: false, reason: 'disabled' };
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return { available: false, reason: 'no_location' };
 
-  const day = (dateISO || new Date().toISOString().slice(0, 10)).slice(0, 10);
+  const day = (dateISO || localToday()).slice(0, 10);
   const key = `weather:${lat.toFixed(2)},${lon.toFixed(2)}:${day}`;
 
   const { value, cached } = await cache.wrap(key, cache.TTL.weather, async () => {
