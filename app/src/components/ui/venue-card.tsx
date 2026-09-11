@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { motion } from "framer-motion";
-import { MapPin, ExternalLink, Sparkles } from "lucide-react";
+import { MapPin, ExternalLink, Sparkles, Phone, Clock, CalendarCheck } from "lucide-react";
 import { Glass, Pill, Img, Sheet } from "./glass";
 import * as places from "@/lib/engine/places.js";
 
@@ -39,9 +39,14 @@ export function VenueGridCard({ v, i, onClick }: { v: any; i: number; onClick?: 
   );
 }
 
-export function VenueSheet({ v, onClose, onStartIdea, label = "Restaurant" }: { v: any; onClose: () => void; onStartIdea: () => void; label?: string }) {
+export function VenueSheet({ v, onClose, onStartIdea, label = "Restaurant", reservable = false }: { v: any; onClose: () => void; onStartIdea: () => void; label?: string; reservable?: boolean }) {
   const [photo, setPhoto] = React.useState<string | null>(null);
   React.useEffect(() => { places.photoFor(v, 800).then(setPhoto); }, [v]);
+  // "Reserve" is honest about what it can offer: Google's own place page
+  // surfaces a real OpenTable/Resy widget when the restaurant has one on
+  // file, and a phone number is always a real way to book a table — there
+  // is no reservations API wired in, so this never fabricates a booking.
+  const reserveHref = v.mapsUrl || (v.phone ? `tel:${v.phone}` : null);
   return (
     <Sheet open onClose={onClose}>
       <div className="-mx-5 -mt-5 mb-4">
@@ -54,11 +59,24 @@ export function VenueSheet({ v, onClose, onStartIdea, label = "Restaurant" }: { 
         <div className="flex items-start gap-2.5 text-white/70">
           <span className="mt-0.5 shrink-0 text-white/35"><MapPin className="h-4 w-4" /></span><span>{v.address}</span>
         </div>
+        {v.phone && (
+          <div className="flex items-start gap-2.5 text-white/70">
+            <span className="mt-0.5 shrink-0 text-white/35"><Phone className="h-4 w-4" /></span>
+            <a href={`tel:${v.phone}`} className="hover:text-white">{v.phone}</a>
+          </div>
+        )}
+        {v.hours && v.hours.length > 0 && (
+          <div className="flex items-start gap-2.5 text-white/70">
+            <span className="mt-0.5 shrink-0 text-white/35"><Clock className="h-4 w-4" /></span>
+            <span>{v.hours[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] || v.hours[0]}</span>
+          </div>
+        )}
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {v.rating && <Pill>★ {v.rating}{v.ratingCount ? ` (${v.ratingCount})` : ""}</Pill>}
         {priceTag(v.priceLevel) && <Pill>{priceTag(v.priceLevel)}</Pill>}
         {v.openNow === true && <Pill className="!text-emerald-300">Open now</Pill>}
+        {v.cuisine && <Pill>{v.cuisine}</Pill>}
       </div>
 
       <div className="mt-5 flex gap-2.5">
@@ -74,6 +92,12 @@ export function VenueSheet({ v, onClose, onStartIdea, label = "Restaurant" }: { 
           </a>
         )}
       </div>
+      {reservable && reserveHref && (
+        <a href={reserveHref} target={reserveHref.startsWith("tel:") ? undefined : "_blank"} rel="noopener"
+          className="glass mt-2.5 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-semibold text-white/85 transition-transform active:scale-[.98]">
+          <CalendarCheck className="h-4 w-4" /> {reserveHref.startsWith("tel:") ? "Call to reserve" : "Reserve a table"}
+        </a>
+      )}
     </Sheet>
   );
 }

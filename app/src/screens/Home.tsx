@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, ArrowRight, CloudSun, Users, Plus, Check, Ticket as TicketIcon, Globe2, Lock } from "lucide-react";
 import { PromptInput } from "@/components/ui/ai-chat-input";
 import { Glass, Pill, Img, Sheet, Notice } from "@/components/ui/glass";
-import { VenueGridCard, VenueSheet } from "@/components/ui/venue-card";
+import { VenueGridCard, VenueSheet, PRICE_LEVELS } from "@/components/ui/venue-card";
 import { store, useStore, originOrFallback, requestLocation, type Plan } from "@/lib/store";
 import { timeSlot, greetingFor } from "@/lib/greeting";
 import { ACTIVITIES, inSeason, startIdea, trackViewOnly } from "@/lib/seed";
@@ -14,6 +14,18 @@ import * as places from "@/lib/engine/places.js";
 import * as weather from "@/lib/engine/weather.js";
 import * as consensus from "@/lib/engine/consensus.js";
 import * as api from "@/lib/api";
+
+// Google returns a generic "restaurant"/"food"/"point_of_interest" bucket
+// alongside a specific type when it has one (e.g. "italian_restaurant").
+// This picks that specific type and turns it into a readable cuisine label
+// instead of inventing a classifier — a place with no specific type just
+// has no cuisine chip, which is honest.
+const GENERIC_TYPES = new Set(["restaurant", "food", "point_of_interest", "establishment", "meal_takeaway", "meal_delivery"]);
+function cuisineOf(v: any): string | null {
+  const t = (v.types || []).find((x: string) => x.endsWith("_restaurant") && !GENERIC_TYPES.has(x));
+  if (!t) return null;
+  return t.replace(/_restaurant$/, "").replace(/_/g, " ").replace(/^./, (c: string) => c.toUpperCase());
+}
 
 export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
   const me = useStore(s => s.me);
@@ -33,6 +45,10 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
   const [hostedActivities, setHostedActivities] = React.useState<any[] | null>(null);
   const [addingActivity, setAddingActivity] = React.useState(false);
 
+  const [openEat, setOpenEat] = React.useState<any>(null);
+  const [eatCuisine, setEatCuisine] = React.useState<string | null>(null);
+  const [eatSort, setEatSort] = React.useState<"rating" | "price_low" | "price_high">("rating");
+
   React.useEffect(() => {
     (async () => {
       await requestLocation();
@@ -41,7 +57,10 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
       const today = new Date().toISOString().slice(0, 10);
       const r = await events.search({ lat: o.lat, lon: o.lon, radiusMiles: 25, limit: 6, startDate: today });
       if (r.available) setNear(r.events.filter((e: any) => !e.date || e.date >= today));
-      const pr = await places.search({ query: "restaurants", lat: o.lat, lon: o.lon, limit: 8 });
+      // A wide net ("restaurants"), not a narrow one — cuisine/price filtering
+      // happens client-side over one bigger result set instead of firing a
+      // separate paid Places search per cuisine.
+      const pr = await places.search({ query: "restaurants", lat: o.lat, lon: o.lon, limit: 20 });
       if (pr.available) setEats(pr.places);
     })();
     if (api.canShare()) api.publicEvents().then(r => setHostedActivities(r.events || []));
@@ -214,17 +233,55 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
         )}
       </Section>
 
-      {eats.length > 0 && (
-        <Section title="Nearby to eat" action="See all" onAction={() => go("discover")}>
-          <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
-            {eats.map((v, i) => (
-              <div key={v.providerId} className="w-[200px] shrink-0">
-                <VenueGridCard v={v} i={i} onClick={() => go("discover")} />
+      {eats.length > 0 && (() => {
+        const cuisines = Array.from(new Set(eats.map(cuisineOf).filter(Boolean))) as string[];
+        const filtered = eats.filter(v => !eatCuisine || cuisineOf(v) === eatCuisine);
+        const priceRank = (v: any) => Math.max(0, PRICE_LEVELS.indexOf(v.priceLevel));
+        const sorted = [...filtered].sort((a, b) => {
+          if (eatSort === "price_low") return priceRank(a) - priceRank(b);
+          if (eatSort === "price_high") return priceRank(b) - priceRank(a);
+          return (b.rating ?? 0) - (a.rating ?? 0);
+        });
+        return (
+          <Section title="Nearby to eat" action="See all" onAction={() => go("discover")}>
+            {cuisines.length > 0 && (
+              <div className="no-bar edge-fade -mx-5 mb-2.5 flex gap-2 overflow-x-auto px-5">
+                <button onClick={() => setEatCuisine(null)}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors ${
+                    !eatCuisine ? "text-white" : "border border-white/10 bg-white/[.06] text-white/60 hover:text-white/85"}`}
+                  style={!eatCuisine ? { background: "var(--grad-brand)" } : undefined}>
+                  All cuisines
+                </button>
+                {cuisines.map(c => (
+                  <button key={c} onClick={() => setEatCuisine(eatCuisine === c ? null : c)}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors ${
+                      eatCuisine === c ? "text-white" : "border border-white/10 bg-white/[.06] text-white/60 hover:text-white/85"}`}
+                    style={eatCuisine === c ? { background: "var(--grad-brand)" } : undefined}>
+                    {c}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-        </Section>
-      )}
+            )}
+            <div className="mb-2.5 flex items-center gap-1.5">
+              <span className="text-[11px] font-medium text-white/35">Sort</span>
+              {([["rating", "Top rated"], ["price_low", "$ → $$$$"], ["price_high", "$$$$ → $"]] as const).map(([key, label]) => (
+                <button key={key} onClick={() => setEatSort(key)}
+                  className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
+                    eatSort === key ? "bg-white/15 text-white" : "text-white/45 hover:text-white/70"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
+              {sorted.map((v, i) => (
+                <div key={v.providerId} className="w-[200px] shrink-0">
+                  <VenueGridCard v={{ ...v, cuisine: cuisineOf(v) }} i={i} onClick={() => setOpenEat(v)} />
+                </div>
+              ))}
+            </div>
+          </Section>
+        );
+      })()}
 
       {/* Popular activities — right on the main page, not buried under a
           "something outdoors?" framing inside Discover. Chips are in-season
@@ -288,6 +345,11 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
       </div>
 
       <AnimatePresence>
+        {openEat && (
+          <VenueSheet v={{ ...openEat, cuisine: cuisineOf(openEat) }} label="Restaurant" reservable
+            onClose={() => setOpenEat(null)}
+            onStartIdea={() => { startIdea(openEat, "restaurant", me, go); setOpenEat(null); }} />
+        )}
         {openActivity && activityKey && (
           <VenueSheet v={openActivity} label={ACTIVITIES[activityKey].noun.replace(/^./, c => c.toUpperCase())}
             onClose={() => setOpenActivity(null)}
