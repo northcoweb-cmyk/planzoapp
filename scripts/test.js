@@ -713,6 +713,25 @@ await t('the AI gateway returns a failure, never a fabricated answer, when block
   assert.strictEqual(r.data, undefined);
 });
 
+console.log('\nOVER-BUDGET ADVICE');
+// Regression coverage for the real report: "It said swap the food stop
+// for a cheaper option — but there's no food option." The advice used to
+// hardcode "swap the food stop" no matter what actually drove the cost.
+await t('names the food stop when food is actually the biggest cost', () => {
+  const msg = planEngine.overBudgetCaveat(60, 40, [{ label: 'Food', perPerson: 45 }, { label: 'Drive (round trip)', perPerson: 15 }]);
+  assert.match(msg, /swap the food stop/);
+});
+await t('names transport instead of a nonexistent food stop when there is no food line', () => {
+  const msg = planEngine.overBudgetCaveat(60, 40, [{ label: 'Drive (round trip)', perPerson: 60 }]);
+  assert.doesNotMatch(msg, /food/i);
+  assert.match(msg, /getting there/);
+});
+await t('falls back to a generic "cut a stop" when there is no cost line at all to blame', () => {
+  const msg = planEngine.overBudgetCaveat(50, 40, []);
+  assert.doesNotMatch(msg, /food/i);
+  assert.match(msg, /cut a stop/);
+});
+
 console.log('\nPLACES — OPEN NOW');
 // Regression coverage for the real bug this fixed: a venue's "open now"
 // status was being frozen into a 12h-24h cache at fetch time, so a place

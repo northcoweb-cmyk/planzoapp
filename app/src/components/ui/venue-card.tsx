@@ -31,7 +31,9 @@ export function VenueGridCard({ v, i, onClick }: { v: any; i: number; onClick?: 
             {priceTag(v.priceLevel) && <p className="shrink-0 text-[11px] font-bold text-white/55">{priceTag(v.priceLevel)}</p>}
           </div>
           <p className="line-clamp-2 text-[13.5px] font-semibold leading-snug">{v.name}</p>
-          <p className="mt-1.5 truncate text-[11.5px] text-white/45">{v.address}</p>
+          <p className="mt-1.5 truncate text-[11.5px] text-white/45">
+            {v.address}{v.distanceMiles != null && ` · ${v.distanceMiles} mi`}
+          </p>
           {v.openNow === true && <p className="mt-1 text-[11px] font-semibold text-emerald-300">Open now</p>}
         </div>
       </Glass>
@@ -57,7 +59,8 @@ export function VenueSheet({ v, onClose, onStartIdea, label = "Restaurant", rese
 
       <div className="mt-4 space-y-2.5 text-[14px]">
         <div className="flex items-start gap-2.5 text-white/70">
-          <span className="mt-0.5 shrink-0 text-white/35"><MapPin className="h-4 w-4" /></span><span>{v.address}</span>
+          <span className="mt-0.5 shrink-0 text-white/35"><MapPin className="h-4 w-4" /></span>
+          <span>{v.address}{v.distanceMiles != null && ` · ${v.distanceMiles} mi from you`}</span>
         </div>
         {v.phone && (
           <div className="flex items-start gap-2.5 text-white/70">

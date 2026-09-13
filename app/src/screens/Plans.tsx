@@ -392,10 +392,21 @@ function FinalPlan({ plan }: { plan: Plan }) {
               {it.place?.name && (
                 <p className="mt-0.5 text-[13px] text-white/55">
                   {it.place.name}{it.place.rating ? ` · ★${it.place.rating}` : ""}
+                  {it.place.distanceMiles != null && ` · ${it.place.distanceMiles} mi from you`}
                 </p>
               )}
               {it.place?.address && <p className="text-[12px] text-white/35">{it.place.address}</p>}
               {it.unresolved && <p className="mt-1 text-[12.5px] text-amber-200/80">{it.unresolvedMessage}</p>}
+              {it.alternatives?.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-wide text-white/30">Other options nearby</p>
+                  {it.alternatives.map((a: any, j: number) => (
+                    <p key={j} className="text-[12px] text-white/40">
+                      {a.name}{a.distanceMiles != null && ` · ${a.distanceMiles} mi`}
+                    </p>
+                  ))}
+                </div>
+              )}
             </motion.div>
           ))}
         </div>

@@ -13,7 +13,20 @@ import * as events from "@/lib/engine/events.js";
 import * as places from "@/lib/engine/places.js";
 import * as weather from "@/lib/engine/weather.js";
 import * as consensus from "@/lib/engine/consensus.js";
+import * as planEng from "@/lib/engine/plan.js";
 import * as api from "@/lib/api";
+
+// Every place/event this screen recommends gets a real distance-from-you,
+// not just an address someone has to mentally estimate. Uses the same real
+// haversine math the plan generator already relies on for its own
+// distance-based ranking and travel legs (engine/plan.js's milesBetween) —
+// one source of truth for "how far is this" everywhere in the app.
+export function withDistance<T extends { lat?: number | null; lon?: number | null }>(list: T[], origin: { lat: number; lon: number }): (T & { distanceMiles: number | null })[] {
+  return list.map(v => {
+    const m = planEng.milesBetween(origin, v);
+    return { ...v, distanceMiles: m != null ? Math.round(m * 10) / 10 : null };
+  });
+}
 
 // Google returns a generic "restaurant"/"food"/"point_of_interest" bucket
 // alongside a specific type when it has one (e.g. "italian_restaurant").
@@ -83,7 +96,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
       // in range) left the section on its loading skeleton forever —
       // permanently gray, looking exactly like the app was broken.
       if (r.available) {
-        setNear(r.events.filter((e: any) => !e.date || e.date >= today));
+        setNear(withDistance(r.events.filter((e: any) => !e.date || e.date >= today), o));
         setNearStatus("ok");
       } else {
         setNearStatus("unavailable");
@@ -92,7 +105,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
       // happens client-side over one bigger result set instead of firing a
       // separate paid Places search per cuisine.
       const pr = await places.search({ query: "restaurants", lat: o.lat, lon: o.lon, limit: 20 });
-      if (pr.available) setEats(pr.places);
+      if (pr.available) setEats(withDistance(pr.places, o));
     })();
     if (api.canShare()) api.publicEvents().then(r => setHostedActivities(r.events || []));
   }, []);
@@ -108,7 +121,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
       const today = new Date().toISOString().slice(0, 10);
       const r = await events.search({ lat: o.lat, lon: o.lon, radiusMiles: 40, category: "sports", limit: 10, startDate: today });
       if (dead) return;
-      setSportsEvents(r.available ? r.events.filter((e: any) => !e.date || e.date >= today) : []);
+      setSportsEvents(r.available ? withDistance(r.events.filter((e: any) => !e.date || e.date >= today), o) : []);
     })();
     return () => { dead = true; };
   }, [likesSports]);
@@ -123,7 +136,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
       const o = originOrFallback();
       const ar = await places.search({ query: ACTIVITIES[activityKey].query, lat: o.lat, lon: o.lon, limit: 10 });
       if (dead) return;
-      setActivityResults(ar.available ? ar.places : []);
+      setActivityResults(ar.available ? withDistance(ar.places, o) : []);
     })();
     return () => { dead = true; };
   }, [activityKey]);
@@ -271,7 +284,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
                     </p>
                     <p className="line-clamp-2 text-[14.5px] font-semibold leading-snug">{e.title}</p>
                     <p className="mt-1.5 truncate text-[12px] text-white/45">
-                      {fmtDate(e.date)}{e.venue ? ` · ${e.venue}` : ""}
+                      {fmtDate(e.date)}{e.venue ? ` · ${e.venue}` : ""}{e.distanceMiles != null ? ` · ${e.distanceMiles} mi` : ""}
                     </p>
                   </div>
                 </Glass>
@@ -312,7 +325,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
                     </p>
                     <p className="line-clamp-2 text-[14.5px] font-semibold leading-snug">{e.title}</p>
                     <p className="mt-1.5 truncate text-[12px] text-white/45">
-                      {fmtDate(e.date)}{e.venue ? ` · ${e.venue}` : ""}
+                      {fmtDate(e.date)}{e.venue ? ` · ${e.venue}` : ""}{e.distanceMiles != null ? ` · ${e.distanceMiles} mi` : ""}
                     </p>
                   </div>
                 </Glass>

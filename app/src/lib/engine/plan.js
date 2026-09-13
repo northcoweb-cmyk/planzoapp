@@ -110,6 +110,28 @@ function searchTerms(state) {
   return terms;
 }
 
+/**
+ * The advice line for a plan that came in over budget. Used to always say
+ * "swap the food stop" unconditionally — wrong on any plan with no food
+ * stop at all (a hike, bowling, an activity-only day), where the actual
+ * cost driver is transport (the only other thing this engine ever prices).
+ * Pulled out as its own pure function so it's testable without a live
+ * Places connection, which generate() otherwise requires to produce any
+ * non-food cost line at all.
+ */
+function overBudgetCaveat(perPerson, budgetCeiling, costLines) {
+  const biggest = [...costLines].sort((a, b) => b.perPerson - a.perPerson)[0];
+  const fix = !biggest
+    ? "cut a stop to bring the total down"
+    : biggest.label === 'Food'
+      ? "swap the food stop for a cheaper option to get under"
+      : /round trip/.test(biggest.label)
+        ? `switch how you're getting there — ${biggest.label.replace(' (round trip)', '').toLowerCase()} is the biggest line here — to get under`
+        : `swap out ${biggest.label.toLowerCase()} for a cheaper option to get under`;
+  return `This comes to about $${perPerson}/person, above the group's tightest budget of $${budgetCeiling}. `
+    + `We kept it because it was the closest fit — ${fix}.`;
+}
+
 /** Does a place fit the group's hard constraints? */
 function fits(place, state) {
   if (state.hard.freeOnly && place.priceLevel && place.priceLevel !== 'PRICE_LEVEL_FREE'
@@ -268,6 +290,12 @@ async function generate(plan, { origin } = {}) {
     }
 
     const dwell = slot.slot === 'food' ? 80 : slot.slot === 'nightlife' ? 120 : 150;
+    // Distance from the user's own starting point specifically — not the
+    // leg above (which is distance from the PREVIOUS stop, useful for "how
+    // long to get there next" but not "how far is this place from me").
+    // Every recommended place gets this, including alternatives, so a
+    // group can actually tell how far they'd be traveling for each option.
+    const milesFromUser = dest ? milesBetween(start, dest) : null;
     itinerary.push({
       time: fmt(clock), title: slot.label,
       kind: slot.slot,
@@ -275,10 +303,15 @@ async function generate(plan, { origin } = {}) {
         name: dest.name, address: dest.address, rating: dest.rating, ratingCount: dest.ratingCount,
         priceLevel: dest.priceLevel, hours: dest.hours, phone: dest.phone,
         website: dest.website, mapsUrl: dest.mapsUrl, provider: dest.provider, fetchedAt: dest.fetchedAt,
+        distanceMiles: milesFromUser != null ? Math.round(milesFromUser * 10) / 10 : null,
       } : null,
       unresolved: !slot.resolved,
       unresolvedMessage: slot.resolved ? null : "We couldn't verify a specific venue for this — pick one together and we'll fill in the details.",
-      alternatives: (slot.alternatives || []).map(a => ({ name: a.name, address: a.address, rating: a.rating, mapsUrl: a.mapsUrl })),
+      alternatives: (slot.alternatives || []).map(a => {
+        const m = milesBetween(start, a);
+        return { name: a.name, address: a.address, rating: a.rating, mapsUrl: a.mapsUrl,
+          distanceMiles: m != null ? Math.round(m * 10) / 10 : null };
+      }),
       bookingUrl: dest?.website || null,
       durationMinutes: dwell,
     });
@@ -307,10 +340,7 @@ async function generate(plan, { origin } = {}) {
 
   const perPerson = Math.round(costLines.reduce((s, l) => s + l.perPerson, 0) * 100) / 100;
   const overBudget = state.hard.budgetCeiling !== null && perPerson > state.hard.budgetCeiling;
-  if (overBudget) {
-    caveats.push(`This comes to about $${perPerson}/person, above the group's tightest budget of $${state.hard.budgetCeiling}. `
-      + `We kept it because it was the closest fit — swap the food stop for a cheaper option to get under.`);
-  }
+  if (overBudget) caveats.push(overBudgetCaveat(perPerson, state.hard.budgetCeiling, costLines));
   if (state.hard.dietary.length) {
     caveats.push(`Dietary needs in the group: ${state.hard.dietary.join(', ')}. Confirm the venue can accommodate before you go.`);
   }
@@ -348,5 +378,5 @@ function fmt(minutes) {
   return `${h12}:${mm} ${ampm}`;
 }
 
-export { generate, transportOptions, milesBetween, fmt, searchTerms, fits };
-export default { generate, transportOptions, milesBetween, fmt, searchTerms, fits };
+export { generate, transportOptions, milesBetween, fmt, searchTerms, fits, overBudgetCaveat };
+export default { generate, transportOptions, milesBetween, fmt, searchTerms, fits, overBudgetCaveat };

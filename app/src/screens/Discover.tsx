@@ -9,7 +9,7 @@ import { startIdea, trackViewOnly } from "@/lib/seed";
 import * as events from "@/lib/engine/events.js";
 import * as places from "@/lib/engine/places.js";
 import * as memoryEng from "@/lib/engine/memory.js";
-import { fmtDate } from "./Home";
+import { fmtDate, withDistance } from "./Home";
 
 const CATS = ["For you", "Music", "Comedy", "Sports", "Theatre"] as const;
 
@@ -62,8 +62,8 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
       if (dead) return;
       // Belt and suspenders: even with startDate sent, a cached response can
       // outlive the day it was fetched on and start showing stale past events.
-      setRawEvents(er.available ? er.events.filter((e: any) => !e.date || e.date >= today) : []);
-      setVenues(pr.available ? pr.places : []);
+      setRawEvents(er.available ? withDistance(er.events.filter((e: any) => !e.date || e.date >= today), o) : []);
+      setVenues(pr.available ? withDistance(pr.places, o) : []);
     })();
     return () => { dead = true; };
   }, [cat, q]);
@@ -147,7 +147,9 @@ export default function Discover({ initial, go }: { initial?: any; go?: (tab: st
                     {e.genre || e.category}
                   </p>
                   <p className="line-clamp-2 text-[13.5px] font-semibold leading-snug">{e.title}</p>
-                  <p className="mt-1.5 truncate text-[11.5px] text-white/45">{fmtDate(e.date)}</p>
+                  <p className="mt-1.5 truncate text-[11.5px] text-white/45">
+                    {fmtDate(e.date)}{e.distanceMiles != null ? ` · ${e.distanceMiles} mi` : ""}
+                  </p>
                   {e.priceAvailable && (
                     <p className="mt-1 text-[11.5px] font-semibold text-white/70">from ${Math.round(e.priceMin)}</p>
                   )}
@@ -204,7 +206,11 @@ function EventSheet({ e, onClose, onStartIdea }: { e: any; onClose: () => void; 
         <Row icon={<Calendar className="h-4 w-4" />}>
           {fmtDate(e.date)}{e.time ? ` · ${fmt12(e.time)}` : e.timeTbd ? " · time TBA" : ""}
         </Row>
-        {e.venue && <Row icon={<MapPin className="h-4 w-4" />}>{e.venue}{e.address ? ` · ${e.address}` : ""}</Row>}
+        {e.venue && (
+          <Row icon={<MapPin className="h-4 w-4" />}>
+            {e.venue}{e.address ? ` · ${e.address}` : ""}{e.distanceMiles != null ? ` · ${e.distanceMiles} mi from you` : ""}
+          </Row>
+        )}
         <Row icon={<TicketIcon className="h-4 w-4" />}>
           {e.priceAvailable
             ? `$${Math.round(e.priceMin)}${e.priceMax > e.priceMin ? `–$${Math.round(e.priceMax)}` : ""}`
