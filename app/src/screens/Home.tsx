@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, ArrowRight, CloudSun, Users, Plus, Check, Ticket as TicketIcon, Globe2, Lock } from "lucide-react";
 import { PromptInput } from "@/components/ui/ai-chat-input";
 import { Glass, Pill, Img, Sheet, Notice } from "@/components/ui/glass";
-import { VenueGridCard, VenueSheet, PRICE_LEVELS } from "@/components/ui/venue-card";
+import { VenueGridCard, VenueSheet, PRICE_LEVELS, priceTag } from "@/components/ui/venue-card";
 import { store, useStore, originOrFallback, requestLocation, type Plan } from "@/lib/store";
 import { timeSlot, greetingFor } from "@/lib/greeting";
 import { ACTIVITIES, inSeason, startIdea, trackViewOnly } from "@/lib/seed";
@@ -63,7 +63,11 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
 
   const [openEat, setOpenEat] = React.useState<any>(null);
   const [eatCuisine, setEatCuisine] = React.useState<string | null>(null);
-  const [eatSort, setEatSort] = React.useState<"rating" | "price_low" | "price_high">("rating");
+  // An actual filter, not a sort — the old "$ → $$$$ / $$$$ → $" buttons
+  // just reordered the same list, so tapping "$" still showed every
+  // restaurant including the expensive ones, just at the bottom. That's
+  // not what a price filter chip promises. Null means no price restriction.
+  const [eatPrice, setEatPrice] = React.useState<string | null>(null);
 
   const [sportsEvents, setSportsEvents] = React.useState<any[] | null>(null);
 
@@ -337,13 +341,12 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
 
       {eats.length > 0 && (() => {
         const cuisines = Array.from(new Set(eats.map(cuisineOf).filter(Boolean))) as string[];
-        const filtered = eats.filter(v => !eatCuisine || cuisineOf(v) === eatCuisine);
-        const priceRank = (v: any) => Math.max(0, PRICE_LEVELS.indexOf(v.priceLevel));
-        const sorted = [...filtered].sort((a, b) => {
-          if (eatSort === "price_low") return priceRank(a) - priceRank(b);
-          if (eatSort === "price_high") return priceRank(b) - priceRank(a);
-          return (b.rating ?? 0) - (a.rating ?? 0);
-        });
+        const filtered = eats
+          .filter(v => !eatCuisine || cuisineOf(v) === eatCuisine)
+          .filter(v => !eatPrice || v.priceLevel === eatPrice);
+        const sorted = [...filtered].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+        const pricesAvailable = Array.from(new Set(eats.map(v => v.priceLevel).filter(Boolean))) as string[];
+        pricesAvailable.sort((a, b) => PRICE_LEVELS.indexOf(a) - PRICE_LEVELS.indexOf(b));
         return (
           <Section title="Nearby to eat" action="See all" onAction={() => go("discover")}>
             {cuisines.length > 0 && (
@@ -364,16 +367,23 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
                 ))}
               </div>
             )}
-            <div className="mb-2.5 flex items-center gap-1.5">
-              <span className="text-[11px] font-medium text-white/35">Sort</span>
-              {([["rating", "Top rated"], ["price_low", "$ → $$$$"], ["price_high", "$$$$ → $"]] as const).map(([key, label]) => (
-                <button key={key} onClick={() => setEatSort(key)}
+            {pricesAvailable.length > 0 && (
+              <div className="mb-2.5 flex items-center gap-1.5">
+                <span className="text-[11px] font-medium text-white/35">Price</span>
+                <button onClick={() => setEatPrice(null)}
                   className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
-                    eatSort === key ? "bg-white/15 text-white" : "text-white/45 hover:text-white/70"}`}>
-                  {label}
+                    !eatPrice ? "bg-white/15 text-white" : "text-white/45 hover:text-white/70"}`}>
+                  All
                 </button>
-              ))}
-            </div>
+                {pricesAvailable.map(pl => (
+                  <button key={pl} onClick={() => setEatPrice(eatPrice === pl ? null : pl)}
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
+                      eatPrice === pl ? "bg-white/15 text-white" : "text-white/45 hover:text-white/70"}`}>
+                    {priceTag(pl) || "?"}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
               {sorted.map((v, i) => (
                 <div key={v.providerId} className="w-[200px] shrink-0">

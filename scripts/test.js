@@ -346,6 +346,19 @@ await t('labels every rideshare figure as an estimated range', () => {
 await t('honours a stated transport preference', () => {
   assert.strictEqual(planEngine.transportOptions(9, 4, 'Public transit')[0].mode, 'Public transit');
 });
+await t('an explicit "Walking" preference actually offers Walk for a realistic walking distance', () => {
+  // Regression: "I said I was walking and it told me driving was the
+  // thing" — a 1.8-mile venue used to drop Walk from the candidate list
+  // entirely (the ceiling was 1.2 miles regardless of what was asked
+  // for), leaving nothing for the stated preference to elevate.
+  const opts = planEngine.transportOptions(1.8, 2, 'Walking');
+  assert.ok(opts.some(o => o.mode === 'Walk'), 'Walk was not even offered as a candidate');
+  assert.strictEqual(opts[0].mode, 'Walk');
+});
+await t('"Walking" still refuses an actually unwalkable distance', () => {
+  const opts = planEngine.transportOptions(10, 2, 'Walking');
+  assert.ok(!opts.some(o => o.mode === 'Walk'), 'offered to walk 10 miles just because it was asked for');
+});
 await t('flags when the best plan still exceeds the tightest budget', async () => {
   const out = await planEngine.generate(mkPlan([
     { availability: "I'm in", budget: 'Under $25', distance: 'Up to 1 hour', food: 'Sushi' },

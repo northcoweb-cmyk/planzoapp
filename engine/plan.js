@@ -38,7 +38,14 @@ function transportOptions(miles, groupSize, preference) {
   const out = [];
   const driveMin = Math.round((miles / 28) * 60) + 4;
 
-  if (miles <= 1.2) out.push({ mode: 'Walk', minutes: Math.round(miles * 20), costPerPerson: 0, estimate: false });
+  // 1.2 miles is a fine default cutoff so a plan never presents a walk
+  // nobody asked for — but someone who explicitly said "Walking" clearly
+  // means it, and a 1.8-mile venue used to just silently drop Walk from
+  // the candidate list entirely, leaving nothing for their stated
+  // preference to elevate and letting Drive win by default. A real walking
+  // preference gets a genuinely walkable ceiling (~50 min on foot) instead.
+  const walkCeiling = preference === 'Walking' ? 2.5 : 1.2;
+  if (miles <= walkCeiling) out.push({ mode: 'Walk', minutes: Math.round(miles * 20), costPerPerson: 0, estimate: false });
   if (miles <= 4)   out.push({ mode: 'Bike / scooter', minutes: Math.round(miles * 6), costPerPerson: miles <= 2 ? 0 : 5, estimate: true });
 
   out.push({
@@ -165,9 +172,14 @@ function scorePlace(place, state, origin) {
   }
   const miles = milesBetween(origin, place);
   if (miles != null) {
-    const mins = (miles / 28) * 60;
+    // A group that said "Walking" wants a place they can actually walk to,
+    // not just a transport label that happens to say Walk when it's close
+    // enough by chance — score by walking time instead of driving time so
+    // the venue picker itself prefers what's genuinely nearby.
+    const walking = state.soft.transport?.leader === 'Walking';
+    const mins = walking ? miles * 20 : (miles / 28) * 60;
     if (state.hard.maxMinutes !== null && mins > state.hard.maxMinutes) s -= 3;  // hard limit
-    s -= mins / 45;
+    s -= mins / (walking ? 25 : 45);
   }
   if (place.openNow === false) s -= 0.5;
   return s;

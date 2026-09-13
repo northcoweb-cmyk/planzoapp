@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { motion } from "framer-motion";
+import { motion, useDragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export function Glass({ className, children, style, ...p }: React.HTMLAttributes<HTMLDivElement>) {
@@ -11,6 +11,7 @@ export function Glass({ className, children, style, ...p }: React.HTMLAttributes
 export function Sheet({ open, onClose, title, children }: {
   open: boolean; onClose: () => void; title?: string; children: React.ReactNode;
 }) {
+  const dragControls = useDragControls();
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -33,13 +34,30 @@ export function Sheet({ open, onClose, title, children }: {
     >
       <motion.div
         onClick={(e) => e.stopPropagation()}
+        // The drag handle bar below has always looked draggable — it just
+        // never actually was. Drag only starts from that handle (dragListener
+        // off, dragControls wired to its own pointerdown) so scrolling
+        // content inside a tall sheet still works normally everywhere else.
+        // A bottom-only constraint lets it rubber-band past that point;
+        // onDragEnd decides whether that was a real dismiss (far enough, or
+        // fast enough) or just a nudge that should spring back into place.
+        drag="y"
+        dragListener={false}
+        dragControls={dragControls}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.65 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 120 || info.velocity.y > 600) onClose();
+        }}
         initial={{ y: 40, scale: .97, opacity: 0 }}
         animate={{ y: 0, scale: 1, opacity: 1 }}
-        exit={{ y: 30, opacity: 0 }}
+        exit={{ y: "100%", opacity: 0, transition: { duration: .28, ease: [.4, 0, 1, 1] } }}
         transition={{ type: "spring", stiffness: 380, damping: 34 }}
         className="glass glass-2 max-h-[86dvh] w-full max-w-[560px] overflow-y-auto rounded-t-[34px] px-5 pb-[calc(24px+var(--safe-b))] pt-5 no-bar sm:rounded-[34px] sm:pb-6"
       >
-        <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-white/20 sm:hidden" />
+        <div onPointerDown={(e) => dragControls.start(e)}
+          className="mx-auto mb-4 h-1 w-9 shrink-0 touch-none rounded-full bg-white/20 active:h-1.5 active:w-11 active:bg-white/35 sm:hidden"
+          style={{ transition: "width .15s, height .15s, background-color .15s" }} />
         {title && <h3 className="mb-4 text-[19px]">{title}</h3>}
         {children}
       </motion.div>
