@@ -77,13 +77,23 @@ function searchTerms(state) {
   const diet = state.hard.dietary;
 
   if (state.intent.needsFood || food) {
-    let q = food && food !== 'Something else' ? food : 'restaurant';
+    // The group's own vote wins once they've actually voted on something
+    // specific; otherwise fall back to the exact food the idea named
+    // ("ice cream", "sushi", ...) rather than a generic "restaurant" that
+    // ignores what was actually asked for.
+    let q = food && food !== 'Something else' ? food : (state.intent.foodTerm || 'restaurant');
     if (style && style !== 'No preference') q = `${style} ${q}`;
     if (diet.includes('Vegetarian') || diet.includes('Vegan')) q += ' vegetarian options';
     if (diet.includes('Gluten-free')) q += ' gluten free';
     if (diet.includes('Halal')) q = `halal ${q}`;
     if (state.hard.freeOnly) q = 'cheap eats';
-    terms.push({ slot: 'food', query: q, label: 'Dinner' });
+    // The itinerary slot title used to hardcode "Dinner" no matter what was
+    // actually planned — an ice cream stop titled "Dinner" is exactly the
+    // kind of mismatch that reads as "this app got it wrong."
+    const specific = food && food !== 'Something else' ? food : state.intent.foodTerm;
+    const mealLabel = { Morning: 'Breakfast', Afternoon: 'Lunch', 'Late night': 'Late bite' }[state.intent.timeOfDay] || 'Dinner';
+    const label = specific ? specific.charAt(0).toUpperCase() + specific.slice(1) : mealLabel;
+    terms.push({ slot: 'food', query: q, label });
   }
 
   const cats = state.intent.categories || [];

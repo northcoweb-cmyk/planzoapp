@@ -18,7 +18,27 @@ const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','satur
 // "drinks" alone means a bar, not a sit-down meal — it used to also match
 // FOOD_WORDS, which made "let's go get drinks" ask a "what do you want to
 // eat, Pizza/Burgers/..." question that had nothing to do with the request.
-const FOOD_WORDS   = /\b(dinner|lunch|brunch|breakfast|eat|food|restaurant|pizza|burgers?|sushi|tacos?|wings|bbq)\b/i;
+const FOOD_WORDS   = /\b(dinner|lunch|brunch|breakfast|eat|food|restaurant|pizza|burgers?|sushi|tacos?|wings|bbq|ice ?cream|gelato|froyo|frozen yogurt|donuts?|bagels?|dessert|cupcakes?|boba|bubble tea|ramen|pho|dim ?sum|thai|indian|chinese|korean food|mediterranean|greek food|seafood|steak|pasta|noodles?|sandwiches?|salads?|smoothies?)\b/i;
+// The group's food question only offers a fixed list (Pizza, Burgers, ...)
+// that plainly doesn't include everything someone might type — "ice cream"
+// used to just vanish, and with no one able to vote for it the search
+// fell through to a generic "things to do" query that ignored what was
+// actually asked for. This captures the specific term straight out of the
+// person's own words so it can be searched directly, with the group's vote
+// only overriding it if they explicitly pick something else.
+const SPECIFIC_FOOD_TERMS = [
+  'ice cream', 'icecream', 'gelato', 'froyo', 'frozen yogurt', 'donuts', 'donut', 'bagels', 'bagel',
+  'dessert', 'cupcakes', 'cupcake', 'boba', 'bubble tea', 'ramen', 'pho', 'dim sum', 'thai food', 'thai',
+  'indian food', 'chinese food', 'korean food', 'mediterranean', 'greek food', 'seafood', 'steak',
+  'pasta', 'noodles', 'sandwiches', 'salads', 'smoothies', 'pizza', 'burgers', 'burger', 'sushi',
+  'tacos', 'wings', 'bbq', 'brunch', 'breakfast', 'coffee',
+];
+function specificFoodTerm(lower) {
+  for (const term of SPECIFIC_FOOD_TERMS) {
+    if (new RegExp(`\\b${term.replace(/ /g, '\\s?')}\\b`, 'i').test(lower)) return term.replace('icecream', 'ice cream');
+  }
+  return null;
+}
 const NIGHT_WORDS  = /\b(bar|bars|club|clubbing|nightlife|party|night out|drinks?)\b/i;
 const RIGHT_NOW_WORDS = /\b(right now|rn|asap|immediately)\b/i;
 const OUTDOOR_WORDS= /\b(beach|hike|hiking|park|outdoors?|trail|lake|camping|picnic|sunset)\b/i;
@@ -34,7 +54,7 @@ function parse(text) {
     raw: t,
     title: null, groupSize: null, dayHint: null, timeOfDay: null,
     needsFood: false, multiStop: false, categories: [],
-    budgetSignal: null, confidence: 0, source: 'parser', rightNow: false,
+    budgetSignal: null, confidence: 0, source: 'parser', rightNow: false, foodTerm: null,
   };
   if (!t) return intent;
 
@@ -64,7 +84,10 @@ function parse(text) {
   if (/\bafternoon\b/.test(lower)) intent.timeOfDay = 'Afternoon';
   if (/\blate night\b/.test(lower)) intent.timeOfDay = 'Late night';
 
-  if (FOOD_WORDS.test(lower))    { intent.needsFood = true; intent.categories.push('food'); signals++; }
+  if (FOOD_WORDS.test(lower))    {
+    intent.needsFood = true; intent.categories.push('food'); signals++;
+    intent.foodTerm = specificFoodTerm(lower);
+  }
   // A named meal is a time signal, not just a food signal — "dinner Saturday"
   // should never be scheduled for 10am because the group happened to vote
   // "Morning" on a question it should not have been asked.
@@ -97,7 +120,10 @@ function titleFor(text, intent) {
     : intent.dayHint === 'today' ? 'Tonight'
     : intent.dayHint === 'tomorrow' ? 'Tomorrow' : null;
 
-  const KIND = { food: 'dinner', nightlife: 'night out', outdoors: 'day out', event: 'event', trip: 'trip' };
+  // "ice cream" naming itself as "Dinner" is confusing — a specific named
+  // food (ice cream, sushi, tacos, ...) is a better label than the generic
+  // meal-kind fallback whenever it's exactly what the person asked for.
+  const KIND = { food: intent.foodTerm || 'dinner', nightlife: 'night out', outdoors: 'day out', event: 'event', trip: 'trip' };
   const kind = intent.categories.map(c => KIND[c]).find(Boolean);
 
   if (day && kind) return `${day} ${kind}`;

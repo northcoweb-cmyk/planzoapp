@@ -71,7 +71,9 @@ export function seedPlanFrom(item: any, kind: Kind, me: { id: string; name: stri
         : { kind, providerId: item.providerId, name: item.name, address: item.address, activityKey },
     },
     origin: originOrFallback(),
-    participants: [{ id: me.id, name: me.name, answers: {}, isCreator: true }],
+    // Starting an idea from a restaurant/event/activity they picked already
+    // answers "are you in?" — pre-fill it so they aren't asked next.
+    participants: [{ id: me.id, name: me.name, answers: { availability: "I'm in" }, isCreator: true }],
     finalPlan: null, createdAt: new Date().toISOString(),
   };
 }

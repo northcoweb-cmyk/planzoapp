@@ -124,7 +124,10 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
         id: crypto.randomUUID().slice(0, 8),
         idea: text, title: parsed.title, intent: parsed,
         origin: originOrFallback(),
-        participants: [{ id: me!.id, name: me!.name, answers: {}, isCreator: true }],
+        // Authoring the idea already answers "are you in?" — pre-fill it so
+        // the creator isn't immediately asked whether they're in on their
+        // own idea.
+        participants: [{ id: me!.id, name: me!.name, answers: { availability: "I'm in" }, isCreator: true }],
         finalPlan: null, createdAt: new Date().toISOString(),
       };
       store.savePlan(plan);

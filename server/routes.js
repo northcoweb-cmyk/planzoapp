@@ -124,7 +124,11 @@ async function handle({ method, url, body, ip, headers }) {
         : null,
       visibility: body.visibility === 'public' ? 'public' : 'private',
       status: 'collecting',
-      participants: [{ id: me.pid, name: me.name, answers: {}, joinedAt: new Date().toISOString(), isCreator: true }],
+      // The creator authored this idea — asking them "are you in?" right
+      // after they typed it is a redundant, confusing first question.
+      // Availability is pre-answered for them; every other question still
+      // runs through the normal adaptive sequence.
+      participants: [{ id: me.pid, name: me.name, answers: { availability: "I'm in" }, joinedAt: new Date().toISOString(), isCreator: true }],
       finalPlan: null,
       createdAt: new Date().toISOString(),
     };
