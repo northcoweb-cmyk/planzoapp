@@ -105,7 +105,14 @@ function searchTerms(state) {
 
   const cats = state.intent.categories || [];
   if (cats.includes('outdoors') || state.soft.vibe?.leader === 'Scenic') {
-    terms.push({ slot: 'activity', query: state.hard.freeOnly ? 'free park scenic overlook' : 'park', label: 'Activity' });
+    // Use the specific activity actually named ("fishing", "hiking", ...)
+    // rather than always searching the generic word "park" — the same
+    // fix already applied to food requests, for the same reason.
+    const outdoorQuery = state.intent.outdoorTerm || (state.hard.freeOnly ? 'free park scenic overlook' : 'park');
+    const label = state.intent.outdoorTerm
+      ? state.intent.outdoorTerm.replace(/\b\w/g, c => c.toUpperCase())
+      : 'Activity';
+    terms.push({ slot: 'activity', query: outdoorQuery, label });
   }
   if (cats.includes('nightlife') || state.soft.vibe?.leader === 'Party') {
     terms.push({ slot: 'nightlife', query: 'bar', label: 'Out after' });

@@ -64,9 +64,9 @@ const FOOD_TERM_TO_CATALOG_PICK = {
   'chinese food': 'Asian', 'korean food': 'Asian',
 };
 
-// ── 50 scenarios: idea text, kind of expectation, and any specifics ─────
-// kind: 'food' | 'outdoor' | 'nightlife' | 'trip' | 'activity'
-const SCENARIOS = [
+// ── 50 hand-written scenarios: idea text, kind of expectation, and any
+// specifics — kind: 'food' | 'outdoor' | 'nightlife' | 'trip' | 'activity'
+const SCENARIOS_HANDWRITTEN = [
   { idea: 'ice cream', kind: 'food', foodTerm: 'ice cream' },
   { idea: 'sushi tonight', kind: 'food', foodTerm: 'sushi', dayHint: 'today' },
   { idea: '7 of us want pizza this Saturday', kind: 'food', foodTerm: 'pizza', dayHint: 'saturday', groupSize: 7 },
@@ -123,13 +123,153 @@ const SCENARIOS = [
   { idea: 'a free thing to do this weekend, no money', kind: 'activity', dayHint: 'weekend', budgetSignal: 'free' },
 ];
 
+// ── 250 more, generated from real phrasing patterns rather than hand-typed
+// one at a time — each still carries an exact, checkable expectation, and
+// each gets a persona purely for the report (this is what a specific kind
+// of person, in their own voice, would actually type). The generator
+// exists so 300 stays a real, maintained regression corpus instead of a
+// one-time wall of text — add a term or a builder and the count grows on
+// its own with the same rigor as every hand-written scenario above.
+const PERSONAS = [
+  'Broke college student', 'Hangry friend', 'Excited planner', 'Chill weekend warrior',
+  'Practical parent', 'Spontaneous night owl', 'Budget-conscious grad student',
+  'Big group organizer', 'Solo adventurer', 'Indecisive roommate', 'Overworked professional',
+  'First date planner', 'Visiting-town tourist', 'Post-gym friend group', 'Last-minute planner',
+];
+let personaCounter = 0;
+const nextPersona = () => PERSONAS[personaCounter++ % PERSONAS.length];
+
+function expand(terms, builders, kindFor) {
+  const out = [];
+  for (const term of terms) {
+    for (const build of builders) {
+      const { idea, extra } = build(term);
+      out.push({ idea, kind: kindFor(term), persona: nextPersona(), ...extra });
+    }
+  }
+  return out;
+}
+
+// Specific, named foods — every one must survive into the actual search
+// query (or an honest catalog vote), never collapse into "restaurant".
+const FOOD_TERMS = ['ice cream', 'sushi', 'tacos', 'ramen', 'bagels', 'bbq', 'boba',
+  'pho', 'dessert', 'korean food', 'pizza', 'wings'];
+const FOOD_BUILDERS = [
+  (t) => ({ idea: `${t} tonight`, extra: { foodTerm: t, dayHint: 'today' } }),
+  (t) => ({ idea: `${t} tomorrow`, extra: { foodTerm: t, dayHint: 'tomorrow' } }),
+  (t) => ({ idea: `${t} this weekend for the group`, extra: { foodTerm: t, dayHint: 'weekend' } }),
+  (t) => ({ idea: `cheap ${t}, we're broke`, extra: { foodTerm: t, budgetSignal: 'cheap' } }),
+  (t) => ({ idea: `${t} for 6 people`, extra: { foodTerm: t, groupSize: 6 } }),
+  (t) => ({ idea: `me and 3 friends want ${t}`, extra: { foodTerm: t, groupSize: 4 } }),
+  (t) => ({ idea: `${t} asap im starving`, extra: { foodTerm: t, rightNow: true } }),
+  (t) => ({ idea: `craving ${t}, any spots open rn`, extra: { foodTerm: t, rightNow: true } }),
+  (t) => ({ idea: `${t} under $20`, extra: { foodTerm: t, money: 20 } }),
+  (t) => ({ idea: `${t} for a group of 9 this friday`, extra: { foodTerm: t, groupSize: 9, dayHint: 'friday' } }),
+];
+const FOOD_SCENARIOS = expand(FOOD_TERMS, FOOD_BUILDERS, () => 'food');
+
+// Hungry/vague food asks with no named cuisine — a generic query IS the
+// honest answer here, unlike the scenarios above.
+const HUNGRY_SCENARIOS = [
+  { idea: 'hungry what\'s close and open rn', kind: 'food', rightNow: true },
+  { idea: 'starving, need food asap', kind: 'food', rightNow: true },
+  { idea: 'im so hungry rn nothing specific just food', kind: 'food', rightNow: true },
+  { idea: 'need to eat something before this afternoon', kind: 'food', dayHint: null },
+  { idea: 'grab a bite to eat tonight?', kind: 'food', dayHint: 'today' },
+  { idea: 'famished, what\'s around', kind: 'food' },
+  { idea: 'anyone hungry, need food for 5 of us', kind: 'food', groupSize: 5 },
+  { idea: 'hungry and broke, cheap food only', kind: 'food', budgetSignal: 'cheap' },
+  { idea: 'we need dinner tonight, nothing specific', kind: 'food', dayHint: 'today' },
+  { idea: 'lunch spot for 4, don\'t care what kind', kind: 'food', groupSize: 4 },
+].map(s => ({ ...s, persona: nextPersona() }));
+
+// Outdoor activities — same rule as food: the specific thing named has to
+// survive into the actual search, not get flattened into a generic "park".
+const OUTDOOR_TERMS = ['fishing', 'hiking', 'kayaking', 'camping', 'a picnic', 'the beach', 'swimming'];
+const OUTDOOR_BUILDERS = [
+  (t) => ({ idea: `I wanna go ${t.startsWith('the') || t.startsWith('a ') ? t.replace(/^(the|a) /, '') : t} today`, extra: { dayHint: 'today' } }),
+  (t) => ({ idea: `${t} this saturday with the crew`, extra: { dayHint: 'saturday' } }),
+  (t) => ({ idea: `let's do ${t} tomorrow`, extra: { dayHint: 'tomorrow' } }),
+  (t) => ({ idea: `${t} this weekend for 6 of us`, extra: { dayHint: 'weekend', groupSize: 6 } }),
+  (t) => ({ idea: `free ${t} spot, no money this week`, extra: { budgetSignal: 'free' } }),
+  (t) => ({ idea: `bored, thinking ${t} today?`, extra: { dayHint: 'today' } }),
+];
+const OUTDOOR_SCENARIOS = expand(OUTDOOR_TERMS, OUTDOOR_BUILDERS, () => 'outdoor');
+
+const NIGHTLIFE_TERMS = ['drinks', 'a bar', 'clubbing', 'a night out'];
+const NIGHTLIFE_BUILDERS = [
+  (t) => ({ idea: `${t} tonight, who's in`, extra: { dayHint: 'today' } }),
+  (t) => ({ idea: `${t} this friday`, extra: { dayHint: 'friday' } }),
+  (t) => ({ idea: `${t} for my birthday, 8 of us`, extra: { groupSize: 8 } }),
+  (t) => ({ idea: `cheap ${t}, tight on cash`, extra: { budgetSignal: 'cheap' } }),
+  (t) => ({ idea: `${t} right now, bored at home`, extra: { rightNow: true } }),
+];
+const NIGHTLIFE_SCENARIOS = expand(NIGHTLIFE_TERMS, NIGHTLIFE_BUILDERS, () => 'nightlife');
+
+const EVENT_TERMS = ['concert', 'a comedy show', 'the game', 'a festival', 'a show'];
+const EVENT_BUILDERS = [
+  (t) => ({ idea: `${t} tonight what's the move`, extra: { dayHint: 'today' } }),
+  (t) => ({ idea: `${t} this weekend, anyone down`, extra: { dayHint: 'weekend' } }),
+  (t) => ({ idea: `thinking about ${t} tomorrow`, extra: { dayHint: 'tomorrow' } }),
+  (t) => ({ idea: `${t} for 4 of us this saturday`, extra: { dayHint: 'saturday', groupSize: 4 } }),
+  (t) => ({ idea: `${t} tickets, what's the plan`, extra: {} }),
+];
+const EVENT_SCENARIOS = expand(EVENT_TERMS, EVENT_BUILDERS, () => 'event');
+
+const TRIP_TERMS = ['a weekend trip', 'a road trip', 'a getaway', 'a trip somewhere'];
+const TRIP_BUILDERS = [
+  (t) => ({ idea: `${t} next week`, extra: { dayHint: 'next week' } }),
+  (t) => ({ idea: `${t} for 4 of us this weekend`, extra: { dayHint: 'weekend', groupSize: 4 } }),
+  (t) => ({ idea: `planning ${t}, need ideas`, extra: {} }),
+  (t) => ({ idea: `cheap ${t}, we're all broke`, extra: { budgetSignal: 'cheap' } }),
+];
+const TRIP_SCENARIOS = expand(TRIP_TERMS, TRIP_BUILDERS, () => 'trip');
+
+const ACTIVITY_TERMS = ['bowling', 'mini golf', 'karaoke', 'an escape room'];
+const ACTIVITY_BUILDERS = [
+  (t) => ({ idea: `${t} tonight`, extra: { dayHint: 'today' } }),
+  (t) => ({ idea: `${t} this weekend for the group`, extra: { dayHint: 'weekend' } }),
+  (t) => ({ idea: `${t} with 9 of us`, extra: { groupSize: 9 } }),
+  (t) => ({ idea: `cheap ${t}, low on funds`, extra: { budgetSignal: 'cheap' } }),
+  (t) => ({ idea: `${t} right now, bored out of my mind`, extra: { rightNow: true } }),
+];
+const ACTIVITY_SCENARIOS = expand(ACTIVITY_TERMS, ACTIVITY_BUILDERS, () => 'activity');
+
+// Genuinely open-ended — no category signal at all. The honest outcome is
+// the generic "things to do" fallback, not a crash and not a made-up
+// category the person never actually named.
+const OPENENDED_SCENARIOS = [
+  { idea: 'friends and I need a good plan we are bored', kind: 'openended' },
+  { idea: 'nothing to do tonight, help', kind: 'openended', dayHint: 'today' },
+  { idea: 'nothing planned this weekend, need ideas', kind: 'openended', dayHint: 'weekend' },
+  { idea: 'we are so bored someone save us', kind: 'openended' },
+  { idea: 'need something to do, anything really', kind: 'openended' },
+  { idea: 'group of us just want to do SOMETHING today', kind: 'openended', dayHint: 'today', groupSize: null },
+  { idea: 'im free tonight, surprise me', kind: 'openended', dayHint: 'today' },
+  { idea: 'no plans this weekend, whatever works', kind: 'openended', dayHint: 'weekend' },
+  { idea: 'bored bored bored, someone give me an idea', kind: 'openended' },
+  { idea: 'need a plan, open to anything, 5 of us', kind: 'openended', groupSize: 5 },
+  { idea: 'what should we do tonight', kind: 'openended', dayHint: 'today' },
+  { idea: 'help me plan something fun this weekend', kind: 'openended', dayHint: 'weekend' },
+  { idea: 'stuck inside, need an idea asap', kind: 'openended', rightNow: true },
+  { idea: 'anything to do around here right now', kind: 'openended', rightNow: true },
+  { idea: 'give me literally any idea for tonight', kind: 'openended', dayHint: 'today' },
+].map(s => ({ ...s, persona: nextPersona() }));
+
+const SCENARIOS = [
+  ...SCENARIOS_HANDWRITTEN.map(s => ({ ...s, persona: nextPersona() })),
+  ...FOOD_SCENARIOS, ...HUNGRY_SCENARIOS, ...OUTDOOR_SCENARIOS,
+  ...NIGHTLIFE_SCENARIOS, ...EVENT_SCENARIOS, ...TRIP_SCENARIOS,
+  ...ACTIVITY_SCENARIOS, ...OPENENDED_SCENARIOS,
+];
+
 let pass = 0, fail = 0;
 const failures = [];
 
 function record(scenario, ok, detail) {
   if (ok) { pass++; return; }
   fail++;
-  failures.push({ idea: scenario.idea, city: scenario.city, detail });
+  failures.push({ idea: scenario.idea, city: scenario.city, persona: scenario.persona, detail });
 }
 
 function pickFoodCatalogAnswer(parsed) {
@@ -242,11 +382,25 @@ function runScenario(scenario, city) {
   }
 
   // 7) Non-food categories must actually be recognized (outdoors/nightlife/
-  //    trip), not silently collapse into a generic catch-all — the same
-  //    class of bug as the food fallback, just for other request types.
-  if (scenario.kind === 'outdoor' && !parsed.categories.includes('outdoors')) {
-    record(scenario, false, 'outdoor request not recognized as outdoors category');
-    return;
+  //    trip/event), not silently collapse into a generic catch-all — the
+  //    same class of bug as the food fallback, just for other request types.
+  if (scenario.kind === 'outdoor') {
+    if (!parsed.categories.includes('outdoors')) {
+      record(scenario, false, 'outdoor request not recognized as outdoors category');
+      return;
+    }
+    // Same rigor as food: a specific outdoor activity named in the idea
+    // must survive into the actual search query, not fall back to the
+    // generic "park" default that ignores what was actually asked for.
+    if (parsed.outdoorTerm) {
+      const terms = plan.searchTerms(consensus.build(p));
+      const actSlot = terms.find(t => t.slot === 'activity');
+      const genericFallback = actSlot?.query === 'park' || actSlot?.query === 'free park scenic overlook';
+      if (!actSlot || genericFallback) {
+        record(scenario, false, `named a specific outdoor activity but search query became "${actSlot?.query}"`);
+        return;
+      }
+    }
   }
   if (scenario.kind === 'nightlife' && !parsed.categories.includes('nightlife')) {
     record(scenario, false, 'nightlife request not recognized as nightlife category');
@@ -255,6 +409,25 @@ function runScenario(scenario, city) {
   if (scenario.kind === 'trip' && !(parsed.categories.includes('trip') || parsed.multiStop)) {
     record(scenario, false, 'trip request not recognized as a trip');
     return;
+  }
+  if (scenario.kind === 'event' && !parsed.categories.includes('event')) {
+    record(scenario, false, 'event request not recognized as an event category');
+    return;
+  }
+  // Open-ended asks ("we're bored") have no category signal by design —
+  // the only real requirement is that the engine doesn't crash and still
+  // produces at least one usable search term (the honest generic
+  // fallback), not that it invents a category nobody actually named.
+  if (scenario.kind === 'openended') {
+    const terms = plan.searchTerms(consensus.build(p));
+    if (!terms.length) {
+      record(scenario, false, 'open-ended request produced no search term at all');
+      return;
+    }
+    if (!parsed.title) {
+      record(scenario, false, 'open-ended request produced no plan title');
+      return;
+    }
   }
 
   // 8) Dietary constraint must survive into the hard-constraint set.
@@ -273,7 +446,7 @@ SCENARIOS.forEach((scenario, i) => {
 });
 
 for (const f of failures) {
-  console.log(`  ✗ [${f.city}] "${f.idea}"\n      ${f.detail}`);
+  console.log(`  ✗ [${f.persona} · ${f.city}] "${f.idea}"\n      ${f.detail}`);
 }
-console.log(`\n${pass} passed, ${fail} failed\n`);
+console.log(`\n${pass} passed, ${fail} failed (of ${SCENARIOS.length})\n`);
 process.exit(fail ? 1 : 0);

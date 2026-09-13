@@ -59,6 +59,36 @@ await t('"asap" and "immediately" are also right-now signals', () => {
   assert.strictEqual(intent.parse('need a table asap').rightNow, true);
   assert.strictEqual(intent.parse('get there immediately').rightNow, true);
 });
+await t('the literal word "today" sets a day hint on its own, not just "tonight"', () => {
+  // Regression: only "tonight" ever set dayHint — "I wanna go fishing
+  // today" silently lost its date and fell through to asking the day
+  // question despite the person having already answered it.
+  assert.strictEqual(intent.parse('I wanna go fishing today').dayHint, 'today');
+  assert.strictEqual(intent.parse('bowling today').dayHint, 'today');
+});
+await t('"getaway" is recognized as a trip, same as "road trip" or "vacation"', () => {
+  const i = intent.parse('a weekend getaway next week');
+  assert.ok(i.categories.includes('trip'));
+});
+await t('"hungry" and "starving" alone are food requests, not just named dishes', () => {
+  // Regression: "hungry what's close and open rn" set needsFood: false,
+  // so the food question never even got asked and the search ran a
+  // generic "things to do" query for someone who explicitly said they
+  // wanted food.
+  assert.strictEqual(intent.parse("hungry what's close and open rn").needsFood, true);
+  assert.strictEqual(intent.parse('starving, need food asap').needsFood, true);
+});
+await t('a specific outdoor activity survives into the actual search, not a generic "park"', () => {
+  // Same bug class as food: "fishing today" got flagged as outdoors
+  // correctly, but the search itself ran for the hardcoded word "park".
+  const consensus = require('../engine/consensus');
+  const p = intent.parse('I wanna go fishing today');
+  assert.strictEqual(p.outdoorTerm, 'fishing spot');
+  const state = consensus.build({ intent: p, participants: [{ id: 'a', answers: { availability: "I'm in" } }] });
+  const terms = planEngine.searchTerms(state);
+  const act = terms.find(t => t.slot === 'activity');
+  assert.strictEqual(act.query, 'fishing spot');
+});
 await t('"let\'s go get drinks" is nightlife, not a sit-down meal', () => {
   const i = intent.parse("let's go get drinks tonight");
   assert.ok(i.categories.includes('nightlife'));

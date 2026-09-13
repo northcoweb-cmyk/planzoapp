@@ -18,7 +18,7 @@ const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','satur
 // "drinks" alone means a bar, not a sit-down meal — it used to also match
 // FOOD_WORDS, which made "let's go get drinks" ask a "what do you want to
 // eat, Pizza/Burgers/..." question that had nothing to do with the request.
-const FOOD_WORDS   = /\b(dinner|lunch|brunch|breakfast|eats?|food|restaurant|pizza|burgers?|sushi|tacos?|wings|bbq|ice ?cream|gelato|froyo|frozen yogurt|donuts?|bagels?|dessert|cupcakes?|boba|bubble tea|ramen|pho|dim ?sum|thai|indian|chinese|korean food|mediterranean|greek food|seafood|steak|pasta|noodles?|sandwiches?|salads?|smoothies?|coffee)\b/i;
+const FOOD_WORDS   = /\b(dinner|lunch|brunch|breakfast|eats?|food|restaurant|pizza|burgers?|sushi|tacos?|wings|bbq|ice ?cream|gelato|froyo|frozen yogurt|donuts?|bagels?|dessert|cupcakes?|boba|bubble tea|ramen|pho|dim ?sum|thai|indian|chinese|korean food|mediterranean|greek food|seafood|steak|pasta|noodles?|sandwiches?|salads?|smoothies?|coffee|hungry|starving|famished|grub|bite to eat)\b/i;
 // The group's food question only offers a fixed list (Pizza, Burgers, ...)
 // that plainly doesn't include everything someone might type — "ice cream"
 // used to just vanish, and with no one able to vote for it the search
@@ -41,9 +41,29 @@ function specificFoodTerm(lower) {
 }
 const NIGHT_WORDS  = /\b(bar|bars|club|clubbing|nightlife|party|night out|drinks?)\b/i;
 const RIGHT_NOW_WORDS = /\b(right now|rn|asap|immediately)\b/i;
-const OUTDOOR_WORDS= /\b(beach|hike|hiking|park|outdoors?|trail|lake|camping|picnic|sunset)\b/i;
+const OUTDOOR_WORDS= /\b(beach|hike|hiking|park|outdoors?|trail|lake|camping|picnic|sunset|fishing|kayak(?:ing)?|paddleboard(?:ing)?|swim(?:ming)?|garden|nature|mountain|river)\b/i;
+// Same bug class as food: "fishing today" used to correctly get flagged as
+// an outdoors request, but the actual Places search then ran for the
+// hardcoded, generic word "park" — someone asking to go fishing got a
+// list of parks, not fishing spots. Maps the specific outdoor activity
+// named onto an actual searchable query.
+const OUTDOOR_TERM_QUERY = [
+  ['fishing', 'fishing spot'], ['hiking', 'hiking trail'], ['hike', 'hiking trail'],
+  ['kayaking', 'kayak rental'], ['kayak', 'kayak rental'],
+  ['paddleboarding', 'paddleboard rental'], ['paddleboard', 'paddleboard rental'],
+  ['swimming', 'swimming pool'], ['swim', 'swimming pool'],
+  ['camping', 'campground'], ['picnic', 'park picnic area'],
+  ['beach', 'beach'], ['lake', 'lake'], ['trail', 'trail'], ['garden', 'botanical garden'],
+  ['mountain', 'mountain trail'], ['river', 'river park'], ['sunset', 'scenic overlook'],
+];
+function specificOutdoorTerm(lower) {
+  for (const [term, query] of OUTDOOR_TERM_QUERY) {
+    if (new RegExp(`\\b${term}\\b`, 'i').test(lower)) return query;
+  }
+  return null;
+}
 const EVENT_WORDS  = /\b(concert|show|game|festival|comedy|tickets?|match)\b/i;
-const TRIP_WORDS   = /\b(trip|weekend away|vacation|flight|hotel|airbnb|road ?trip)\b/i;
+const TRIP_WORDS   = /\b(trip|weekend away|vacation|flight|hotel|airbnb|road ?trip|getaway)\b/i;
 const FREE_WORDS   = /\b(free|no money|broke|\$0|cheap as possible)\b/i;
 const CHEAP_WORDS  = /\b(cheap|budget|affordable|inexpensive)\b/i;
 
@@ -55,6 +75,7 @@ function parse(text) {
     title: null, groupSize: null, dayHint: null, timeOfDay: null,
     needsFood: false, multiStop: false, categories: [],
     budgetSignal: null, confidence: 0, source: 'parser', rightNow: false, foodTerm: null,
+    outdoorTerm: null,
   };
   if (!t) return intent;
 
@@ -84,6 +105,12 @@ function parse(text) {
 
   for (const d of DAYS) if (lower.includes(d)) { intent.dayHint = d; signals++; break; }
   if (/\btonight\b/.test(lower))        { intent.dayHint = 'today';    intent.timeOfDay = 'Evening'; signals++; }
+  // The literal word "today" was never actually handled on its own — only
+  // "tonight" set dayHint to 'today' as a side effect of also setting an
+  // evening time. "fishing today", "hiking today" silently lost their date
+  // entirely and fell through to asking the day question despite the
+  // person having already answered it.
+  else if (/\btoday\b/.test(lower))     { intent.dayHint = 'today'; signals++; }
   else if (/\btomorrow\b/.test(lower))  { intent.dayHint = 'tomorrow'; signals++; }
   else if (/\bthis weekend\b/.test(lower)) { intent.dayHint = 'weekend'; signals++; }
   // consensus.js's resolveDate() has always understood the literal string
@@ -105,7 +132,10 @@ function parse(text) {
   else if (/\blunch\b/.test(lower))     intent.timeOfDay = intent.timeOfDay || 'Afternoon';
   else if (/\b(breakfast|brunch)\b/.test(lower)) intent.timeOfDay = intent.timeOfDay || 'Morning';
   if (NIGHT_WORDS.test(lower))   { intent.categories.push('nightlife'); signals++; }
-  if (OUTDOOR_WORDS.test(lower)) { intent.categories.push('outdoors'); signals++; }
+  if (OUTDOOR_WORDS.test(lower)) {
+    intent.categories.push('outdoors'); signals++;
+    intent.outdoorTerm = specificOutdoorTerm(lower);
+  }
   if (EVENT_WORDS.test(lower))   { intent.categories.push('event'); signals++; }
   if (TRIP_WORDS.test(lower))    { intent.categories.push('trip'); intent.multiStop = true; signals++; }
 
