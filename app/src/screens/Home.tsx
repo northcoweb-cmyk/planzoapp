@@ -190,7 +190,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
           onSubmit={(v) => submit(v)}
           busy={busy}
           proUnlocked={Boolean(me?.pro)}
-          onProRequest={() => go("profile")}
+          onProRequest={() => go("upgrade")}
         />
       </motion.div>
 

@@ -12,6 +12,7 @@ import Discover from "@/screens/Discover";
 import Plans from "@/screens/Plans";
 import Tickets from "@/screens/Tickets";
 import Profile from "@/screens/Profile";
+import Upgrade from "@/screens/Upgrade";
 
 const TABS = [
   { id: "home",     label: "Home",     Icon: HomeIcon,     tint: "text-[#A5B4FC]" },
@@ -71,6 +72,7 @@ export default function App() {
             {tab === "plans" && <Plans focus={planFocus} setFocus={setPlanFocus} />}
             {tab === "tickets" && <Tickets />}
             {tab === "profile" && <Profile />}
+            {tab === "upgrade" && <Upgrade onBack={() => go(prev)} />}
           </motion.div>
         </AnimatePresence>
       </main>

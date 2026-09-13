@@ -248,8 +248,17 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                 <span className="text-xs font-semibold"><MorphingText text={tier} /></span>
               </button>
 
-              <div style={{ transformOrigin: "bottom left" }}
-                className={cn("glass !absolute bottom-full left-0 z-50 mb-2.5 flex w-52 flex-col gap-0.5 rounded-2xl p-1.5 transition-all duration-300",
+              {/* Not `.glass` (≈5-8% white alpha, meant for cards over a
+                  photo backdrop) and not even --popover (rgba(20,20,30,.82)
+                  — 18% see-through, fine for a card over a photo but not
+                  fully opaque). This menu pops up directly over the
+                  textarea's own placeholder text and needs to fully occlude
+                  it — at either of those alphas the placeholder bled through
+                  and interleaved with the menu's own labels into unreadable
+                  overlapping text. rgb() with no alpha channel at all is the
+                  only way to guarantee zero bleed-through. */}
+              <div style={{ transformOrigin: "bottom left", background: "rgb(20, 20, 30)" }}
+                className={cn("!absolute bottom-full left-0 z-50 mb-1 flex w-52 flex-col gap-0.5 rounded-2xl border border-white/10 p-1.5 shadow-[0_18px_50px_-18px_rgba(0,0,0,.75)] transition-all duration-300",
                   tierOpen ? "pointer-events-auto translate-y-0 scale-100 opacity-100 ease-[cubic-bezier(.34,1.56,.64,1)]"
                            : "pointer-events-none translate-y-3 scale-95 opacity-0")}>
                 {tiers.map((t) => {
@@ -271,7 +280,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
                           </span>
                         </span>
                       </span>
-                      {locked && <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/50">$4.99</span>}
+                      {locked && (
+                        <span className="flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white"
+                          style={{ background: "var(--grad-brand)" }}>
+                          <Sparkles className="h-2.5 w-2.5" /> Upgrade
+                        </span>
+                      )}
                     </button>
                   );
                 })}

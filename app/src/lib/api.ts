@@ -124,3 +124,18 @@ export async function rsvpEvent(id: string, status: "going" | "maybe" | "not_goi
 export async function claimTicket(id: string, name: string) {
   return call(`/events/${id}/claim`, { method: 'POST', name, body: {} });
 }
+
+/** Real waitlist row via the server's own /waitlist route (server/routes.js)
+ * — the same one the marketing site uses. No session needed; it's keyed on
+ * email server-side, and a repeat signup comes back as alreadyOnList rather
+ * than a duplicate. */
+export async function joinWaitlist(opts: { name: string; email: string; useCase?: string; source?: string }) {
+  if (!hasServer) return null;
+  try {
+    const j = await call('/waitlist', { method: 'POST', body: {
+      name: opts.name, email: opts.email, useCase: opts.useCase || null, source: opts.source || 'app',
+    } });
+    if (!j.ok) return null;
+    return { position: j.position, alreadyOnList: Boolean(j.alreadyOnList) };
+  } catch { return null; }
+}
