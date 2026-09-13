@@ -88,7 +88,7 @@ function MonthCalendar({ list, states }: { list: Plan[]; states: Map<string, Ret
   );
 }
 
-export default function Plans({ focus, setFocus }: { focus?: string; setFocus: (id?: string) => void }) {
+export default function Plans({ focus, setFocus, go }: { focus?: string; setFocus: (id?: string) => void; go: (tab: string, arg?: any) => void }) {
   const plans = useStore(s => s.plans);
   const list = Object.values(plans).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   // Same consensus.build() call this screen already made per plan for the
@@ -100,7 +100,7 @@ export default function Plans({ focus, setFocus }: { focus?: string; setFocus: (
     return m;
   }, [list]);
 
-  if (focus && plans[focus]) return <PlanDetail plan={plans[focus]} back={() => setFocus(undefined)} />;
+  if (focus && plans[focus]) return <PlanDetail plan={plans[focus]} back={() => setFocus(undefined)} go={go} />;
 
   return (
     <div className="px-5 pb-4 pt-[calc(18px+var(--safe-t))]">
@@ -160,7 +160,9 @@ export default function Plans({ focus, setFocus }: { focus?: string; setFocus: (
   );
 }
 
-function PlanDetail({ plan, back }: { plan: Plan; back: () => void }) {
+const FREE_GROUP_SIZE_CAP = 8;
+
+function PlanDetail({ plan, back, go }: { plan: Plan; back: () => void; go: (tab: string, arg?: any) => void }) {
   const me = useStore(s => s.me);
   const [who, setWho] = React.useState(plan.participants[0].id);
   const [adding, setAdding] = React.useState(false);
@@ -183,8 +185,10 @@ function PlanDetail({ plan, back }: { plan: Plan; back: () => void }) {
     if (who === me?.id) store.learn(next, who);
   };
 
+  const atFreeCap = !me?.pro && plan.participants.length >= FREE_GROUP_SIZE_CAP;
+
   const addPerson = () => {
-    if (!name.trim()) return;
+    if (!name.trim() || atFreeCap) return;
     const id = crypto.randomUUID().slice(0, 8);
     store.savePlan({ ...plan, participants: [...plan.participants, { id, name: name.trim(), answers: {} }] });
     setWho(id); setName(""); setAdding(false);
@@ -216,7 +220,7 @@ function PlanDetail({ plan, back }: { plan: Plan; back: () => void }) {
   const build = async () => {
     setBusy(true);
     try {
-      const fp = await planEng.generate(plan, { origin: plan.origin || originOrFallback() });
+      const fp = await planEng.generate(plan, { origin: plan.origin || originOrFallback(), effort: plan.effort });
       store.savePlan({ ...plan, finalPlan: fp });
     } finally { setBusy(false); }
   };
@@ -263,11 +267,19 @@ function PlanDetail({ plan, back }: { plan: Plan; back: () => void }) {
               </button>
             );
           })}
-          <button onClick={() => setAdding(true)}
+          <button onClick={() => atFreeCap ? go("upgrade") : setAdding(true)}
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-dashed border-white/20 text-white/45 transition-colors hover:text-white">
             <Plus className="h-4 w-4" />
           </button>
         </div>
+        {atFreeCap && (
+          <p className="mt-2.5 text-[11.5px] text-white/35">
+            Free plans top out at {FREE_GROUP_SIZE_CAP} people.{" "}
+            <button onClick={() => go("upgrade")} className="font-semibold text-[#C9C1FF] underline underline-offset-2">
+              Upgrade for unlimited groups
+            </button>
+          </p>
+        )}
       </Glass>
 
       {/* The adaptive question — one at a time, for whoever is selected. */}

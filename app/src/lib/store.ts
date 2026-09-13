@@ -13,6 +13,11 @@ export type Plan = {
   id: string; idea: string; title: string; intent: any;
   participants: Participant[]; origin: Origin | null;
   finalPlan: any | null; trip?: any; createdAt: string;
+  /** The planning depth picked in the chat input at creation time. "Deep"
+   * is Pro-only (the tier picker already blocks a free account from
+   * selecting it) and actually searches a wider set of venues with more
+   * real alternatives, rather than being a label with no effect. */
+  effort?: "Quick" | "Balanced" | "Deep";
   /** Set once this plan has been pushed to the server (createSharedPlan) —
    * present means "Copy link" actually works for someone else. */
   shareCode?: string; shareUrl?: string;

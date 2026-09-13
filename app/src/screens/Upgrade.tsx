@@ -2,22 +2,27 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Sparkles, Check, Lock, Users, CalendarRange, Brain,
-  History, Ticket as TicketIcon, Zap, Mail,
+  ArrowLeft, Sparkles, Check, Lock, Users, SearchCheck, Zap, Mail,
 } from "lucide-react";
 import { Glass } from "@/components/ui/glass";
 import { store, useStore } from "@/lib/store";
 import * as api from "@/lib/api";
 
-type FeatureId = "groupSize" | "multiDay" | "memory" | "history" | "hosting" | "priority";
+type FeatureId = "groupSize" | "depth" | "priority";
 
+// Every line here is real, not marketing filler: groupSize is actually
+// enforced (Plans.tsx blocks adding a 9th person on a free account), and
+// "depth" actually changes what engine/plan.js's generate() does — Deep
+// mode searches a wider candidate pool and hands back real alternatives
+// instead of just the top pick. This list used to also claim multi-day
+// trips, group memory, plan history and event hosting as Pro-exclusive —
+// every one of those was already unrestricted for free accounts (or, for
+// multi-day trips, not reachable by anyone at all), which is the opposite
+// of a reason to pay.
 const FEATURES: { id: FeatureId; icon: any; title: string; free: string; pro: string }[] = [
   { id: "groupSize", icon: Users, title: "Group size", free: "Up to 8 people", pro: "Any size, no cap" },
-  { id: "multiDay", icon: CalendarRange, title: "Trip length", free: "One day", pro: "Multi-day trips" },
-  { id: "memory", icon: Brain, title: "Group memory", free: "This plan only", pro: "Remembers everyone's tastes across plans" },
-  { id: "history", icon: History, title: "Plan history", free: "Last 2 plans", pro: "Everything, forever" },
-  { id: "hosting", icon: TicketIcon, title: "Event hosting", free: "Not included", pro: "Host public events + free ticketing" },
-  { id: "priority", icon: Zap, title: "Planning speed", free: "Standard queue", pro: "Priority" },
+  { id: "depth", icon: SearchCheck, title: "Planning depth", free: "Quick or Balanced — fast, solid picks", pro: "Deep mode: a wider search and real alternatives to choose from, not just the top match" },
+  { id: "priority", icon: Zap, title: "Support", free: "Standard queue", pro: "Priority, as more lands" },
 ];
 
 export default function Upgrade({ onBack }: { onBack: () => void }) {
@@ -138,9 +143,16 @@ export default function Upgrade({ onBack }: { onBack: () => void }) {
         )}
       </Glass>
 
-      <p className="mt-4 text-center text-[12px] text-white/25">
-        Multi-day trips and event hosting are already live — try them from any plan today.
-      </p>
+      {me?.pro ? (
+        <p className="mt-4 text-center text-[12.5px] font-medium text-emerald-300">
+          Pro is unlocked on this device.
+        </p>
+      ) : (
+        <button onClick={() => store.set({ me: { ...me!, pro: true } })}
+          className="mt-4 w-full text-center text-[12.5px] text-white/35 underline underline-offset-2 transition-colors hover:text-white/60">
+          No billing is connected yet — unlock Pro on this device to try it now
+        </button>
+      )}
     </div>
   );
 }

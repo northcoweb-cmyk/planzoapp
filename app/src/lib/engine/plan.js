@@ -197,12 +197,18 @@ function scorePlace(place, state, origin) {
  * Generate the plan.
  * @returns a plan object with itinerary, costs, weather, caveats and sources.
  */
-async function generate(plan, { origin } = {}) {
+async function generate(plan, { origin, effort } = {}) {
   const state = consensus.build(plan);
   const group = Math.max(1, state.attendingCount || state.participantCount || plan.intent?.groupSize || 1);
   const start = origin || plan.origin || null;
   const caveats = [];
   const sources = [];
+  // "Deep" is a real search, not just a label: it pulls a wider candidate
+  // pool per stop and hands back more real alternatives to actually choose
+  // between, instead of quietly picking the top match and moving on. This
+  // is also the honest reason it's Pro-only — it costs more Places budget
+  // per plan, not an arbitrary paywall on the same work.
+  const deep = effort === 'Deep';
 
   const resolvedDate = plan.date || state.hard.date;
 
@@ -237,7 +243,7 @@ async function generate(plan, { origin } = {}) {
     const res = await places.search({
       query: term.query, lat: start?.lat, lon: start?.lon,
       radiusMeters: Math.min(50000, (state.hard.maxMinutes ?? 30) * 750),
-      planId: plan.id, limit: 8,
+      planId: plan.id, limit: deep ? 20 : 8,
     });
     if (!res.available) {
       slots.push({ ...term, resolved: false, reason: res.reason });
@@ -251,7 +257,7 @@ async function generate(plan, { origin } = {}) {
     slots.push({
       ...term, resolved: ranked.length > 0,
       pick: ranked[0]?.place || null,
-      alternatives: ranked.slice(1, 4).map(r => r.place),
+      alternatives: ranked.slice(1, deep ? 8 : 4).map(r => r.place),
       filteredOut: res.places.length - viable.length,
     });
   }

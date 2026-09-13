@@ -2,7 +2,7 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, KeyRound, Brain, Trash2, MapPin, Check, Activity, ChevronDown, GraduationCap } from "lucide-react";
-import { Glass, Sheet, Notice, Pill } from "@/components/ui/glass";
+import { Glass, Sheet, Notice } from "@/components/ui/glass";
 import { SelectorChips } from "@/components/ui/selector-chips";
 import { store, useStore, requestLocation, originOrFallback } from "@/lib/store";
 import { config, spendUsed, hasServer } from "@/lib/config";
@@ -44,14 +44,13 @@ const COLLEGES = [
   { name: "Ohio State University", domain: "osu.edu" },
 ];
 
-export default function Profile() {
+export default function Profile({ go }: { go: (tab: string, arg?: any) => void }) {
   const me = useStore(s => s.me);
   const interests = useStore(s => s.interests);
   const dietary = useStore(s => s.dietary);
   const memory = useStore(s => s.memory);
   const college = useStore(s => s.college);
   const [keys, setKeys] = React.useState(false);
-  const [pro, setPro] = React.useState(false);
   const [ops, setOps] = React.useState(false);
   const [rememberOpen, setRememberOpen] = React.useState(false);
   const active = memoryEng.prune(memory) as any[];
@@ -195,22 +194,26 @@ export default function Profile() {
         </Card>
       )}
 
+      {/* Clicking Upgrade anywhere in the app — here or in the chat input's
+          tier picker — pushes the same real Upgrade page. It used to open
+          a separate small sheet here that undercut its own pitch ("every
+          Pro feature is already built for free"), which is exactly the
+          opposite of making Pro worth paying for. */}
       <Glass className="mb-4 overflow-hidden p-0">
         <div className="p-5" style={{ background: "linear-gradient(135deg, rgba(99,102,241,.22), rgba(192,38,211,.18))" }}>
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex items-center gap-2">
             <h4 className="flex items-center gap-2 text-[17px]"><Sparkles className="h-4 w-4 text-[#C9C1FF]" /> Planzo Pro</h4>
-            <Pill className="!text-[#C9C1FF]">$4.99/mo</Pill>
           </div>
           <div className="space-y-1.5">
-            {["Groups of any size","Multi-day trips","Deeper group memory","Full plan history","Event hosting tools"].map(f => (
+            {["Unlimited group size (free plans top out at 8)", "Deep planning mode — a wider search and real alternatives, not just the top pick", "Priority support as more lands"].map(f => (
               <p key={f} className="flex items-center gap-2 text-[13.5px] text-white/75">
                 <Check className="h-3.5 w-3.5 text-[#C9C1FF]" /> {f}
               </p>
             ))}
           </div>
-          <button onClick={() => setPro(true)}
+          <button onClick={() => go("upgrade")}
             className="mt-4 w-full rounded-full py-3.5 text-[15px] font-semibold"
-            style={{ background: "var(--grad-brand)" }}>Upgrade</button>
+            style={{ background: "var(--grad-brand)" }}>See what you get</button>
         </div>
       </Glass>
 
@@ -222,18 +225,6 @@ export default function Profile() {
       <AnimatePresence>
         {keys && <Sheet open onClose={() => setKeys(false)} title="API keys"><Keys onDone={() => setKeys(false)} /></Sheet>}
         {ops && <Sheet open onClose={() => setOps(false)} title="Live ops"><Ops onDone={() => setOps(false)} /></Sheet>}
-        {pro && (
-          <Sheet open onClose={() => setPro(false)} title="Planzo Pro">
-            <Notice>
-              No payment provider is connected, so Planzo won't take money. Every Pro feature is
-              already built — multi-day trips are in a plan's detail view right now. Billing is the
-              only piece missing.
-            </Notice>
-            <button onClick={() => { store.set({ me: { ...me!, pro: true } }); setPro(false); }}
-              className="mt-4 w-full rounded-full py-3.5 text-[15px] font-semibold"
-              style={{ background: "var(--grad-brand)" }}>Unlock Pro for this demo</button>
-          </Sheet>
-        )}
       </AnimatePresence>
     </div>
   );

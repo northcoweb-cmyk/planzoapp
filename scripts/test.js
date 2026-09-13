@@ -321,6 +321,35 @@ await t('a hard constraint is asked of everyone even after convergence', () => {
 });
 
 console.log('\nPLAN GENERATION');
+await t('"Deep" effort actually searches a wider pool and returns more real alternatives, not just a label', async () => {
+  // Regression against Pro being pure marketing with no real effect: Deep
+  // mode has to change actual behavior, or gating it behind a paywall is
+  // dishonest. Mocks services/places.js directly since plan.js requires
+  // that exact module instance.
+  const origSearch = places.search;
+  let capturedLimit = null;
+  const fakePlaces = Array.from({ length: 15 }, (_, i) => ({
+    providerId: `p${i}`, name: `Place ${i}`, rating: 4, address: '123 St',
+    lat: 40.71, lon: -74.0, priceLevel: 'PRICE_LEVEL_MODERATE',
+  }));
+  places.search = async (opts) => {
+    capturedLimit = opts.limit;
+    return { available: true, cached: false, places: fakePlaces.slice(0, opts.limit) };
+  };
+  try {
+    const plan = mkPlan([{ availability: "I'm in", budget: 'Flexible', distance: 'Anywhere reasonable', food: 'Pizza' }]);
+    plan.origin = { lat: 40.7128, lon: -74.006, label: 'Test' };
+    const quick = await planEngine.generate(plan, { origin: plan.origin, effort: 'Quick' });
+    const quickLimit = capturedLimit;
+    const deep = await planEngine.generate(plan, { origin: plan.origin, effort: 'Deep' });
+    const deepLimit = capturedLimit;
+    assert.ok(deepLimit > quickLimit, `Deep (${deepLimit}) should search more than Quick (${quickLimit})`);
+    const foodStopQuick = quick.itinerary.find(i => i.kind === 'food');
+    const foodStopDeep = deep.itinerary.find(i => i.kind === 'food');
+    assert.ok(foodStopDeep.alternatives.length > foodStopQuick.alternatives.length,
+      `Deep (${foodStopDeep.alternatives.length} alternatives) should offer more than Quick (${foodStopQuick.alternatives.length})`);
+  } finally { places.search = origSearch; }
+});
 await t('produces a usable plan with no Places key — and says venues are unverified', async () => {
   const plan = mkPlan([
     { availability: "I'm in", budget: 'Under $25', distance: 'Up to 30 min', food: 'Pizza' },

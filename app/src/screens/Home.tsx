@@ -149,7 +149,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 2);
 
-  async function submit(text: string) {
+  async function submit(text: string, effort?: "Quick" | "Balanced" | "Deep") {
     setBusy(true);
     store.say({ role: "user", text, at: new Date().toISOString() });
     try {
@@ -163,6 +163,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
         // own idea.
         participants: [{ id: me!.id, name: me!.name, answers: { availability: "I'm in" }, isCreator: true }],
         finalPlan: null, createdAt: new Date().toISOString(),
+        effort,
       };
       store.savePlan(plan);
       store.say({
@@ -204,7 +205,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
         <PromptInput
           className="!max-w-none"
           placeholder={g.prompts[0]}
-          onSubmit={(v) => submit(v)}
+          onSubmit={(v, meta) => submit(v, meta.effort)}
           busy={busy}
           proUnlocked={Boolean(me?.pro)}
           onProRequest={() => go("upgrade")}

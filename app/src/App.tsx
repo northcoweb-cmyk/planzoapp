@@ -69,9 +69,9 @@ export default function App() {
           >
             {tab === "home" && <Home go={go} />}
             {tab === "discover" && <Discover initial={discoverArg} go={go} />}
-            {tab === "plans" && <Plans focus={planFocus} setFocus={setPlanFocus} />}
+            {tab === "plans" && <Plans focus={planFocus} setFocus={setPlanFocus} go={go} />}
             {tab === "tickets" && <Tickets />}
-            {tab === "profile" && <Profile />}
+            {tab === "profile" && <Profile go={go} />}
             {tab === "upgrade" && <Upgrade onBack={() => go(prev)} />}
           </motion.div>
         </AnimatePresence>
