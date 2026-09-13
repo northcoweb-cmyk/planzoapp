@@ -103,7 +103,7 @@ for (const [file, names] of [
   ['cache.js',  ['wrap','TTL']],
   ['ids.js',    ['token','planCode','hash','sign','verify']],
   ['cost.js',   ['reserve','record','report','estimateAiCost','PLACES_PRICES','LIMITS']],
-  ['places.js', ['search','photoFor','details','enabled']],
+  ['places.js', ['search','photoFor','details','enabled','isOpenNow']],
   ['ai.js',     ['ask','askJson','enabled','CHEAP','SMART']],
   ['events.js', ['search','byId','idFromUrl','enabled']],
 ]) {

@@ -23,6 +23,7 @@ const planEngine = require('../engine/plan');
 const tickets = require('../engine/tickets');
 const store = require('../lib/store');
 const ids = require('../lib/ids');
+const places = require('../services/places');
 
 const mkPlan = (participants, over = {}) => ({
   id: 'test' + Math.random().toString(36).slice(2, 8),
@@ -710,6 +711,35 @@ await t('the AI gateway returns a failure, never a fabricated answer, when block
   const r = await ai.ask({ prompt: 'hello' });
   assert.strictEqual(r.ok, false);
   assert.strictEqual(r.data, undefined);
+});
+
+console.log('\nPLACES — OPEN NOW');
+// Regression coverage for the real bug this fixed: a venue's "open now"
+// status was being frozen into a 12h-24h cache at fetch time, so a place
+// that closed hours ago kept reading "Open now" until the cache expired.
+// isOpenNow() is computed fresh from the venue's static weekly schedule on
+// every read instead — these pin that computation down directly.
+await t('no schedule at all is unknown, never a guess', () => {
+  assert.strictEqual(places.isOpenNow(null), null);
+  assert.strictEqual(places.isOpenNow([]), null);
+});
+await t('a single open-ended period means 24/7', () => {
+  assert.strictEqual(places.isOpenNow([{ open: { day: 0, hour: 0, minute: 0 } }]), true);
+});
+await t('a same-day period is open inside its hours and closed outside them', () => {
+  const periods = [{ open: { day: 1, hour: 9, minute: 0 }, close: { day: 1, hour: 17, minute: 0 } }];
+  // Jan 1 2024 was a Monday.
+  assert.strictEqual(places.isOpenNow(periods, new Date(2024, 0, 1, 12, 0)), true);
+  assert.strictEqual(places.isOpenNow(periods, new Date(2024, 0, 1, 20, 0)), false);
+  assert.strictEqual(places.isOpenNow(periods, new Date(2024, 0, 1, 8, 59)), false);
+});
+await t('an overnight period stays open past midnight into the close day', () => {
+  // Friday 6pm to Saturday 2am. Jan 5 2024 = Friday, Jan 6 2024 = Saturday.
+  const periods = [{ open: { day: 5, hour: 18, minute: 0 }, close: { day: 6, hour: 2, minute: 0 } }];
+  assert.strictEqual(places.isOpenNow(periods, new Date(2024, 0, 5, 23, 0)), true, 'Friday night');
+  assert.strictEqual(places.isOpenNow(periods, new Date(2024, 0, 6, 1, 0)), true, 'Saturday after midnight, before close');
+  assert.strictEqual(places.isOpenNow(periods, new Date(2024, 0, 6, 3, 0)), false, 'Saturday after close');
+  assert.strictEqual(places.isOpenNow(periods, new Date(2024, 0, 5, 12, 0)), false, 'Friday afternoon, before open');
 });
 
 console.log('\n' + results.join('\n'));

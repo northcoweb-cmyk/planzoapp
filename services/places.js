@@ -19,14 +19,14 @@ const enabled = () => Boolean(KEY);
 const SEARCH_FIELDS = [
   'places.id', 'places.displayName', 'places.formattedAddress', 'places.location',
   'places.rating', 'places.userRatingCount', 'places.priceLevel', 'places.types',
-  'places.currentOpeningHours.openNow', 'places.websiteUri', 'places.googleMapsUri',
+  'places.regularOpeningHours', 'places.websiteUri', 'places.googleMapsUri',
   'places.photos',
 ].join(',');
 
 const DETAIL_FIELDS = [
   'id', 'displayName', 'formattedAddress', 'location', 'rating', 'userRatingCount',
   'priceLevel', 'types', 'nationalPhoneNumber', 'websiteUri',
-  'currentOpeningHours', 'regularOpeningHours', 'googleMapsUri',
+  'regularOpeningHours', 'googleMapsUri',
 ].join(',');
 
 function normalize(p) {
@@ -41,7 +41,15 @@ function normalize(p) {
     ratingCount: p.userRatingCount ?? null,
     priceLevel: p.priceLevel ?? null,
     types: p.types || [],
-    openNow: p.currentOpeningHours?.openNow ?? null,
+    // No openNow here — this object gets cached for hours (place_search:
+    // 12h, place_details: 7d) and a live snapshot frozen at fetch time goes
+    // stale the moment the place actually closes, which is exactly the bug
+    // this fixed ("saying open now but it isn't"). `periods` is the venue's
+    // static weekly schedule — safe to cache, since business hours rarely
+    // change — and openNow is computed from it fresh on every read, by
+    // withLiveOpenNow() below, whether the underlying data came from a
+    // fresh fetch or an hours-old cache hit.
+    periods: p.regularOpeningHours?.periods || null,
     hours: p.regularOpeningHours?.weekdayDescriptions || null,
     phone: p.nationalPhoneNumber || null,
     website: p.websiteUri || null,
@@ -50,6 +58,34 @@ function normalize(p) {
     fetchedAt: new Date().toISOString(),
   };
 }
+
+/**
+ * Whether a place is open right now, computed live from its (cacheable,
+ * static) weekly schedule rather than trusting a snapshot boolean that may
+ * have been fetched hours ago. Returns null — never a guess — when there's
+ * no schedule to check.
+ */
+function isOpenNow(periods, now = new Date()) {
+  if (!periods || !periods.length) return null;
+  // A single open-ended period with no close time means 24/7.
+  if (periods.length === 1 && periods[0].open && !periods[0].close) return true;
+  const day = now.getDay(), minutes = now.getHours() * 60 + now.getMinutes();
+  for (const period of periods) {
+    if (!period.open || !period.close) continue;
+    const openDay = period.open.day, openMin = period.open.hour * 60 + (period.open.minute || 0);
+    const closeDay = period.close.day, closeMin = period.close.hour * 60 + (period.close.minute || 0);
+    if (openDay === closeDay && closeMin > openMin) {
+      if (day === openDay && minutes >= openMin && minutes < closeMin) return true;
+    } else {
+      // Crosses midnight (e.g. open Fri 6pm, close Sat 2am).
+      if (day === openDay && minutes >= openMin) return true;
+      if (day === closeDay && minutes < closeMin) return true;
+    }
+  }
+  return false;
+}
+
+const withLiveOpenNow = (places) => places.map(p => ({ ...p, openNow: isOpenNow(p.periods) }));
 
 /** One exterior photo per venue, resolved once and cached forever server-side. */
 async function photoFor(photoRef, widthPx = 400) {
@@ -84,7 +120,7 @@ async function search({ query, lat, lon, radiusMeters = 16000, limit = 12, planI
 
   const key = `places:search:${query.toLowerCase().trim()}:${lat?.toFixed(2)},${lon?.toFixed(2)}:${radiusMeters}`;
   const pre = await require('../lib/store').get(`cache:${key}`);
-  if (pre && pre.v) return { available: true, cached: true, places: pre.v.slice(0, limit) };
+  if (pre && pre.v) return { available: true, cached: true, places: withLiveOpenNow(pre.v).slice(0, limit) };
 
   const permit = await cost.reserve('places', cost.PLACES_PRICES.textsearch, { planId });
   if (!permit.ok) {
@@ -117,14 +153,14 @@ async function search({ query, lat, lon, radiusMeters = 16000, limit = 12, planI
   });
 
   if (!value) return { available: false, reason: 'provider_unavailable' };
-  return { available: true, cached: false, places: value.slice(0, limit) };
+  return { available: true, cached: false, places: withLiveOpenNow(value).slice(0, limit) };
 }
 
 async function details(providerId, { planId } = {}) {
   if (!enabled()) return { available: false, reason: 'places_not_configured' };
   const key = `places:details:${providerId}`;
   const pre = await require('../lib/store').get(`cache:${key}`);
-  if (pre && pre.v) return { available: true, cached: true, place: pre.v };
+  if (pre && pre.v) return { available: true, cached: true, place: { ...pre.v, openNow: isOpenNow(pre.v.periods) } };
 
   const permit = await cost.reserve('places', cost.PLACES_PRICES.details, { planId });
   if (!permit.ok) return { available: false, reason: permit.reason };
@@ -141,7 +177,7 @@ async function details(providerId, { planId } = {}) {
   });
 
   if (!value) return { available: false, reason: 'provider_unavailable' };
-  return { available: true, place: value };
+  return { available: true, place: { ...value, openNow: isOpenNow(value.periods) } };
 }
 
-module.exports = { search, details, photoFor, enabled };
+module.exports = { search, details, photoFor, enabled, isOpenNow };

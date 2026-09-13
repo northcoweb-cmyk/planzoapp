@@ -18,7 +18,7 @@ import { config, spendGuard, hasServer } from '../config';
 const SEARCH_FIELDS = [
   'places.id','places.displayName','places.formattedAddress','places.location',
   'places.rating','places.userRatingCount','places.priceLevel','places.types',
-  'places.currentOpeningHours.openNow','places.websiteUri','places.googleMapsUri',
+  'places.regularOpeningHours','places.websiteUri','places.googleMapsUri',
   'places.photos',
 ].join(',');
 
@@ -32,13 +32,39 @@ function normalize(p) {
     lat: p.location?.latitude ?? null, lon: p.location?.longitude ?? null,
     rating: p.rating ?? null, ratingCount: p.userRatingCount ?? null,
     priceLevel: p.priceLevel ?? null, types: p.types || [],
-    openNow: p.currentOpeningHours?.openNow ?? null,
+    // No openNow baked in here — this result is cached for hours (see
+    // cache.TTL.place_search) and a live snapshot frozen at fetch time goes
+    // stale the moment the place actually closes. periods (the static
+    // weekly schedule) is what's safe to cache; isOpenNow() below computes
+    // the live status fresh on every read instead.
+    periods: p.regularOpeningHours?.periods || null,
     website: p.websiteUri || null,
     mapsUrl: p.googleMapsUri || (p.id ? `https://www.google.com/maps/place/?q=place_id:${p.id}` : null),
     photoRef: p.photos?.[0]?.name || null,
     fetchedAt: new Date().toISOString(),
   };
 }
+
+/** Same logic as services/places.js's isOpenNow — kept in sync by hand
+ * since this file is a standalone browser module, not auto-ported. */
+export function isOpenNow(periods, now = new Date()) {
+  if (!periods || !periods.length) return null;
+  if (periods.length === 1 && periods[0].open && !periods[0].close) return true;
+  const day = now.getDay(), minutes = now.getHours() * 60 + now.getMinutes();
+  for (const period of periods) {
+    if (!period.open || !period.close) continue;
+    const openDay = period.open.day, openMin = period.open.hour * 60 + (period.open.minute || 0);
+    const closeDay = period.close.day, closeMin = period.close.hour * 60 + (period.close.minute || 0);
+    if (openDay === closeDay && closeMin > openMin) {
+      if (day === openDay && minutes >= openMin && minutes < closeMin) return true;
+    } else {
+      if (day === openDay && minutes >= openMin) return true;
+      if (day === closeDay && minutes < closeMin) return true;
+    }
+  }
+  return false;
+}
+const withLiveOpenNow = (places) => places.map(p => ({ ...p, openNow: isOpenNow(p.periods) }));
 
 async function searchViaServer(query, lat, lon, limit) {
   const params = new URLSearchParams({ q: query });
@@ -62,7 +88,7 @@ export async function search({ query, lat, lon, radiusMeters = 16000, limit = 12
 
   const key = `places:search:${query.toLowerCase().trim()}:${lat?.toFixed(2)},${lon?.toFixed(2)}:${radiusMeters}`;
   const pre = await store.get('cache:' + key);
-  if (pre?.v) return { available: true, cached: true, places: pre.v.slice(0, limit) };
+  if (pre?.v) return { available: true, cached: true, places: withLiveOpenNow(pre.v).slice(0, limit) };
 
   if (!spendGuard('places')) return { available: false, reason: 'daily_cap_reached' };
 
@@ -89,7 +115,7 @@ export async function search({ query, lat, lon, radiusMeters = 16000, limit = 12
   });
 
   if (!value) return { available: false, reason: 'provider_unavailable' };
-  return { available: true, cached: false, places: value.slice(0, limit) };
+  return { available: true, cached: false, places: withLiveOpenNow(value).slice(0, limit) };
 }
 
 /**
@@ -128,4 +154,4 @@ export async function photoFor(place, widthPx = 400) {
 }
 
 export async function details() { return { available: false, reason: 'not_needed_client_side' }; }
-export default { search, photoFor, details, enabled };
+export default { search, photoFor, details, enabled, isOpenNow };
