@@ -38,6 +38,7 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
 
   const [wx, setWx] = React.useState<any>(null);
   const [near, setNear] = React.useState<any[]>([]);
+  const [nearStatus, setNearStatus] = React.useState<"loading" | "ok" | "unavailable">("loading");
   const [eats, setEats] = React.useState<any[]>([]);
   const [busy, setBusy] = React.useState(false);
 
@@ -65,12 +66,28 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
 
   React.useEffect(() => {
     (async () => {
-      await requestLocation();
+      // Force a fresh GPS read every time Home mounts (i.e. every time the
+      // app is opened), instead of requestLocation()'s normal behavior of
+      // reusing whatever origin is already sitting in localStorage from the
+      // very first time permission was granted — someone who granted
+      // location once and then travels would otherwise be stuck on that
+      // first city forever. This never re-prompts for permission (browsers
+      // remember that separately); it only re-reads the current position.
+      await requestLocation(true);
       const o = originOrFallback();
       weather.forecast(o.lat, o.lon).then(setWx);
       const today = new Date().toISOString().slice(0, 10);
       const r = await events.search({ lat: o.lat, lon: o.lon, radiusMiles: 25, limit: 6, startDate: today });
-      if (r.available) setNear(r.events.filter((e: any) => !e.date || e.date >= today));
+      // This used to only ever call setNear on success, so a failed or
+      // unavailable fetch (a blocked request, a network hiccup, no events
+      // in range) left the section on its loading skeleton forever —
+      // permanently gray, looking exactly like the app was broken.
+      if (r.available) {
+        setNear(r.events.filter((e: any) => !e.date || e.date >= today));
+        setNearStatus("ok");
+      } else {
+        setNearStatus("unavailable");
+      }
       // A wide net ("restaurants"), not a narrow one — cuisine/price filtering
       // happens client-side over one bigger result set instead of firing a
       // separate paid Places search per cuisine.
@@ -265,10 +282,18 @@ export default function Home({ go }: { go: (tab: string, arg?: any) => void }) {
       )}
 
       <Section title="Happening near you" action="See all" onAction={() => go("discover")}>
-        {near.length === 0 ? (
+        {nearStatus === "loading" ? (
           <div className="flex gap-3">
             {[0, 1].map(i => <div key={i} className="skeleton h-[168px] flex-1 rounded-[22px]" />)}
           </div>
+        ) : nearStatus === "unavailable" ? (
+          <Glass className="p-4 text-[13.5px] text-white/45">
+            Couldn't load events right now — check your connection and try reopening the app.
+          </Glass>
+        ) : near.length === 0 ? (
+          <Glass className="p-4 text-[13.5px] text-white/45">
+            No events found nearby in the next few days.
+          </Glass>
         ) : (
           <div className="no-bar edge-fade -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
             {near.map((e, i) => (
