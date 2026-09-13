@@ -186,3 +186,39 @@ h1,h2,h3,h4 { margin:0; font-weight:660; letter-spacing:-.028em; line-height:1.1
 @supports (-webkit-touch-callout: none) {
   body { background-attachment: fixed; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PLANS — "Brutalist Chaos" calendar skin
+   Additive only: every rule below is prefixed `.brutal-` and scoped to the
+   Plans screen, so nothing here can ever touch the glass system the rest
+   of the app uses. Same brand colors as everywhere else (the violet/
+   magenta of --grad-brand) standing in for the "one bright accent" a
+   brutalist palette calls for, against flat black and white — no new
+   colors introduced. System monospace (no font file, no network request)
+   deliberately clashed against the app's own sans for the "mixed
+   typefaces" rule of the style.
+   ═══════════════════════════════════════════════════════════════════════ */
+.brutal-mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace; }
+
+.brutal-card {
+  background: #0D0D12;
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0 0 #000;
+  border-radius: 2px;
+}
+.brutal-card-flat {
+  background: #F5F3EE;
+  color: #0A0A0A;
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0 0 #000;
+  border-radius: 2px;
+}
+.brutal-card-accent {
+  background: var(--grad-brand);
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0 0 #000;
+  border-radius: 2px;
+}
+.brutal-tilt-l { transform: rotate(-1.4deg); }
+.brutal-tilt-r { transform: rotate(1.1deg); }
+.brutal-dot { border: 2px solid #000; }

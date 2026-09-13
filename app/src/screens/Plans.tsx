@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Plus, Share2, Sparkles, Trash2, CalendarPlus, Check, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Share2, Sparkles, Trash2, CalendarPlus, Check, Link as LinkIcon } from "lucide-react";
 import { Glass, Sheet, Notice, Pill } from "@/components/ui/glass";
 import { SelectorChips } from "@/components/ui/selector-chips";
 import { store, useStore, originOrFallback, type Plan } from "@/lib/store";
@@ -11,53 +11,146 @@ import * as planEng from "@/lib/engine/plan.js";
 import * as calendarEng from "@/lib/engine/calendar.js";
 import * as api from "@/lib/api";
 
+const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+
+/** The plan's own resolved date if it has one (finalPlan.date, or whatever
+ * the group's day answers already resolve to via the same consensus.build
+ * every other part of this screen already calls) — falling back to when
+ * the plan was created. Purely a read of data that already exists; nothing
+ * here computes or stores anything new. */
+function dateKeyFor(p: Plan, st: ReturnType<typeof consensus.build>): string {
+  return p.finalPlan?.date || st.hard.date || p.createdAt.slice(0, 10);
+}
+
+function MonthCalendar({ list, states }: { list: Plan[]; states: Map<string, ReturnType<typeof consensus.build>> }) {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const [viewed, setViewed] = React.useState(() => { const d = new Date(); d.setDate(1); return d; });
+
+  const byDay = React.useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of list) {
+      const k = dateKeyFor(p, states.get(p.id)!);
+      m.set(k, (m.get(k) || 0) + 1);
+    }
+    return m;
+  }, [list, states]);
+
+  const year = viewed.getFullYear(), month = viewed.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = [...Array(firstDow).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  while (cells.length % 7) cells.push(null);
+  const keyFor = (day: number) => `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+  return (
+    <div className="brutal-card brutal-tilt-l mb-6 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="brutal-mono text-[20px] font-black uppercase tracking-tight text-white">
+          {viewed.toLocaleDateString(undefined, { month: "long" })} <span style={{ color: "#7C6BFF" }}>{year}</span>
+        </h2>
+        <div className="flex gap-1.5">
+          <button onClick={() => setViewed(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+            className="grid h-8 w-8 place-items-center border-2 border-black bg-white text-black transition-transform active:scale-90" aria-label="Previous month">
+            <ChevronLeft className="h-4 w-4" strokeWidth={3} />
+          </button>
+          <button onClick={() => setViewed(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+            className="grid h-8 w-8 place-items-center border-2 border-black bg-white text-black transition-transform active:scale-90" aria-label="Next month">
+            <ChevronRight className="h-4 w-4" strokeWidth={3} />
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-1.5 grid grid-cols-7 gap-1">
+        {WEEKDAYS.map((d, i) => (
+          <div key={i} className="brutal-mono text-center text-[11px] font-bold text-white/40">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day, i) => {
+          if (day == null) return <div key={i} />;
+          const k = keyFor(day);
+          const isToday = k === todayKey;
+          const count = byDay.get(k) || 0;
+          return (
+            <div key={i}
+              className={`relative flex aspect-square flex-col items-center justify-center text-[13px] font-bold ${
+                isToday ? "brutal-card-accent text-white" : "border-2 border-white/15 text-white/70"}`}
+              style={{ borderRadius: 2 }}>
+              {day}
+              {count > 0 && !isToday && (
+                <span className="brutal-dot absolute bottom-1 h-1.5 w-1.5 rounded-full" style={{ background: "#7C6BFF" }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Plans({ focus, setFocus }: { focus?: string; setFocus: (id?: string) => void }) {
   const plans = useStore(s => s.plans);
   const list = Object.values(plans).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  // Same consensus.build() call this screen already made per plan for the
+  // "confirmed" count — computed once here and reused by both the calendar
+  // dots above and the list below, instead of building it twice.
+  const states = React.useMemo(() => {
+    const m = new Map<string, ReturnType<typeof consensus.build>>();
+    for (const p of list) m.set(p.id, consensus.build(p));
+    return m;
+  }, [list]);
 
   if (focus && plans[focus]) return <PlanDetail plan={plans[focus]} back={() => setFocus(undefined)} />;
 
   return (
     <div className="px-5 pb-4 pt-[calc(18px+var(--safe-t))]">
-      <h1 className="display mb-1">Plans</h1>
-      <p className="mb-6 text-[14px] text-white/45">Everything you're putting together</p>
+      <h1 className="mb-1 -rotate-1 text-[32px] font-black uppercase italic tracking-tight text-white">Plans</h1>
+      <p className="brutal-mono mb-6 text-[13px] text-white/45">// everything you're putting together</p>
+
+      <MonthCalendar list={list} states={states} />
+
+      <h3 className="brutal-mono mb-3 rotate-1 text-[13px] font-bold uppercase tracking-widest text-white/50">— Event list —</h3>
+
       {list.length === 0 ? (
-        <Glass className="p-8 text-center">
-          <p className="text-[15px] text-white/55">Nothing yet.</p>
-          <p className="mt-1 text-[13.5px] text-white/35">Say what you want to do on the home screen.</p>
-        </Glass>
+        <div className="brutal-card-flat p-8 text-center">
+          <p className="text-[15px] font-bold">Nothing yet.</p>
+          <p className="brutal-mono mt-1 text-[12.5px] text-black/60">Say what you want to do on the home screen.</p>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {list.map((p, i) => {
-            const st = consensus.build(p);
+            const st = states.get(p.id)!;
+            const tilt = i % 3 === 0 ? "brutal-tilt-r" : i % 3 === 1 ? "brutal-tilt-l" : "";
             return (
               <motion.button key={p.id}
                 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * .05, ease: [.22,1,.36,1] }}
-                onClick={() => setFocus(p.id)} className="w-full text-left">
-                <Glass className="p-4 transition-transform active:scale-[.99]">
+                onClick={() => setFocus(p.id)} className="block w-full text-left">
+                <div className={`brutal-card p-4 transition-transform active:scale-[.98] ${tilt}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-[16px] font-semibold">{p.title}</p>
-                      <p className="mt-1 truncate text-[13px] text-white/40">"{p.idea}"</p>
+                      <p className="truncate text-[17px] font-black uppercase text-white">{p.title}</p>
+                      <p className="brutal-mono mt-1 truncate text-[12.5px] text-white/40">"{p.idea}"</p>
                     </div>
-                    <Pill className={p.finalPlan ? "!text-emerald-300" : "!text-[#C9C1FF]"}>
+                    <span className={`shrink-0 border-2 border-black px-2 py-1 text-[10px] font-black uppercase tracking-wide ${
+                      p.finalPlan ? "bg-emerald-300 text-black" : "text-white"}`}
+                      style={!p.finalPlan ? { background: "#7C6BFF" } : undefined}>
                       {p.finalPlan ? "Planned" : "Collecting"}
-                    </Pill>
+                    </span>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
                     <div className="flex -space-x-2">
                       {p.participants.slice(0, 5).map(x => (
-                        <span key={x.id} className="grid h-7 w-7 place-items-center rounded-full border-2 border-[#0B0B12] text-[11px] font-bold"
-                          style={{ background: "var(--grad-brand)" }}>{x.name[0]?.toUpperCase()}</span>
+                        <span key={x.id} className="grid h-7 w-7 place-items-center border-2 border-black text-[11px] font-bold text-white"
+                          style={{ background: "var(--grad-brand)", borderRadius: "50%" }}>{x.name[0]?.toUpperCase()}</span>
                       ))}
                     </div>
-                    <span className="text-[12.5px] text-white/40">
+                    <span className="brutal-mono text-[12px] text-white/40">
                       {st.confirmedCount}/{p.participants.length} in
                       {p.finalPlan && ` · ~$${p.finalPlan.cost.perPerson}pp`}
                     </span>
                   </div>
-                </Glass>
+                </div>
               </motion.button>
             );
           })}
