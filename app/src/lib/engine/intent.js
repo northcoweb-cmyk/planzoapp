@@ -19,7 +19,7 @@ const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','satur
 // "drinks" alone means a bar, not a sit-down meal — it used to also match
 // FOOD_WORDS, which made "let's go get drinks" ask a "what do you want to
 // eat, Pizza/Burgers/..." question that had nothing to do with the request.
-const FOOD_WORDS   = /\b(dinner|lunch|brunch|breakfast|eat|food|restaurant|pizza|burgers?|sushi|tacos?|wings|bbq|ice ?cream|gelato|froyo|frozen yogurt|donuts?|bagels?|dessert|cupcakes?|boba|bubble tea|ramen|pho|dim ?sum|thai|indian|chinese|korean food|mediterranean|greek food|seafood|steak|pasta|noodles?|sandwiches?|salads?|smoothies?)\b/i;
+const FOOD_WORDS   = /\b(dinner|lunch|brunch|breakfast|eats?|food|restaurant|pizza|burgers?|sushi|tacos?|wings|bbq|ice ?cream|gelato|froyo|frozen yogurt|donuts?|bagels?|dessert|cupcakes?|boba|bubble tea|ramen|pho|dim ?sum|thai|indian|chinese|korean food|mediterranean|greek food|seafood|steak|pasta|noodles?|sandwiches?|salads?|smoothies?|coffee)\b/i;
 // The group's food question only offers a fixed list (Pizza, Burgers, ...)
 // that plainly doesn't include everything someone might type — "ice cream"
 // used to just vanish, and with no one able to vote for it the search
@@ -66,21 +66,31 @@ function parse(text) {
   // it at 1:59am, however good a match it is on cuisine.
   if (RIGHT_NOW_WORDS.test(lower)) { intent.rightNow = true; intent.dayHint = intent.dayHint || 'today'; signals++; }
 
-  // Group size: "7 of us", "me and 4 friends", "6 people"
+  // Group size: "7 of us", "me and 4 friends", "6 people", "dinner for 8"
   const m1 = lower.match(/(\d{1,2})\s*(?:of us|people|friends|guys|girls)/);
   const m2 = lower.match(/me and (\d{1,2})/);
   const m3 = lower.match(/\b(?:group of|party of)\s*(\d{1,2})/);
+  // "for 8" almost always means a party size in this app's context ("dinner
+  // for 8", "book a table for 8") — but only when it isn't immediately
+  // followed by a time/money unit, where "for" means something else
+  // entirely ("for 8 hours", "for $8", "for 8 minutes").
+  const m4 = lower.match(/\bfor (\d{1,2})\b(?!\s*(?:am|pm|o'?clock|hours?|hrs?|minutes?|mins?|dollars?|bucks?|\$))/);
   // "me and 4 friends" is 5, and must be tested BEFORE the bare "N friends"
   // pattern, which would otherwise read the same phrase as 4.
   if (m2) { intent.groupSize = +m2[1] + 1; signals++; }
   else if (m1) { intent.groupSize = +m1[1]; signals++; }
   else if (m3) { intent.groupSize = +m3[1]; signals++; }
+  else if (m4) { intent.groupSize = +m4[1]; signals++; }
   else if (/\bmy (girlfriend|boyfriend|partner|wife|husband)\b/.test(lower)) { intent.groupSize = 2; signals++; }
 
   for (const d of DAYS) if (lower.includes(d)) { intent.dayHint = d; signals++; break; }
   if (/\btonight\b/.test(lower))        { intent.dayHint = 'today';    intent.timeOfDay = 'Evening'; signals++; }
   else if (/\btomorrow\b/.test(lower))  { intent.dayHint = 'tomorrow'; signals++; }
   else if (/\bthis weekend\b/.test(lower)) { intent.dayHint = 'weekend'; signals++; }
+  // consensus.js's resolveDate() has always understood the literal string
+  // 'next week' — nothing upstream ever actually produced it, so "a road
+  // trip next week" silently lost the date entirely.
+  else if (/\bnext week\b/.test(lower)) { intent.dayHint = 'next week'; signals++; }
   if (/\bmorning\b/.test(lower))   intent.timeOfDay = 'Morning';
   if (/\bafternoon\b/.test(lower)) intent.timeOfDay = 'Afternoon';
   if (/\blate night\b/.test(lower)) intent.timeOfDay = 'Late night';
