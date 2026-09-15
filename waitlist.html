@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planzo — Send the idea. We'll make the plan.</title>
+<meta name="description" content="Planzo resolves everyone's constraints against real data and produces one executable plan. Join the waitlist.">
+
+<!--
+  PLANZO — standalone waitlist landing page
+  ============================================================================
+  Single file, no build step. Open directly in a browser.
+
+  WHAT TO CUSTOMIZE
+  - Everything text-wise lives in the HTML below, top to bottom in scroll order.
+  - Colors / gradients: edit the CSS custom properties in :root (they mirror
+    app/src/index.css so this stays visually consistent with the real app).
+  - API_BASE below: point it at a running Planzo server to make the waitlist
+    form actually submit to POST /api/waitlist. Leave it empty and the form
+    runs in PREVIEW MODE — it saves signups to this browser's localStorage
+    only, says so on-screen, and lets you export them as CSV. Same contract
+    dist/planzo-waitlist.html uses.
+  ============================================================================
+-->
+<script>
+  // Set this to your deployed Planzo server, e.g. 'https://planzo.app'
+  // Leave empty ('') to run in local preview mode.
+  window.PLANZO_API_BASE = '';
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<style>
+  /* ── Brand tokens, mirrored from app/src/index.css ─────────────────── */
+  :root{
+    color-scheme: dark;
+    --background:            #08080E;
+    --foreground:            #F4F5FA;
+    --muted-foreground:      #9BA0B5;
+    --card:                  rgba(255,255,255,.055);
+    --primary:               #7C6BFF;
+    --border:                rgba(255,255,255,.09);
+
+    --p-indigo: #6366F1;
+    --p-violet: #8B5CF6;
+    --p-fuchsia:#C026D3;
+    --p-rose:   #F43F5E;
+    --p-amber:  #F59E0B;
+    --p-teal:   #14B8A6;
+
+    --grad-brand: linear-gradient(135deg, #6366F1 0%, #8B5CF6 45%, #C026D3 100%);
+    --grad-warm:  linear-gradient(135deg, #F59E0B 0%, #F43F5E 100%);
+
+    --glass-bg:      rgba(255,255,255,.055);
+    --glass-bg-2:    rgba(255,255,255,.085);
+    --glass-stroke:  rgba(255,255,255,.11);
+    --glass-hi:      rgba(255,255,255,.30);
+
+    --r-sm: 12px; --r: 18px; --r-lg: 26px; --r-xl: 34px;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-t: env(safe-area-inset-top, 0px);
+  }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+  body{
+    margin:0; background:var(--background); color:var(--foreground);
+    font-family: 'Inter var', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden; overscroll-behavior-y:none;
+  }
+  img{ max-width:100%; }
+  [hidden]{ display:none!important; }
+  a{ color:inherit; }
+
+  /* ── Aurora background layer ────────────────────────────────────────── */
+  .aurora{
+    position:fixed; inset:-20%; pointer-events:none; z-index:0;
+    filter:blur(64px) saturate(155%); opacity:.55;
+    background:
+      radial-gradient(38% 32% at 18% 22%, var(--p-indigo), transparent 70%),
+      radial-gradient(42% 36% at 82% 18%, var(--p-fuchsia), transparent 70%),
+      radial-gradient(40% 40% at 50% 85%, var(--p-violet), transparent 70%);
+    animation: aurora-drift 22s ease-in-out infinite alternate;
+  }
+  @keyframes aurora-drift{
+    0%{ transform: translate3d(0,0,0) scale(1); }
+    100%{ transform: translate3d(2%,-3%,0) scale(1.06); }
+  }
+
+  .bg-grid{
+    position:absolute; inset:0; z-index:0; pointer-events:none;
+    background-size:60px 60px;
+    background-image:
+      linear-gradient(to right, rgba(244,245,250,.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(244,245,250,.05) 1px, transparent 1px);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    opacity:.5;
+  }
+
+  .film-grain{
+    position:absolute; inset:0; z-index:50; pointer-events:none;
+    opacity:.045; mix-blend-mode:overlay;
+    background:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%25" height="100%25" filter="url(%23n)"/></svg>');
+  }
+
+  /* ── Text treatments ───────────────────────────────────────────────── */
+  .gsap-reveal{ visibility:hidden; }
+
+  .text-3d-matte{
+    color:var(--foreground);
+    text-shadow: 0 10px 30px rgba(244,245,250,.15), 0 2px 4px rgba(244,245,250,.08);
+  }
+  .text-gradient-brand{
+    background:var(--grad-brand);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    transform:translateZ(0);
+    filter: drop-shadow(0px 10px 26px rgba(124,107,255,.35));
+  }
+  .text-card-silver{
+    background:linear-gradient(180deg,#FFFFFF 0%,#C9C1FF 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    transform:translateZ(0);
+    filter: drop-shadow(0px 12px 24px rgba(0,0,0,.7)) drop-shadow(0px 4px 8px rgba(0,0,0,.5));
+  }
+
+  /* ── Physical card ─────────────────────────────────────────────────── */
+  .premium-depth-card{
+    background: linear-gradient(155deg, #241F45 0%, #0B0A16 100%);
+    box-shadow:
+      0 40px 100px -20px rgba(0,0,0,.9),
+      0 20px 40px -20px rgba(0,0,0,.8),
+      inset 0 1px 2px rgba(255,255,255,.16),
+      inset 0 -2px 4px rgba(0,0,0,.8);
+    border:1px solid rgba(255,255,255,.06);
+    position:relative;
+  }
+  .card-sheen{
+    position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:50;
+    background: radial-gradient(800px circle at var(--mouse-x,50%) var(--mouse-y,50%), rgba(255,255,255,.07) 0%, transparent 40%);
+    mix-blend-mode:screen;
+  }
+
+  /* ── Phone hardware ────────────────────────────────────────────────── */
+  .iphone-bezel{
+    background:#111;
+    box-shadow: inset 0 0 0 2px #4b4b5c, inset 0 0 0 7px #000, 0 40px 80px -15px rgba(0,0,0,.9), 0 15px 25px -5px rgba(0,0,0,.7);
+    transform-style:preserve-3d;
+  }
+  .hardware-btn{
+    background: linear-gradient(90deg,#404040 0%,#171717 100%);
+    box-shadow: -2px 0 5px rgba(0,0,0,.8), inset -1px 0 1px rgba(255,255,255,.15), inset 1px 0 2px rgba(0,0,0,.8);
+    border-left:1px solid rgba(255,255,255,.05);
+  }
+  .screen-glare{ background: linear-gradient(110deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 45%); }
+  .widget-depth{
+    background: linear-gradient(180deg, rgba(255,255,255,.045) 0%, rgba(255,255,255,.012) 100%);
+    box-shadow: 0 10px 20px rgba(0,0,0,.3), inset 0 1px 1px rgba(255,255,255,.06), inset 0 -1px 1px rgba(0,0,0,.5);
+    border:1px solid rgba(255,255,255,.04);
+  }
+  .floating-ui-badge{
+    background: linear-gradient(135deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.015) 100%);
+    backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 25px 50px -12px rgba(0,0,0,.8), inset 0 1px 1px rgba(255,255,255,.2), inset 0 -1px 1px rgba(0,0,0,.5);
+  }
+  .progress-ring{ transform:rotate(-90deg); transform-origin:center; stroke-dasharray:402; stroke-dashoffset:402; stroke-linecap:round; }
+
+  /* ── Layout shells ─────────────────────────────────────────────────── */
+  .scene{
+    position:relative; width:100vw; height:100svh; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    perspective:1500px;
+  }
+  .hero-text-wrapper{
+    position:absolute; z-index:10; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; width:100vw; padding:0 1rem;
+  }
+  .hero-text-wrapper h1{
+    font-weight:800; letter-spacing:-.03em; margin:0 0 .2em; line-height:1.02;
+    font-size:clamp(2.4rem, 8vw, 6rem);
+  }
+  .cta-wrapper{
+    position:absolute; z-index:10; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; width:100vw; padding:0 1rem;
+  }
+  .cta-wrapper h2{ font-size:clamp(2rem,6vw,4.2rem); font-weight:800; letter-spacing:-.02em; margin:0 0 .5rem; }
+  .cta-wrapper p{ color:var(--muted-foreground); font-size:clamp(1rem,2vw,1.2rem); max-width:34rem; margin:0 auto 2rem; line-height:1.55; }
+
+  .main-card-shell{ position:absolute; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; pointer-events:none; perspective:1500px; }
+  .main-card{
+    position:relative; overflow:hidden; pointer-events:auto;
+    width:92vw; height:92svh; border-radius:32px;
+  }
+  @media (min-width:768px){ .main-card{ width:85vw; height:85svh; border-radius:40px; } }
+
+  .card-grid{
+    position:relative; width:100%; height:100%; max-width:80rem; margin:0 auto;
+    padding:1.5rem 1rem; z-index:10;
+    display:flex; flex-direction:column; justify-content:space-evenly; align-items:center;
+  }
+  @media (min-width:1024px){
+    .card-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:2rem; padding:0 3rem; }
+  }
+
+  .card-right-text{ order:1; display:flex; justify-content:center; z-index:20; width:100%; }
+  .card-right-text h2{
+    font-size:clamp(3rem,10vw,7rem); font-weight:900; text-transform:uppercase; letter-spacing:-.04em; margin:0;
+  }
+  @media (min-width:1024px){ .card-right-text{ order:3; justify-content:flex-end; } }
+
+  .mockup-wrapper{ order:2; position:relative; width:100%; height:380px; display:flex; align-items:center; justify-content:center; z-index:10; perspective:1000px; }
+  @media (min-width:1024px){ .mockup-wrapper{ height:600px; } }
+  .mockup-scale{ position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; transform:scale(.65); }
+  @media (min-width:768px){ .mockup-scale{ transform:scale(.85); } }
+  @media (min-width:1024px){ .mockup-scale{ transform:scale(1); } }
+
+  .phone{ position:relative; width:280px; height:580px; border-radius:3rem; display:flex; flex-direction:column; will-change:transform; transform-style:preserve-3d; }
+  .phone-screen{ position:absolute; inset:7px; background:#0A0716; border-radius:2.5rem; overflow:hidden; box-shadow:inset 0 0 15px rgba(0,0,0,1); color:#fff; z-index:10; }
+  .notch{ position:absolute; top:5px; left:50%; transform:translateX(-50%); width:100px; height:28px; background:#000; border-radius:999px; z-index:50; display:flex; align-items:center; justify-content:flex-end; padding:0 .75rem; }
+  .notch .dot{ width:6px; height:6px; border-radius:999px; background:#22c55e; box-shadow:0 0 8px rgba(34,197,94,.8); animation:pulse 2s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .phone-inner{ position:relative; width:100%; height:100%; padding:3rem 1.25rem 2rem; display:flex; flex-direction:column; }
+  /* Visible by default — GSAP (when it loads) sets these to 0 itself before
+     animating in, via gsap.set(). This keeps the page fully readable even
+     if the GSAP CDN is blocked, slow, or fails. */
+  .phone-widget{ opacity:1; }
+
+  .card-left-text{ order:3; text-align:center; z-index:20; width:100%; padding:0 1rem; }
+  @media (min-width:1024px){ .card-left-text{ order:1; text-align:left; max-width:none; } }
+  .card-left-text h3{ color:#fff; font-size:clamp(1.4rem,3vw,2.2rem); font-weight:700; margin:0 0 .5rem; letter-spacing:-.01em; }
+  .card-left-text p{ color:rgba(224,220,255,.7); font-size:1rem; line-height:1.6; max-width:26rem; margin:0 auto; }
+  @media (min-width:768px){ .card-left-text p{ display:block; } }
+  @media (min-width:1024px){ .card-left-text p{ margin:0; max-width:none; } }
+  .card-left-text p{ display:none; }
+  @media (min-width:768px){ .card-left-text p{ display:block; } }
+
+  .floating-badge{ position:absolute; display:flex; opacity:1; border-radius:1.1rem; padding:.75rem 1rem; align-items:center; gap:.75rem; z-index:30; }
+  #badge1{ top:1.5rem; left:-.5rem; }
+  #badge2{ bottom:3.5rem; right:-.5rem; }
+  @media (min-width:1024px){
+    #badge1{ top:3rem; left:-6rem; }
+    #badge2{ bottom:5rem; right:-6rem; }
+  }
+  .floating-badge .icon{ width:2.25rem; height:2.25rem; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+  .floating-badge p{ margin:0; }
+  .floating-badge .t1{ color:#fff; font-size:.82rem; font-weight:700; letter-spacing:-.01em; }
+  .floating-badge .t2{ color:rgba(200,190,255,.55); font-size:.68rem; font-weight:500; }
+
+  /* ── Waitlist form ─────────────────────────────────────────────────── */
+  .waitlist-form{ display:flex; flex-direction:column; gap:.75rem; width:100%; max-width:26rem; margin:0 auto; }
+  .waitlist-row{ display:flex; gap:.6rem; flex-wrap:wrap; }
+  .waitlist-form input{
+    flex:1 1 10rem; min-width:0; background:var(--glass-bg); border:1px solid var(--glass-stroke); color:var(--foreground);
+    padding:.95rem 1.1rem; border-radius:14px; font-size:1rem; outline:none; backdrop-filter:blur(18px);
+    transition:border-color .2s ease, background .2s ease;
+  }
+  .waitlist-form input::placeholder{ color:var(--muted-foreground); }
+  .waitlist-form input:focus{ border-color:var(--primary); background:rgba(255,255,255,.08); }
+  .btn-join{
+    position:relative; border:none; cursor:pointer; padding:1rem 1.6rem; border-radius:14px;
+    font-size:1.02rem; font-weight:700; color:#fff; background:var(--grad-brand);
+    box-shadow:0 12px 30px -8px rgba(124,107,255,.6), inset 0 1px 1px rgba(255,255,255,.35);
+    transition: transform .25s cubic-bezier(.25,1,.5,1), box-shadow .25s ease, opacity .2s ease;
+  }
+  .btn-join:hover{ transform:translateY(-2px); box-shadow:0 18px 36px -8px rgba(124,107,255,.75), inset 0 1px 1px rgba(255,255,255,.4); }
+  .btn-join:active{ transform:translateY(1px); }
+  .btn-join:disabled{ opacity:.6; cursor:default; transform:none; }
+  .waitlist-note{ font-size:.78rem; color:var(--muted-foreground); margin-top:.4rem; }
+  .waitlist-status{ font-size:.9rem; margin-top:.5rem; min-height:1.2em; }
+  .waitlist-status.ok{ color:#5EEAD4; }
+  .waitlist-status.err{ color:#FF8A8A; }
+
+  .coming-soon-row{ display:flex; gap:1rem; margin-top:2rem; flex-wrap:wrap; justify-content:center; }
+  .coming-soon-badge{
+    display:flex; align-items:center; gap:.75rem; padding:.85rem 1.4rem; border-radius:1.1rem;
+    background:var(--glass-bg); border:1px solid var(--glass-stroke); backdrop-filter:blur(18px);
+    opacity:.65; cursor:default; user-select:none;
+  }
+  .coming-soon-badge svg{ width:1.6rem; height:1.6rem; flex:none; color:var(--muted-foreground); }
+  .coming-soon-badge .cs-label{ text-align:left; }
+  .coming-soon-badge .cs-top{ font-size:.62rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted-foreground); margin-bottom:-2px; }
+  .coming-soon-badge .cs-main{ font-size:1rem; font-weight:700; color:var(--foreground); }
+
+  /* ── Logo mark ─────────────────────────────────────────────────────── */
+  .logo-mark{ width:2.4rem; height:2.4rem; flex:none; filter:drop-shadow(0 4px 14px rgba(124,107,255,.5)); }
+  .brand-row{ display:flex; align-items:center; gap:.6rem; justify-content:center; margin-bottom:1.4rem; }
+  .brand-row .wordmark{ font-weight:800; font-size:1.15rem; letter-spacing:-.02em; }
+
+  /* ── Section: tabs / carousel ─────────────────────────────────────── */
+  .tabs-section{ position:relative; z-index:5; padding:7rem 1.25rem 8rem; }
+  .tabs-head{ text-align:center; max-width:42rem; margin:0 auto 3.5rem; }
+  .tabs-head h2{ font-size:clamp(2rem,5vw,3.2rem); font-weight:800; letter-spacing:-.02em; margin:0 0 .75rem; }
+  .tabs-head p{ color:var(--muted-foreground); font-size:1.05rem; line-height:1.6; margin:0; }
+
+  .tabs-scroller{
+    display:flex; gap:1.75rem; overflow-x:auto; padding:1rem 1.5rem 2rem;
+    scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+  }
+  .tabs-scroller::-webkit-scrollbar{ height:6px; }
+  .tabs-scroller::-webkit-scrollbar-thumb{ background:var(--glass-stroke); border-radius:99px; }
+
+  .tab-card{
+    flex:0 0 auto; scroll-snap-align:center; width:250px; opacity:1;
+  }
+  .tab-card .phone{ width:250px; height:520px; }
+  .tab-card .phone-screen{ inset:6px; border-radius:2.2rem; }
+  .tab-card .notch{ width:88px; height:24px; top:4px; }
+  .tab-card .caption{ text-align:center; margin-top:1.1rem; }
+  .tab-card .caption .name{ font-weight:700; font-size:.98rem; }
+  .tab-card .caption .desc{ font-size:.82rem; color:var(--muted-foreground); margin-top:.2rem; line-height:1.45; }
+
+  .app-topbar{ display:flex; justify-content:space-between; align-items:center; padding:2.4rem 1.1rem 0; }
+  .app-topbar .eyebrow{ font-size:.6rem; text-transform:uppercase; letter-spacing:.12em; color:#8f8fb0; font-weight:700; margin-bottom:2px; }
+  .app-topbar .title{ font-size:1.02rem; font-weight:700; letter-spacing:-.01em; }
+  .avatar-pill{ width:2rem; height:2rem; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:700; }
+
+  .app-body{ padding:0 1rem; margin-top:1.1rem; display:flex; flex-direction:column; gap:.55rem; }
+  .app-row{
+    background:linear-gradient(180deg, rgba(255,255,255,.05) 0%, rgba(255,255,255,.015) 100%);
+    border:1px solid rgba(255,255,255,.05); border-radius:1rem; padding:.7rem .8rem; display:flex; align-items:center; gap:.7rem;
+  }
+  .app-row .swatch{ width:2.1rem; height:2.1rem; border-radius:.65rem; display:flex; align-items:center; justify-content:center; font-size:.95rem; flex:none; }
+  .app-row .lines{ flex:1; min-width:0; }
+  .app-row .l1{ font-size:.78rem; font-weight:600; margin-bottom:2px; }
+  .app-row .l2{ font-size:.66rem; color:#9089ac; }
+  .app-row .amt{ font-size:.8rem; font-weight:700; }
+
+  .ticket-card{
+    margin:0 1rem; border-radius:1.1rem; padding:1.1rem;
+    background:linear-gradient(160deg, rgba(124,107,255,.22), rgba(192,38,212,.12));
+    border:1px dashed rgba(255,255,255,.25); position:relative;
+  }
+  .ticket-card .qr{
+    width:100%; aspect-ratio:1; border-radius:.6rem; margin-top:.8rem;
+    background-image:
+      repeating-linear-gradient(90deg, #fff 0 6px, transparent 6px 12px),
+      repeating-linear-gradient(0deg, #fff 0 6px, transparent 6px 12px);
+    background-blend-mode:multiply; background-color:#fff; opacity:.92;
+  }
+
+  .consensus-row{ display:flex; align-items:center; gap:.6rem; padding:0 1rem; margin-top:.4rem; }
+  .consensus-avatars{ display:flex; }
+  .consensus-avatars span{ width:1.8rem; height:1.8rem; border-radius:999px; border:2px solid #0A0716; margin-left:-.5rem; display:flex; align-items:center; justify-content:center; font-size:.6rem; font-weight:700; }
+  .consensus-avatars span:first-child{ margin-left:0; }
+
+  /* ── Footer ────────────────────────────────────────────────────────── */
+  .site-footer{ position:relative; z-index:5; text-align:center; padding:3rem 1.5rem calc(3rem + var(--safe-b)); color:var(--muted-foreground); font-size:.85rem; border-top:1px solid var(--border); }
+
+  /* ── Motion-reduction ──────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce){
+    .aurora{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     SCENE 1 — pinned cinematic hero
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="scene" class="scene">
+  <div class="aurora"></div>
+  <div class="bg-grid"></div>
+  <div class="film-grain"></div>
+
+  <!-- Headline layer -->
+  <div class="hero-text-wrapper" id="heroText">
+    <h1 class="text-track gsap-reveal text-3d-matte">Send the idea.</h1>
+    <h1 class="text-days gsap-reveal text-gradient-brand">We'll make the plan.</h1>
+  </div>
+
+  <!-- CTA layer (revealed after scroll pin) -->
+  <div class="cta-wrapper gsap-reveal" id="ctaWrapper">
+    <div class="brand-row">
+      <svg class="logo-mark" viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <linearGradient id="pTopCta" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#22D3EE"/>
+          </linearGradient>
+          <linearGradient id="pStemCta" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#2563EB"/>
+          </linearGradient>
+        </defs>
+        <path d="M28 14 h46 a26 26 0 0 1 0 52 h-4 L28 42 Z" fill="url(#pTopCta)"/>
+        <path d="M28 42 L70 66 v18 a10 10 0 0 1 -16 8 L28 108 a10 10 0 0 1 -6 -9 V51 a10 10 0 0 1 6 -9 Z" fill="url(#pStemCta)"/>
+      </svg>
+      <span class="wordmark">PLANZO</span>
+    </div>
+    <h2 class="text-card-silver">Be first through the door.</h2>
+    <p>Join the waitlist for group planning that actually converges — real venues, real weather, one plan everyone agrees on. No app, no account, just a link.</p>
+
+    <form class="waitlist-form" id="waitlistForm" novalidate>
+      <div class="waitlist-row">
+        <input type="text" name="name" placeholder="Your name" required maxlength="80" autocomplete="name">
+      </div>
+      <div class="waitlist-row">
+        <input type="email" name="email" placeholder="you@email.com" required maxlength="200" autocomplete="email" style="flex:2 1 12rem;">
+        <button type="submit" class="btn-join" id="joinBtn">Join the waitlist</button>
+      </div>
+      <div class="waitlist-status" id="waitlistStatus" aria-live="polite"></div>
+      <div class="waitlist-note">No spam. We'll email you the moment it's your turn.</div>
+    </form>
+
+    <div class="coming-soon-row">
+      <div class="coming-soon-badge" aria-label="Coming soon on the App Store">
+        <svg fill="currentColor" viewBox="0 0 384 512" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+        <div class="cs-label"><div class="cs-top">Coming soon on</div><div class="cs-main">App Store</div></div>
+      </div>
+      <div class="coming-soon-badge" aria-label="Coming soon on Google Play">
+        <svg fill="currentColor" viewBox="0 0 512 512" aria-hidden="true"><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg>
+        <div class="cs-label"><div class="cs-top">Coming soon on</div><div class="cs-main">Google Play</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Foreground physical card -->
+  <div class="main-card-shell">
+    <div class="main-card premium-depth-card gsap-reveal" id="mainCard">
+      <div class="card-sheen" id="cardSheen"></div>
+      <div class="card-grid">
+
+        <div class="card-right-text">
+          <h2 class="text-card-silver">PLANZO</h2>
+        </div>
+
+        <div class="mockup-wrapper">
+          <div class="mockup-scale">
+            <div class="phone" id="phoneMockup">
+              <div class="hardware-btn" style="position:absolute; top:120px; left:-3px; width:3px; height:25px; border-radius:6px 0 0 6px;"></div>
+              <div class="hardware-btn" style="position:absolute; top:160px; left:-3px; width:3px; height:45px; border-radius:6px 0 0 6px;"></div>
+              <div class="hardware-btn" style="position:absolute; top:220px; left:-3px; width:3px; height:45px; border-radius:6px 0 0 6px;"></div>
+              <div class="hardware-btn" style="position:absolute; top:170px; right:-3px; width:3px; height:70px; border-radius:0 6px 6px 0; transform:scaleX(-1);"></div>
+
+              <div class="phone-screen">
+                <div class="screen-glare" style="position:absolute; inset:0; z-index:40; pointer-events:none;"></div>
+                <div class="notch"><div class="dot"></div></div>
+
+                <div class="phone-inner">
+                  <div class="phone-widget" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.6rem;">
+                    <div>
+                      <div style="font-size:.62rem; color:#9089ac; text-transform:uppercase; letter-spacing:.14em; font-weight:700; margin-bottom:2px;">This weekend</div>
+                      <div style="font-size:1.15rem; font-weight:700; letter-spacing:-.01em;">Austin Trip</div>
+                    </div>
+                    <div class="avatar-pill">7</div>
+                  </div>
+
+                  <div class="phone-widget" style="position:relative; width:11rem; height:11rem; margin:0 auto 1.6rem; display:flex; align-items:center; justify-content:center;">
+                    <svg width="100%" height="100%" viewBox="0 0 176 176" style="position:absolute; inset:0;">
+                      <circle cx="88" cy="88" r="64" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="12"/>
+                      <circle class="progress-ring" id="progressRing" cx="88" cy="88" r="64" fill="none" stroke="#7C6BFF" stroke-width="12"/>
+                    </svg>
+                    <div style="text-align:center;">
+                      <div id="counterVal" style="font-size:2.1rem; font-weight:800; letter-spacing:-.02em;">0</div>
+                      <div style="font-size:.62rem; color:rgba(200,190,255,.55); text-transform:uppercase; letter-spacing:.1em; font-weight:700; margin-top:2px;">Group Synced</div>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; flex-direction:column; gap:.6rem;">
+                    <div class="phone-widget widget-depth" style="border-radius:1rem; padding:.7rem; display:flex; align-items:center;">
+                      <div style="width:2.3rem; height:2.3rem; border-radius:.7rem; background:linear-gradient(160deg, rgba(99,102,241,.3), rgba(99,102,241,.05)); display:flex; align-items:center; justify-content:center; margin-right:.7rem; border:1px solid rgba(129,140,248,.25); flex:none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      </div>
+                      <div style="flex:1;">
+                        <div style="font-size:.82rem; font-weight:600;">Budget locked</div>
+                        <div style="font-size:.68rem; color:#9089ac;">$40 per person</div>
+                      </div>
+                    </div>
+                    <div class="phone-widget widget-depth" style="border-radius:1rem; padding:.7rem; display:flex; align-items:center;">
+                      <div style="width:2.3rem; height:2.3rem; border-radius:.7rem; background:linear-gradient(160deg, rgba(192,38,212,.3), rgba(192,38,212,.05)); display:flex; align-items:center; justify-content:center; margin-right:.7rem; border:1px solid rgba(232,121,249,.25); flex:none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0abfc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                      </div>
+                      <div style="flex:1;">
+                        <div style="font-size:.82rem; font-weight:600;">7 of 7 answered</div>
+                        <div style="font-size:.68rem; color:#9089ac;">Vibe: pizza, outdoors</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); width:120px; height:4px; background:rgba(255,255,255,.2); border-radius:99px;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="floating-badge" id="badge1">
+              <div class="icon" style="background:linear-gradient(180deg, rgba(99,102,241,.25), rgba(99,102,241,.08)); border:1px solid rgba(129,140,248,.3);">🎯</div>
+              <div><p class="t1">Plan Ready</p><p class="t2">Austin trip · Sat</p></div>
+            </div>
+            <div class="floating-badge" id="badge2">
+              <div class="icon" style="background:linear-gradient(180deg, rgba(192,38,212,.25), rgba(192,38,212,.08)); border:1px solid rgba(232,121,249,.3);">👥</div>
+              <div><p class="t1">Group Synced</p><p class="t2">7 friends answered</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-left-text">
+          <h3>One link. One plan.</h3>
+          <p>Someone describes what they want to do, shares one link into the group chat, and Planzo resolves everyone's budget, dietary needs and vibe against real venues and live weather — into one plan everyone can actually do.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     SCENE 2 — tabs carousel (not pinned, scrolls normally)
+     ════════════════════════════════════════════════════════════════════ -->
+<section class="tabs-section">
+  <div class="aurora" style="opacity:.28;"></div>
+  <div class="tabs-head">
+    <h2>Every screen, already built.</h2>
+    <p>Adaptive questions, group consensus, real tickets, expense splitting — the whole flow, not a mockup of one.</p>
+  </div>
+
+  <div class="tabs-scroller" id="tabsScroller">
+
+    <!-- Tab: Plan -->
+    <div class="tab-card">
+      <div class="phone iphone-bezel">
+        <div class="phone-screen">
+          <div class="notch"><div class="dot"></div></div>
+          <div class="app-topbar"><div><div class="eyebrow">Plan</div><div class="title">Austin Trip</div></div><div class="avatar-pill">JD</div></div>
+          <div class="app-body">
+            <div class="app-row"><div class="swatch" style="background:linear-gradient(160deg, rgba(20,184,166,.3), rgba(20,184,166,.06));">🌮</div><div class="lines"><div class="l1">Valentina's Tex Mex</div><div class="l2">6:30pm · 12 min away</div></div><div class="amt">$18</div></div>
+            <div class="app-row"><div class="swatch" style="background:linear-gradient(160deg, rgba(99,102,241,.3), rgba(99,102,241,.06));">🎳</div><div class="lines"><div class="l1">Highland Lanes</div><div class="l2">8:00pm · reserved</div></div><div class="amt">$14</div></div>
+            <div class="app-row"><div class="swatch" style="background:linear-gradient(160deg, rgba(245,158,11,.3), rgba(245,158,11,.06));">☀️</div><div class="lines"><div class="l1">72°F, clear</div><div class="l2">Good for the patio</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="name">Plan</div><div class="desc">Real venues, transport and cost — ranked, not generated.</div></div>
+    </div>
+
+    <!-- Tab: Group -->
+    <div class="tab-card">
+      <div class="phone iphone-bezel">
+        <div class="phone-screen">
+          <div class="notch"><div class="dot"></div></div>
+          <div class="app-topbar"><div><div class="eyebrow">Group</div><div class="title">Converging…</div></div><div class="avatar-pill">7</div></div>
+          <div class="consensus-row">
+            <div class="consensus-avatars">
+              <span style="background:#6366F1;">S</span><span style="background:#8B5CF6;">M</span><span style="background:#C026D3;">T</span><span style="background:#F43F5E;">A</span><span style="background:#F59E0B;">J</span><span style="background:#14B8A6;">R</span><span style="background:#334155;">+1</span>
+            </div>
+          </div>
+          <div class="app-body" style="margin-top:1.4rem;">
+            <div class="app-row"><div class="lines"><div class="l1">Budget</div><div class="l2">Lowest stated ceiling wins</div></div><div class="amt">$40</div></div>
+            <div class="app-row"><div class="lines"><div class="l1">Food</div><div class="l2">5 want pizza, 1 vegetarian</div></div><div class="amt">✓</div></div>
+            <div class="app-row"><div class="lines"><div class="l1">Allergy</div><div class="l2">Binds everyone, no exceptions</div></div><div class="amt">✓</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="name">Group</div><div class="desc">Hard constraints intersect. Soft preferences converge — nothing's a majority vote.</div></div>
+    </div>
+
+    <!-- Tab: Tickets -->
+    <div class="tab-card">
+      <div class="phone iphone-bezel">
+        <div class="phone-screen">
+          <div class="notch"><div class="dot"></div></div>
+          <div class="app-topbar"><div><div class="eyebrow">Tickets</div><div class="title">Admit One</div></div><div class="avatar-pill">🎟️</div></div>
+          <div class="ticket-card" style="margin-top:1.2rem;">
+            <div style="font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:#d8d2ff; font-weight:700;">Planzo Pulse</div>
+            <div style="font-size:1.05rem; font-weight:700; margin-top:2px;">Rooftop Kickoff</div>
+            <div style="font-size:.72rem; color:#c9c1ff; margin-top:2px;">Sat · 8:00 PM · Gate 2</div>
+            <div class="qr"></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="name">Tickets</div><div class="desc">Real QR + door check-in, with manual fallback built in.</div></div>
+    </div>
+
+    <!-- Tab: Expenses -->
+    <div class="tab-card">
+      <div class="phone iphone-bezel">
+        <div class="phone-screen">
+          <div class="notch"><div class="dot"></div></div>
+          <div class="app-topbar"><div><div class="eyebrow">Expenses</div><div class="title">Settle up</div></div><div class="avatar-pill">$</div></div>
+          <div class="app-body">
+            <div class="app-row"><div class="swatch" style="background:linear-gradient(160deg, rgba(99,102,241,.3), rgba(99,102,241,.06));">S</div><div class="lines"><div class="l1">Sarah paid</div><div class="l2">Dinner, split 7 ways</div></div><div class="amt">$126</div></div>
+            <div class="app-row"><div class="swatch" style="background:linear-gradient(160deg, rgba(20,184,166,.3), rgba(20,184,166,.06));">M</div><div class="lines"><div class="l1">You owe Mia</div><div class="l2">Lanes reservation</div></div><div class="amt" style="color:#F87171;">$14</div></div>
+            <div class="app-row"><div class="swatch" style="background:linear-gradient(160deg, rgba(245,158,11,.3), rgba(245,158,11,.06));">✓</div><div class="lines"><div class="l1">All settled</div><div class="l2">Nothing pending</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="name">Expenses</div><div class="desc">Splitting and settle-up, tracked automatically as the plan happens.</div></div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="brand-row" style="margin-bottom:.75rem;">
+    <svg class="logo-mark" style="width:1.6rem; height:1.6rem;" viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <linearGradient id="pTopFoot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#22D3EE"/></linearGradient>
+        <linearGradient id="pStemFoot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+      </defs>
+      <path d="M28 14 h46 a26 26 0 0 1 0 52 h-4 L28 42 Z" fill="url(#pTopFoot)"/>
+      <path d="M28 42 L70 66 v18 a10 10 0 0 1 -16 8 L28 108 a10 10 0 0 1 -6 -9 V51 a10 10 0 0 1 6 -9 Z" fill="url(#pStemFoot)"/>
+    </svg>
+    <span class="wordmark" style="font-size:.95rem;">PLANZO</span>
+  </div>
+  Send the idea. We'll make the plan. — © <span id="year"></span> Planzo
+  <div id="previewNotice" style="margin-top:.6rem; color:#F59E0B; font-size:.78rem;" hidden>
+    Preview mode: signups are saved to this browser only (no server connected).
+    <button id="exportCsv" style="background:none; border:1px solid var(--border); color:inherit; border-radius:8px; padding:.25rem .6rem; margin-left:.4rem; cursor:pointer; font-size:.75rem;">Export CSV</button>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // ── Waitlist submission ────────────────────────────────────────────
+  var API_BASE = window.PLANZO_API_BASE || '';
+  var form = document.getElementById('waitlistForm');
+  var statusEl = document.getElementById('waitlistStatus');
+  var joinBtn = document.getElementById('joinBtn');
+  var previewNotice = document.getElementById('previewNotice');
+  var LOCAL_KEY = 'planzo.waitlist.preview.v1';
+
+  if (!API_BASE) previewNotice.hidden = false;
+
+  function localSignups(){
+    try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); } catch(e){ return []; }
+  }
+  function saveLocalSignup(entry){
+    var list = localSignups();
+    list.push(entry);
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(list)); } catch(e){}
+    return list.length;
+  }
+
+  document.getElementById('exportCsv').addEventListener('click', function(){
+    var list = localSignups();
+    if (!list.length){ alert('No local signups yet.'); return; }
+    var rows = [['name','email','at']].concat(list.map(function(s){ return [s.name, s.email, s.at]; }));
+    var csv = rows.map(function(r){
+      return r.map(function(v){ return '"' + String(v).replace(/"/g,'""') + '"'; }).join(',');
+    }).join('\n');
+    var blob = new Blob([csv], { type:'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'planzo-waitlist-preview.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var name = form.name.value.trim();
+    var email = form.email.value.trim();
+    statusEl.className = 'waitlist-status';
+    if (!name){ statusEl.textContent = 'Your name is required.'; statusEl.className='waitlist-status err'; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ statusEl.textContent = 'Enter a valid email.'; statusEl.className='waitlist-status err'; return; }
+
+    joinBtn.disabled = true;
+    joinBtn.textContent = 'Joining…';
+
+    if (!API_BASE){
+      var n = saveLocalSignup({ name:name, email:email, at:new Date().toISOString() });
+      statusEl.textContent = "You're on the list (preview) — #" + n + ' saved locally.';
+      statusEl.className = 'waitlist-status ok';
+      joinBtn.disabled = false;
+      joinBtn.textContent = 'Join the waitlist';
+      form.reset();
+      return;
+    }
+
+    fetch(API_BASE.replace(/\/$/, '') + '/api/waitlist', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ name:name, email:email, source:'waitlist-hero' })
+    })
+    .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
+    .then(function(res){
+      joinBtn.disabled = false; joinBtn.textContent = 'Join the waitlist';
+      if (res.ok && res.j.ok){
+        statusEl.textContent = res.j.alreadyOnList
+          ? "You're already on the list — position #" + res.j.position + '.'
+          : "You're on the list — position #" + res.j.position + '.';
+        statusEl.className = 'waitlist-status ok';
+        form.reset();
+      } else {
+        statusEl.textContent = 'Something went wrong. Try again in a moment.';
+        statusEl.className = 'waitlist-status err';
+      }
+    })
+    .catch(function(){
+      joinBtn.disabled = false; joinBtn.textContent = 'Join the waitlist';
+      statusEl.textContent = 'Network error — is the server reachable?';
+      statusEl.className = 'waitlist-status err';
+    });
+  });
+
+  // ── GSAP cinematic scroll (falls back to a static reveal if GSAP fails to load) ──
+  if (typeof gsap === 'undefined'){
+    document.querySelectorAll('.gsap-reveal').forEach(function(el){ el.style.visibility = 'visible'; });
+    return;
+  }
+  gsap.registerPlugin(ScrollTrigger);
+
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var isMobile = window.innerWidth < 768;
+
+  var mainCard = document.getElementById('mainCard');
+  var phone = document.getElementById('phoneMockup');
+  var reqId = 0;
+
+  window.addEventListener('mousemove', function(e){
+    if (window.scrollY > window.innerHeight * 2) return;
+    cancelAnimationFrame(reqId);
+    reqId = requestAnimationFrame(function(){
+      var rect = mainCard.getBoundingClientRect();
+      mainCard.style.setProperty('--mouse-x', (e.clientX - rect.left) + 'px');
+      mainCard.style.setProperty('--mouse-y', (e.clientY - rect.top) + 'px');
+      if (!reduceMotion){
+        var xVal = (e.clientX / window.innerWidth - 0.5) * 2;
+        var yVal = (e.clientY / window.innerHeight - 0.5) * 2;
+        gsap.to(phone, { rotationY: xVal * 12, rotationX: -yVal * 12, ease:'power3.out', duration:1.2 });
+      }
+    });
+  });
+
+  var ctx = gsap.context(function(){
+    gsap.set('.text-track', { autoAlpha:0, y:60, scale:.85, filter:'blur(20px)' });
+    gsap.set('.text-days', { autoAlpha:1, clipPath:'inset(0 100% 0 0)' });
+    gsap.set('#mainCard', { y: window.innerHeight + 200, autoAlpha:1 });
+    gsap.set(['.card-left-text', '.card-right-text', '.mockup-wrapper', '.floating-badge', '.phone-widget'], { autoAlpha:0 });
+    gsap.set('#ctaWrapper', { autoAlpha:0, scale:.8, filter:'blur(30px)' });
+
+    var intro = gsap.timeline({ delay:.2 });
+    intro
+      .to('.text-track', { duration:1.6, autoAlpha:1, y:0, scale:1, filter:'blur(0px)', ease:'expo.out' })
+      .to('.text-days', { duration:1.3, clipPath:'inset(0 0% 0 0)', ease:'power4.inOut' }, '-=.9');
+
+    var scrollTl = gsap.timeline({
+      scrollTrigger:{
+        trigger:'#scene', start:'top top', end:'+=6500', pin:true, scrub:1, anticipatePin:1,
+      }
+    });
+
+    scrollTl
+      .to(['#heroText', '.bg-grid'], { scale:1.15, filter:'blur(20px)', opacity:.2, ease:'power2.inOut', duration:2 }, 0)
+      .to('#mainCard', { y:0, ease:'power3.inOut', duration:2 }, 0)
+      .to('#mainCard', { width:'100%', height:'100%', borderRadius:'0px', ease:'power3.inOut', duration:1.5 })
+      .fromTo('.mockup-wrapper',
+        { y:300, z:-500, rotationX:50, rotationY:-30, autoAlpha:0, scale:.6 },
+        { y:0, z:0, rotationX:0, rotationY:0, autoAlpha:1, scale:1, ease:'expo.out', duration:2.2 }, '-=.7')
+      .fromTo('.phone-widget', { y:40, autoAlpha:0, scale:.95 }, { y:0, autoAlpha:1, scale:1, stagger:.15, ease:'back.out(1.2)', duration:1.4 }, '-=1.3')
+      .to('#progressRing', { strokeDashoffset:60, duration:1.8, ease:'power3.inOut' }, '-=1.1')
+      .to('#counterVal', { innerHTML:100, snap:{ innerHTML:1 }, duration:1.8, ease:'expo.out' }, '-=1.8')
+      .fromTo('.floating-badge', { y:100, autoAlpha:0, scale:.7, rotationZ:-10 }, { y:0, autoAlpha:1, scale:1, rotationZ:0, ease:'back.out(1.5)', duration:1.4, stagger:.2 }, '-=1.8')
+      .fromTo('.card-left-text', { x:-50, autoAlpha:0 }, { x:0, autoAlpha:1, ease:'power4.out', duration:1.4 }, '-=1.3')
+      .fromTo('.card-right-text', { x:50, autoAlpha:0, scale:.8 }, { x:0, autoAlpha:1, scale:1, ease:'expo.out', duration:1.4 }, '<')
+      .to({}, { duration:2 })
+      .set('#heroText', { autoAlpha:0 })
+      .set('#ctaWrapper', { autoAlpha:1 })
+      .to({}, { duration:1.2 })
+      .to(['.mockup-wrapper', '.floating-badge', '.card-left-text', '.card-right-text'], { scale:.9, y:-40, z:-200, autoAlpha:0, ease:'power3.in', duration:1, stagger:.05 })
+      .to('#mainCard', { width: isMobile ? '92vw' : '85vw', height: isMobile ? '92svh' : '85svh', borderRadius: isMobile ? '32px' : '40px', ease:'expo.inOut', duration:1.6 }, 'pullback')
+      .to('#ctaWrapper', { scale:1, filter:'blur(0px)', ease:'expo.inOut', duration:1.6 }, 'pullback')
+      .to('#mainCard', { y: -window.innerHeight - 300, ease:'power3.in', duration:1.3 });
+
+  });
+
+  // ── Tabs section: simple fade-in on scroll ───────────────────────────
+  gsap.utils.toArray('.tab-card').forEach(function(card, i){
+    gsap.set(card, { autoAlpha:0, y:40 });
+    gsap.to(card, {
+      autoAlpha:1, y:0, duration:.9, ease:'power3.out', delay:i*0.06,
+      scrollTrigger:{ trigger: card, start:'top 88%' }
+    });
+  });
+})();
+</script>
+</body>
+</html>
