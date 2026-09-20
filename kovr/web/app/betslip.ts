@@ -19,6 +19,7 @@ import type { SlipLeg } from './store.js';
 import { api, ApiError } from './api.js';
 import type { OddsChangeView } from './api.js';
 import { combineParlayOdds, payoutCents, profitCents } from '../../src/core/odds.js';
+import { preferences } from './preferences.js';
 import { parseAmountToCents, MoneyError } from '../../src/core/money.js';
 
 /** A pending price movement the user has been asked to accept. */
@@ -207,10 +208,19 @@ export async function placeBet(accept = false): Promise<boolean> {
     return true;
   } catch (error) {
     if (error instanceof ApiError && error.code === 'ODDS_CHANGED' && error.payload?.changes) {
-      // Show the move and let the user decide; nothing is placed meanwhile.
-      pendingChanges = error.payload.changes;
+      const changes = error.payload.changes;
+
+      // Only an unambiguous improvement may skip the prompt, and only once:
+      // the retry passes accept=true, so it cannot loop back to here.
+      if (!accept && preferences().autoAcceptImprovedOdds && changes.every((change) => change.improved)) {
+        for (const change of changes) store.repriceLeg(change.selectionId, change.currentPrice);
+        return placeBet(true);
+      }
+
+      // Otherwise show the move and let the user decide; nothing is placed.
+      pendingChanges = changes;
       // Reprice by id: a display name is not unique across events.
-      for (const change of error.payload.changes) {
+      for (const change of changes) {
         store.repriceLeg(change.selectionId, change.currentPrice);
       }
       store.openSlip();

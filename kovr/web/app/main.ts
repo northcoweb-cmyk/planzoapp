@@ -20,6 +20,8 @@ import { renderBets, betsSkeleton, setBetsTab } from './views/bets.js';
 import { renderWallet, renderActivity, walletSkeleton } from './views/wallet.js';
 import { renderProfile, profileSkeleton } from './views/profile.js';
 import { renderAdmin } from './views/admin.js';
+import { preferences, setPreference } from './preferences.js';
+import { startSettlementWatch } from './settlementWatch.js';
 
 /* ───────────────────────────── navigation ──────────────────────────── */
 
@@ -301,11 +303,27 @@ function wireEvents(root: HTMLElement): void {
     void handleAdminClick(target);
   });
 
-  // The stake field is the one controlled input in the app.
   root.addEventListener('input', (event) => {
     const target = event.target;
-    if (target instanceof HTMLInputElement && target.dataset['stakeInput'] !== undefined) {
+    if (!(target instanceof HTMLInputElement)) return;
+
+    if (target.dataset['stakeInput'] !== undefined) {
       store.setStake(target.value);
+      return;
+    }
+    if (target.dataset['prefStake'] !== undefined) {
+      setPreference('defaultStake', target.value.trim());
+    }
+  });
+
+  root.addEventListener('change', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+
+    const key = target.dataset['pref'];
+    if (key === 'autoAcceptImprovedOdds' || key === 'notifyOnSettlement') {
+      setPreference(key, target.checked);
+      toast(target.checked ? 'Preference on' : 'Preference off', 'success');
     }
   });
 }
@@ -531,7 +549,12 @@ async function boot(): Promise<void> {
     // The shell still renders; the view will report the failure properly.
   }
 
+  // A default stake fills an empty slip, and never overwrites a typed one.
+  const defaultStake = preferences().defaultStake;
+  if (defaultStake !== '' && store.get().stakeInput === '') store.setStake(defaultStake);
+
   await route();
+  startSettlementWatch();
 
   // Keep the balance and open-bet badge current without a full reload.
   window.setInterval(() => {

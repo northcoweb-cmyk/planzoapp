@@ -208,6 +208,26 @@ Fixtures live in `test/support/` and in `scripts/dev-preview.ts`. Nothing in
 
 ---
 
+## Preferences
+
+Three preferences, all of which change real behaviour, kept per-browser
+because there is no account here to attach them to:
+
+- **Auto-accept improved odds** — place without prompting when a price moved
+  *in the bettor's favour*. A price that moved against them always prompts,
+  whatever this is set to.
+- **Alert me when a bet settles** — an in-app alert when an open bet changes
+  status. Deliberately not a browser push notification: KOVR has no account,
+  no subscription and nothing to push with, and asking for a permission it
+  could not honour would be theatre.
+- **Default stake** — prefills the betslip, and never overwrites a typed one.
+
+KOVR has no sign-up, no password and no session. It stores one local demo
+profile, its simulated ledger, and the betslip and preferences in the
+browser. It collects no personal data and contacts no payment provider.
+
+---
+
 ## Developer tools
 
 With `KOVR_ADMIN_ENABLED=1`, `/admin` shows provider health and quota, data

@@ -7,6 +7,7 @@ import { icon } from '../icons.js';
 import { skeletonList } from '../components.js';
 import { dateTime, money } from '../format.js';
 import { store } from '../store.js';
+import { preferences } from '../preferences.js';
 
 export function profileSkeleton(): RawHtml {
   return h`<div class="view">${skeletonList(5, 'row')}</div>`;
@@ -30,6 +31,7 @@ export async function renderProfile(): Promise<RawHtml> {
   const settled =
     profile.counts.WON + profile.counts.LOST + profile.counts.PUSH + profile.counts.VOID + profile.counts.CANCELLED;
   const adminEnabled = store.get().config?.adminEnabled === true;
+  const prefs = preferences();
 
   return h`
     <div class="view">
@@ -67,6 +69,56 @@ export async function renderProfile(): Promise<RawHtml> {
           ${linkRow('Activity', 'Deposits, bets, payouts', '/activity', 'activity')}
           ${linkRow('Sports', 'Browse every competition', '/sports', 'sports')}
           ${adminEnabled ? linkRow('Developer tools', 'Provider status and demo controls', '/admin', 'tools') : raw('')}
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Preferences</h2>
+        <div class="card">
+          <label class="row" style="cursor:pointer">
+            <span class="row__body">
+              <span class="row__title">Auto-accept improved odds</span>
+              <span class="row__meta">Place without prompting when a price moves in your favour. A price
+                that moves against you always asks first.</span>
+            </span>
+            <input class="switch" type="checkbox" data-pref="autoAcceptImprovedOdds"
+              ${prefs.autoAcceptImprovedOdds ? raw('checked') : raw('')} />
+          </label>
+          <label class="row" style="cursor:pointer">
+            <span class="row__body">
+              <span class="row__title">Alert me when a bet settles</span>
+              <span class="row__meta">Shows an in-app alert. KOVR has no account to push to, so it does
+                not ask for notification permission it could not honour.</span>
+            </span>
+            <input class="switch" type="checkbox" data-pref="notifyOnSettlement"
+              ${prefs.notifyOnSettlement ? raw('checked') : raw('')} />
+          </label>
+          <div class="row">
+            <span class="row__body">
+              <span class="row__title">Default stake</span>
+              <span class="row__meta">Prefills the betslip. Leave blank for none.</span>
+            </span>
+            <span class="stake-field" style="width:120px;height:38px">
+              <span class="stake-field__prefix" style="font-size:14px">$</span>
+              <input type="text" inputmode="decimal" placeholder="—" value="${prefs.defaultStake}"
+                data-pref-stake aria-label="Default stake" style="font-size:15px" />
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Security and data</h2>
+        <div class="card" style="padding:16px;display:flex;gap:11px;align-items:flex-start">
+          ${icon('shield', 18)}
+          <div>
+            <p style="font-weight:700;font-size:14px">There is no account to secure</p>
+            <p class="muted" style="font-size:13px;margin-top:3px">
+              KOVR has no sign-up, no password and no session. It stores a single local demo profile,
+              its simulated ledger, and your betslip and preferences in this browser. It collects no
+              personal data, contacts no payment provider, and sends nothing about you anywhere.
+            </p>
+          </div>
         </div>
       </section>
 
