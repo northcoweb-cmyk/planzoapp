@@ -74,7 +74,7 @@ export function buildEvent(options: BuildEventOptions): SportEvent {
   const neutral = league.categoryId === 'combat';
 
   return {
-    id: internalEventId('fake', providerEventId),
+    id: internalEventId(league.providerKey, providerEventId),
     providerEventId,
     leagueId: league.id,
     categoryId: league.categoryId,

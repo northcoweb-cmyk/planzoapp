@@ -1,8 +1,8 @@
 /**
- * KOVR Sports — client entry point.
+ * KOVR — client entry point.
  *
- * Renders the shell once, then swaps views into it. One delegated click
- * listener per surface, so a re-render never leaks handlers.
+ * Renders the shell once, then swaps views into it. One delegated listener
+ * per surface, so a re-render never leaks handlers.
  */
 
 import { h, raw, render, qs } from './dom.js';
@@ -13,17 +13,17 @@ import { api, ApiError } from './api.js';
 import { store, toast, onToasts } from './store.js';
 import type { Toast } from './store.js';
 import { betslipMarkup, placeBet, clearPendingChanges } from './betslip.js';
-import { renderHome, homeSkeleton } from './views/home.js';
-import { renderSports, renderLeague, sportsSkeleton, toggleShowAll } from './views/sports.js';
+import { ledger } from './ledgerClient.js';
+import { preferences, setPreference } from './preferences.js';
+import { startSettlementWatch, runSettlement } from './settlementWatch.js';
+import { parseAmountToCents, MoneyError } from '../../src/core/money.js';
+import { LedgerError } from '../../src/ledger/ledger.js';
+import { renderHome, homeSkeleton, setLeagueFilter } from './views/home.js';
+import { renderSports, renderLeague, sportsSkeleton } from './views/sports.js';
 import { renderEvent, eventSkeleton } from './views/event.js';
 import { renderBets, betsSkeleton, setBetsTab } from './views/bets.js';
 import { renderWallet, renderActivity, walletSkeleton } from './views/wallet.js';
 import { renderProfile, profileSkeleton } from './views/profile.js';
-import { renderAdmin } from './views/admin.js';
-import { preferences, setPreference } from './preferences.js';
-import { startSettlementWatch } from './settlementWatch.js';
-
-/* ───────────────────────────── navigation ──────────────────────────── */
 
 interface NavItem {
   path: string;
@@ -40,9 +40,7 @@ const NAV: NavItem[] = [
   { path: '/profile', label: 'You', icon: 'profile' },
 ];
 
-function currentPath(): string {
-  return window.location.pathname;
-}
+const currentPath = (): string => window.location.pathname;
 
 function isActive(path: string): boolean {
   const here = currentPath();
@@ -51,7 +49,7 @@ function isActive(path: string): boolean {
   return here.startsWith(path);
 }
 
-function navigate(path: string, replace = false): void {
+function navigate(path: string): void {
   if (path === '/betslip') {
     store.openSlip();
     return;
@@ -60,8 +58,7 @@ function navigate(path: string, replace = false): void {
     void route();
     return;
   }
-  if (replace) window.history.replaceState({}, '', path);
-  else window.history.pushState({}, '', path);
+  window.history.pushState({}, '', path);
   void route();
 }
 
@@ -71,12 +68,12 @@ function headerMarkup(): RawHtml {
   const wallet = store.get().wallet;
   return h`
     <header class="app-header">
-      <button class="brand" type="button" data-nav="/">
-        ${brandMark(26)} KOVR
+      <button class="brand" type="button" data-brand aria-label="KOVR home">
+        ${brandMark(28)} <span class="brand__word">KOVR</span>
       </button>
       <button class="balance-chip" type="button" data-nav="/wallet">
-        <span class="balance-chip__label">Demo balance</span>
-        <span class="balance-chip__value num">${wallet ? money(wallet.balanceCents) : '—'}</span>
+        <span class="balance-chip__label">Balance</span>
+        <span class="balance-chip__value num" data-balance>${wallet ? money(wallet.balanceCents) : '—'}</span>
       </button>
     </header>`;
 }
@@ -108,7 +105,6 @@ function sidebarMarkup(): RawHtml {
   return h`
     <aside class="sidebar">
       <div class="sidebar__group">
-        <p class="sidebar__heading">Menu</p>
         ${NAV.filter((item) => item.path !== '/betslip').map(
           (item) => h`
             <button class="sidebar__item" type="button" data-nav="${item.path}"
@@ -121,21 +117,6 @@ function sidebarMarkup(): RawHtml {
           ${isActive('/activity') ? raw('aria-current="page"') : raw('')}>
           ${icon('activity', 17)} <span>Activity</span>
         </button>
-        ${
-          state.config?.adminEnabled
-            ? h`<button class="sidebar__item" type="button" data-nav="/admin"
-                 ${isActive('/admin') ? raw('aria-current="page"') : raw('')}>
-                 ${icon('tools', 17)} <span>Developer</span>
-               </button>`
-            : raw('')
-        }
-      </div>
-      <div class="sidebar__group">
-        <p class="sidebar__heading">About</p>
-        <p class="dim" style="font-size:11.5px;padding:0 10px;line-height:1.5">
-          KOVR is a sportsbook simulator. Real sports data and real odds; every balance and payout is a
-          demo value.
-        </p>
       </div>
     </aside>`;
 }
@@ -148,7 +129,7 @@ function shellMarkup(): RawHtml {
     <div class="slip-panel" id="slip-panel"></div>
     ${bottomNavMarkup()}
     <div class="toast-stack" id="toasts" aria-live="polite"></div>
-    <div id="slip-sheet"></div>`;
+    <div id="sheet"></div>`;
 }
 
 /* ─────────────────────────────── routing ───────────────────────────── */
@@ -185,8 +166,6 @@ async function route(): Promise<void> {
     } else if (path === '/profile') {
       show(profileSkeleton());
       show(await renderProfile());
-    } else if (path === '/admin') {
-      show(await renderAdmin());
     } else {
       show(h`<div class="view">
         <div class="empty">${icon('empty', 30)}
@@ -201,7 +180,7 @@ async function route(): Promise<void> {
         <div><p class="banner__title">Could not load this view</p>
         <p>${error instanceof ApiError ? error.message : 'Something went wrong.'}</p></div>
       </div>
-      <button class="btn btn--sm" type="button" data-retry>Try again</button>
+      <button class="btn btn--sm" type="button" data-reload>Try again</button>
     </div>`);
   }
 
@@ -209,7 +188,6 @@ async function route(): Promise<void> {
   window.scrollTo({ top: 0 });
 }
 
-/** Re-render the parts of the shell that depend on state. */
 function refreshChrome(): void {
   const header = qs('.app-header');
   const nav = qs('.bottom-nav');
@@ -223,18 +201,103 @@ function refreshChrome(): void {
 function renderSlip(): void {
   const state = store.get();
   const panel = qs('#slip-panel');
-  const sheet = qs('#slip-sheet');
+  const sheet = qs('#sheet');
 
-  // Desktop shows the slip permanently in its own column; mobile as a sheet.
   if (panel) render(panel, betslipMarkup());
   if (!sheet) return;
 
   if (state.slipOpen) {
-    render(sheet, h`<div class="slip-backdrop" data-close-slip></div>${betslipMarkup()}`);
-    document.body.style.overflow = 'hidden';
-  } else {
+    render(sheet, h`<div class="sheet-backdrop" data-close-slip></div>${betslipMarkup()}`);
+    document.body.classList.add('is-locked');
+  } else if (!sheet.querySelector('.balance-sheet')) {
     sheet.innerHTML = '';
-    document.body.style.overflow = '';
+    document.body.classList.remove('is-locked');
+  }
+}
+
+/* ───────────────────────── the hidden control ──────────────────────── */
+
+let brandTaps = 0;
+let brandTimer: number | null = null;
+
+/**
+ * Five taps on the wordmark opens the balance control. It is the only way
+ * to set a balance directly, and deliberately not discoverable by accident.
+ */
+function handleBrandTap(): void {
+  brandTaps++;
+  if (brandTimer !== null) window.clearTimeout(brandTimer);
+  brandTimer = window.setTimeout(() => {
+    brandTaps = 0;
+  }, 2500);
+
+  if (brandTaps >= 5) {
+    brandTaps = 0;
+    if (brandTimer !== null) window.clearTimeout(brandTimer);
+    void openBalanceSheet();
+    return;
+  }
+  if (brandTaps === 1) navigate('/');
+}
+
+async function openBalanceSheet(): Promise<void> {
+  const sheet = qs('#sheet');
+  if (!sheet) return;
+
+  const wallet = await (await ledger()).wallet();
+  const current = (wallet.balanceCents / 100).toFixed(2);
+
+  render(
+    sheet,
+    h`
+      <div class="sheet-backdrop" data-close-balance></div>
+      <div class="slip balance-sheet">
+        <div class="slip__grip"></div>
+        <header class="slip__head">
+          <h2 class="slip__title">Set balance</h2>
+          <button class="slip-leg__remove" type="button" data-close-balance aria-label="Close"
+            style="margin-left:auto">${icon('close', 14)}</button>
+        </header>
+        <div class="slip__foot">
+          <div class="stake-field stake-field--large">
+            <span class="stake-field__prefix">$</span>
+            <input type="text" inputmode="decimal" value="${current}" data-balance-input
+              aria-label="Balance" autocomplete="off" />
+          </div>
+          <div class="btn-grid btn-grid--four">
+            ${[100, 1000, 10000, 50000].map(
+              (amount) => h`<button class="btn btn--sm" type="button" data-balance-preset="${String(amount)}">
+                $${amount >= 1000 ? `${amount / 1000}k` : amount}
+              </button>`,
+            )}
+          </div>
+          <button class="btn btn--primary btn--block btn--lg" type="button" data-balance-apply>Update balance</button>
+        </div>
+      </div>`,
+  );
+  document.body.classList.add('is-locked');
+}
+
+function closeBalanceSheet(): void {
+  const sheet = qs('#sheet');
+  if (sheet) sheet.innerHTML = '';
+  document.body.classList.remove('is-locked');
+  renderSlip();
+}
+
+async function applyBalance(): Promise<void> {
+  const input = qs<HTMLInputElement>('[data-balance-input]');
+  if (!input) return;
+  try {
+    const cents = parseAmountToCents(input.value);
+    const wallet = await (await ledger()).adjustBalance(cents);
+    store.setWallet(wallet);
+    closeBalanceSheet();
+    refreshChrome();
+    toast(`Balance set to ${money(wallet.balanceCents)}`, 'success');
+    void route();
+  } catch (error) {
+    toast(error instanceof MoneyError || error instanceof LedgerError ? error.message : 'Enter a valid amount.', 'error');
   }
 }
 
@@ -244,6 +307,11 @@ function wireEvents(root: HTMLElement): void {
   root.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
+
+    if (target.closest('[data-brand]')) {
+      handleBrandTap();
+      return;
+    }
 
     const nav = target.closest('[data-nav]');
     if (nav instanceof HTMLElement) {
@@ -258,7 +326,7 @@ function wireEvents(root: HTMLElement): void {
     }
 
     const eventOpen = target.closest('[data-open-event]');
-    if (eventOpen instanceof HTMLElement) {
+    if (eventOpen instanceof HTMLElement && !target.closest('[data-odds-button]')) {
       navigate(`/event/${encodeURIComponent(eventOpen.dataset['openEvent'] ?? '')}`);
       return;
     }
@@ -267,8 +335,7 @@ function wireEvents(root: HTMLElement): void {
       window.history.back();
       return;
     }
-
-    if (target.closest('[data-retry]')) {
+    if (target.closest('[data-reload]')) {
       void route();
       return;
     }
@@ -279,15 +346,10 @@ function wireEvents(root: HTMLElement): void {
       return;
     }
 
-    if (target.closest('[data-toggle-all]')) {
-      toggleShowAll();
+    const filter = target.closest('[data-league-filter]');
+    if (filter instanceof HTMLElement) {
+      setLeagueFilter(filter.dataset['leagueFilter'] || null);
       void route();
-      return;
-    }
-
-    const refreshLeague = target.closest('[data-refresh-league]');
-    if (refreshLeague instanceof HTMLElement) {
-      void handleRefreshLeague(refreshLeague.dataset['refreshLeague'] ?? '');
       return;
     }
 
@@ -300,30 +362,25 @@ function wireEvents(root: HTMLElement): void {
 
     void handleSlipClick(target);
     void handleWalletClick(target);
-    void handleAdminClick(target);
+    void handleBalanceSheetClick(target);
   });
 
   root.addEventListener('input', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) return;
-
     if (target.dataset['stakeInput'] !== undefined) {
       store.setStake(target.value);
       return;
     }
-    if (target.dataset['prefStake'] !== undefined) {
-      setPreference('defaultStake', target.value.trim());
-    }
+    if (target.dataset['prefStake'] !== undefined) setPreference('defaultStake', target.value.trim());
   });
 
   root.addEventListener('change', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) return;
-
     const key = target.dataset['pref'];
     if (key === 'autoAcceptImprovedOdds' || key === 'notifyOnSettlement') {
       setPreference(key, target.checked);
-      toast(target.checked ? 'Preference on' : 'Preference off', 'success');
     }
   });
 }
@@ -349,8 +406,10 @@ function handleOddsTap(button: HTMLElement): void {
 
   clearPendingChanges();
   button.setAttribute('aria-pressed', action === 'removed' ? 'false' : 'true');
+  button.classList.remove('odds-button--pop');
+  void button.offsetWidth;
+  if (action !== 'removed') button.classList.add('odds-button--pop');
 
-  // A replaced pick means the other side of the same line is no longer on.
   if (action === 'replaced') {
     for (const other of document.querySelectorAll('[data-odds-button]')) {
       if (other instanceof HTMLElement && other !== button) {
@@ -365,19 +424,6 @@ function handleOddsTap(button: HTMLElement): void {
   if (nav) nav.outerHTML = bottomNavMarkup().value;
 }
 
-async function handleRefreshLeague(leagueId: string): Promise<void> {
-  try {
-    const result = await api.refreshLeague(leagueId);
-    toast(
-      result.source === 'live' ? 'Odds refreshed' : `Showing cached data — ${result.error ?? 'provider unavailable'}`,
-      result.source === 'live' ? 'success' : 'info',
-    );
-  } catch (error) {
-    toast(error instanceof ApiError ? error.message : 'Could not refresh.', 'error');
-  }
-  void route();
-}
-
 async function handleSlipClick(target: Element): Promise<void> {
   const remove = target.closest('[data-remove-leg]');
   if (remove instanceof HTMLElement) {
@@ -386,14 +432,12 @@ async function handleSlipClick(target: Element): Promise<void> {
     refreshChrome();
     return;
   }
-
   if (target.closest('[data-clear-slip]')) {
     store.clearSlip();
     clearPendingChanges();
     refreshChrome();
     return;
   }
-
   if (target.closest('[data-close-slip]')) {
     store.closeSlip();
     renderSlip();
@@ -412,8 +456,8 @@ async function handleSlipClick(target: Element): Promise<void> {
     renderSlip();
     return;
   }
-
   if (target.closest('[data-accept-odds]')) {
+    renderSlip();
     if (await placeBet(true)) {
       refreshChrome();
       void route();
@@ -422,7 +466,6 @@ async function handleSlipClick(target: Element): Promise<void> {
     }
     return;
   }
-
   if (target.closest('[data-place-bet]')) {
     renderSlip();
     if (await placeBet(false)) {
@@ -436,30 +479,33 @@ async function handleSlipClick(target: Element): Promise<void> {
 
 async function handleWalletClick(target: Element): Promise<void> {
   const deposit = target.closest('[data-deposit]');
-  if (deposit instanceof HTMLElement) {
-    await moveMoney('deposit', Number(deposit.dataset['deposit']));
-    return;
-  }
+  if (deposit instanceof HTMLElement) return moveMoney('deposit', Number(deposit.dataset['deposit']));
 
   const withdraw = target.closest('[data-withdraw]');
-  if (withdraw instanceof HTMLElement) {
-    await moveMoney('withdraw', Number(withdraw.dataset['withdraw']));
-    return;
-  }
+  if (withdraw instanceof HTMLElement) return moveMoney('withdraw', Number(withdraw.dataset['withdraw']));
 
   if (target.closest('[data-withdraw-all]')) {
-    await moveMoney('withdraw', store.get().wallet?.balanceCents ?? 0);
-    return;
+    return moveMoney('withdraw', store.get().wallet?.balanceCents ?? 0);
   }
 
   if (target.closest('[data-deposit-custom]')) {
     const input = qs<HTMLInputElement>('[data-custom-amount]');
     const value = Number(input?.value ?? '');
     if (!Number.isFinite(value) || value <= 0) {
-      toast('Enter an amount to deposit.', 'error');
+      toast('Enter an amount.', 'error');
       return;
     }
-    await moveMoney('deposit', Math.round(value * 100));
+    return moveMoney('deposit', Math.round(value * 100));
+  }
+
+  if (target.closest('[data-reset-account]')) {
+    if (!window.confirm('Reset this account? Bets and history on this device are cleared.')) return;
+    const wallet = await (await ledger()).reset();
+    store.setWallet(wallet);
+    store.clearSlip();
+    await store.refreshCounts();
+    toast('Account reset', 'success');
+    void route();
   }
 }
 
@@ -469,38 +515,28 @@ async function moveMoney(kind: 'deposit' | 'withdraw', amountCents: number): Pro
     return;
   }
   try {
-    const result = kind === 'deposit' ? await api.deposit(amountCents) : await api.withdraw(amountCents);
-    store.setWallet(result.data.wallet);
-    toast(
-      kind === 'deposit' ? `${money(amountCents)} added to your demo balance` : `${money(amountCents)} withdrawn`,
-      'success',
-    );
+    const book = await ledger();
+    const wallet = kind === 'deposit' ? await book.deposit(amountCents) : await book.withdraw(amountCents);
+    store.setWallet(wallet);
+    toast(kind === 'deposit' ? `${money(amountCents)} added` : `${money(amountCents)} withdrawn`, 'success');
     void route();
   } catch (error) {
-    toast(error instanceof ApiError ? error.message : 'That did not work.', 'error');
+    toast(error instanceof LedgerError ? error.message : 'That did not work.', 'error');
   }
 }
 
-async function handleAdminClick(target: Element): Promise<void> {
-  const button = target.closest('[data-admin]');
-  if (!(button instanceof HTMLElement)) return;
-
-  const action = button.dataset['admin'];
-  try {
-    if (action === 'catalog') await api.admin.refreshCatalog();
-    else if (action === 'refresh') await api.admin.refresh();
-    else if (action === 'settle') await api.admin.settle();
-    else if (action === 'cache') await api.admin.clearCache();
-    else if (action === 'reset') {
-      if (!window.confirm('Reset the demo account? Bets, settlements and the ledger are cleared.')) return;
-      await api.admin.reset();
-      store.clearSlip();
-    }
-    toast('Done.', 'success');
-    void route();
-  } catch (error) {
-    toast(error instanceof ApiError ? error.message : 'That action failed.', 'error');
+async function handleBalanceSheetClick(target: Element): Promise<void> {
+  if (target.closest('[data-close-balance]')) {
+    closeBalanceSheet();
+    return;
   }
+  const preset = target.closest('[data-balance-preset]');
+  if (preset instanceof HTMLElement) {
+    const input = qs<HTMLInputElement>('[data-balance-input]');
+    if (input) input.value = Number(preset.dataset['balancePreset'] ?? '0').toFixed(2);
+    return;
+  }
+  if (target.closest('[data-balance-apply]')) await applyBalance();
 }
 
 /* ─────────────────────────────── toasts ────────────────────────────── */
@@ -528,7 +564,6 @@ async function boot(): Promise<void> {
   render(app, shellMarkup());
   wireEvents(app);
   onToasts(renderToasts);
-
   window.addEventListener('popstate', () => void route());
 
   // The header balance is the one piece of chrome that changes on its own.
@@ -537,33 +572,29 @@ async function boot(): Promise<void> {
     const balance = state.wallet?.balanceCents ?? null;
     if (balance === lastBalance) return;
     lastBalance = balance;
-    const chip = qs('.balance-chip__value');
-    if (chip) chip.textContent = balance === null ? '—' : money(balance);
+    const chip = qs('[data-balance]');
+    if (chip) {
+      chip.textContent = balance === null ? '—' : money(balance);
+      chip.classList.remove('balance-chip__value--bump');
+      void chip.offsetWidth;
+      chip.classList.add('balance-chip__value--bump');
+    }
   });
 
-  try {
-    const [config, wallet] = await Promise.all([api.config(), api.wallet()]);
-    store.setConfig(config);
-    store.setWallet(wallet.data);
-  } catch {
-    // The shell still renders; the view will report the failure properly.
-  }
+  await store.refreshWallet();
+  await store.refreshCounts();
 
-  // A default stake fills an empty slip, and never overwrites a typed one.
   const defaultStake = preferences().defaultStake;
   if (defaultStake !== '' && store.get().stakeInput === '') store.setStake(defaultStake);
 
+  api
+    .config()
+    .then((config) => store.setConfig(config))
+    .catch(() => undefined);
+
   await route();
   startSettlementWatch();
-
-  // Keep the balance and open-bet badge current without a full reload.
-  window.setInterval(() => {
-    if (document.visibilityState !== 'visible') return;
-    void api
-      .wallet()
-      .then((result) => store.setWallet(result.data))
-      .catch(() => undefined);
-  }, 30_000);
+  void runSettlement(false);
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

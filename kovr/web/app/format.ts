@@ -60,6 +60,29 @@ export function dateTime(iso: string): string {
   return Number.isNaN(date.getTime()) ? '—' : `${DAY.format(date)} · ${TIME.format(date)}`;
 }
 
+/**
+ * Time until an event starts, as a scoreboard would show it: "2h 14m",
+ * "18m", "Starting now". Falls back to the date when it is days away.
+ */
+export function countdown(iso: string, now = Date.now()): string {
+  const start = Date.parse(iso);
+  if (!Number.isFinite(start)) return 'Time unavailable';
+
+  const deltaMs = start - now;
+  if (deltaMs <= 0) return 'Starting now';
+
+  const minutes = Math.floor(deltaMs / 60_000);
+  if (minutes < 1) return 'Under a minute';
+  if (minutes < 60) return `${minutes}m`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    const remainder = minutes % 60;
+    return remainder === 0 ? `${hours}h` : `${hours}h ${remainder}m`;
+  }
+  return eventTime(iso);
+}
+
 /** "just now", "4m ago", "2h ago" — used for the freshness label. */
 export function relativeAge(ms: number | null): string {
   if (ms === null) return 'unknown';

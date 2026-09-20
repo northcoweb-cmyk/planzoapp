@@ -37,9 +37,41 @@ export function participantIdFor(providerLeagueKey: string, name: string): strin
   return `p_${digest(`${providerLeagueKey}|${canonical}`)}`;
 }
 
-/** KOVR's internal event id, namespaced by provider so ids never collide. */
-export function internalEventId(providerName: string, providerEventId: string): string {
-  return `evt_${digest(`${providerName}|${providerEventId}`)}`;
+/* ────────────────────────── event identity ──────────────────────────── */
+
+/** URL-safe base64, without the padding that would need escaping in a path. */
+function base64url(input: string): string {
+  return Buffer.from(input, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function unbase64url(input: string): string {
+  const padded = input.replace(/-/g, '+').replace(/_/g, '/');
+  return Buffer.from(padded, 'base64').toString('utf8');
+}
+
+/**
+ * KOVR's internal event id.
+ *
+ * Encodes the competition key and the provider's event id rather than
+ * hashing them, so a stateless request can resolve an event straight from
+ * its id — there is no database to look it up in. It is opaque to the
+ * client, stable across refreshes, and namespaced by competition.
+ */
+export function internalEventId(providerLeagueKey: string, providerEventId: string): string {
+  return `evt_${base64url(`${providerLeagueKey}|${providerEventId}`)}`;
+}
+
+/** Recover the competition and provider event id. Null when malformed. */
+export function decodeEventId(id: string): { leagueKey: string; providerEventId: string } | null {
+  if (!id.startsWith('evt_')) return null;
+  try {
+    const decoded = unbase64url(id.slice(4));
+    const separator = decoded.indexOf('|');
+    if (separator <= 0 || separator === decoded.length - 1) return null;
+    return { leagueKey: decoded.slice(0, separator), providerEventId: decoded.slice(separator + 1) };
+  } catch {
+    return null;
+  }
 }
 
 /** Stable id for one selection inside a market. */

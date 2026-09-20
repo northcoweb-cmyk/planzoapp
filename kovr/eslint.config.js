@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'web/dist/**', 'node_modules/**', 'data/**', 'web/icons/**'],
+    ignores: ['dist/**', 'web/dist/**', 'public/**', 'node_modules/**', 'data/**', 'web/icons/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -25,8 +25,11 @@ export default tseslint.config(
     },
   },
   {
-    // Node scripts may log to stdout.
+    // Node scripts run in Node and may log to stdout.
     files: ['scripts/**/*'],
+    languageOptions: {
+      globals: { console: 'readonly', process: 'readonly', URL: 'readonly' },
+    },
     rules: { 'no-console': 'off' },
   },
   {

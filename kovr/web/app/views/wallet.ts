@@ -1,34 +1,32 @@
-/**
- * The simulated wallet.
- *
- * Deposits and withdrawals move a number in KOVR's own database. No bank is
- * contacted, no card is stored, and no real account detail is ever requested
- * — the destination shown on a withdrawal is fictional on purpose.
- */
+/** Balance, funding and the full transaction history. */
 
 import { h } from '../dom.js';
 import type { RawHtml } from '../dom.js';
-import { api } from '../api.js';
 import { icon } from '../icons.js';
-import { emptyState, skeletonList, walletSummary } from '../components.js';
+import { emptyState, skeletonList } from '../components.js';
 import { dateTime, money, moneySigned } from '../format.js';
+import { ledger } from '../ledgerClient.js';
 
-const QUICK_DEPOSITS = [100, 500, 1000];
-const QUICK_WITHDRAWALS = [100, 500];
+const QUICK_ADD = [50, 100, 500];
 
 export function walletSkeleton(): RawHtml {
-  return h`<div class="view">${skeletonList(1, 'card')}${skeletonList(4, 'row')}</div>`;
+  return h`<div class="view"><div class="skeleton skeleton--hero"></div>${skeletonList(4, 'row')}</div>`;
 }
 
 export async function renderWallet(): Promise<RawHtml> {
-  const [wallet, transactions] = await Promise.all([api.wallet(), api.transactions()]);
+  const store = await ledger();
+  const [wallet, transactions, counts] = await Promise.all([
+    store.wallet(),
+    store.transactions(60),
+    store.counts(),
+  ]);
 
   const rows =
-    transactions.data.length === 0
-      ? emptyState('No transactions yet', 'Every balance change writes a ledger entry, and they appear here.')
-      : h`<div class="card">${transactions.data.map(
-          (transaction) => h`
-            <div class="row">
+    transactions.length === 0
+      ? emptyState('No transactions yet', 'Every balance change is recorded here.')
+      : h`<div class="card">${transactions.map(
+          (transaction, index) => h`
+            <div class="row fade-up" style="animation-delay:${Math.min(index, 10) * 25}ms">
               <span class="avatar" aria-hidden="true">${icon(
                 transaction.amountCents >= 0 ? 'download' : 'upload',
                 16,
@@ -50,41 +48,42 @@ export async function renderWallet(): Promise<RawHtml> {
 
   return h`
     <div class="view">
-      <header class="view-header"><h1 class="view-title">Wallet</h1></header>
+      <header class="view-header fade-up"><h1 class="view-title">Wallet</h1></header>
 
-      ${walletSummary(
-        wallet.data.balanceCents,
-        wallet.reconciliation.balanced
-          ? 'Simulated funds. Balance reconciles against the full ledger.'
-          : 'Ledger mismatch detected — see the developer tools.',
-      )}
+      <section class="wallet-hero fade-up">
+        <div class="wallet-hero__glow" aria-hidden="true"></div>
+        <p class="wallet-hero__label">Balance</p>
+        <p class="wallet-hero__amount num" data-balance-display>${money(wallet.balanceCents)}</p>
+        <div class="wallet-hero__stats">
+          <span><strong class="num">${counts.OPEN}</strong> open</span>
+          <span><strong class="num">${counts.WON}</strong> won</span>
+          <span><strong class="num">${transactions.length}</strong> entries</span>
+        </div>
+      </section>
 
-      <section class="section">
-        <h2 class="section-title">Add demo funds</h2>
+      <section class="section fade-up">
+        <h2 class="section-title">Add funds</h2>
         <div class="btn-grid">
-          ${QUICK_DEPOSITS.map(
+          ${QUICK_ADD.map(
             (amount) => h`<button class="btn" type="button" data-deposit="${String(amount * 100)}">
               ${icon('plus', 15)} $${amount}
             </button>`,
           )}
         </div>
-        <div style="display:flex;gap:8px">
-          <div class="stake-field" style="flex:1">
+        <div class="inline-form">
+          <div class="stake-field">
             <span class="stake-field__prefix">$</span>
-            <input type="number" inputmode="decimal" min="5" step="0.01" placeholder="Custom amount"
-              data-custom-amount aria-label="Custom amount" />
+            <input type="number" inputmode="decimal" min="5" step="0.01" placeholder="Amount"
+              data-custom-amount aria-label="Amount" />
           </div>
-          <button class="btn btn--primary" type="button" data-deposit-custom>Deposit</button>
+          <button class="btn btn--primary" type="button" data-deposit-custom>Add</button>
         </div>
       </section>
 
-      <section class="section">
+      <section class="section fade-up">
         <h2 class="section-title">Withdraw</h2>
-        <p class="dim" style="font-size:12.5px">
-          Simulated withdrawal to Demo Account •••• 4821. Nothing leaves KOVR, because there is nothing to send.
-        </p>
         <div class="btn-grid">
-          ${QUICK_WITHDRAWALS.map(
+          ${[100, 500].map(
             (amount) => h`<button class="btn" type="button" data-withdraw="${String(amount * 100)}">
               ${icon('minus', 15)} $${amount}
             </button>`,
@@ -93,10 +92,10 @@ export async function renderWallet(): Promise<RawHtml> {
         </div>
       </section>
 
-      <section class="section">
+      <section class="section fade-up">
         <div class="section__head">
-          <h2 class="section-title">Ledger</h2>
-          <span class="dim" style="font-size:12px">${transactions.data.length} entries</span>
+          <h2 class="section-title">History</h2>
+          <span class="dim">${transactions.length}</span>
         </div>
         ${rows}
       </section>
@@ -104,32 +103,38 @@ export async function renderWallet(): Promise<RawHtml> {
 }
 
 export async function renderActivity(): Promise<RawHtml> {
-  const response = await api.activity();
+  const store = await ledger();
+  const [transactions, bets] = await Promise.all([store.transactions(80), store.bets(undefined, 200)]);
+  const names = new Map(
+    bets.map((bet) => [
+      bet.id,
+      bet.selections.length === 1 ? (bet.selections[0]?.selectionName ?? 'Selection') : `${bet.selections.length}-leg parlay`,
+    ]),
+  );
 
   const body =
-    response.data.length === 0
-      ? emptyState('Nothing yet', 'Bets, deposits, withdrawals and payouts all appear here.')
-      : h`<div class="card">${response.data.map(
-          (item) => h`
-            <div class="row">
+    transactions.length === 0
+      ? emptyState('Nothing yet', 'Bets, deposits, withdrawals and returns all appear here.')
+      : h`<div class="card">${transactions.map(
+          (item, index) => h`
+            <div class="row fade-up" style="animation-delay:${Math.min(index, 10) * 25}ms">
               <span class="row__body">
-                <span class="row__title">${item.title}</span>
-                <span class="row__meta">${item.detail}</span>
+                <span class="row__title">${
+                  item.betId ? (names.get(item.betId) ?? item.description) : item.description
+                }</span>
                 <span class="row__meta">${dateTime(item.createdAt)}</span>
               </span>
               <span class="row__value">
                 <span class="${
-                  (item.amountCents ?? 0) >= 0
-                    ? 'row__amount row__amount--credit num'
-                    : 'row__amount row__amount--debit num'
-                }">${item.amountCents === null ? '' : moneySigned(item.amountCents)}</span>
+                  item.amountCents >= 0 ? 'row__amount row__amount--credit num' : 'row__amount row__amount--debit num'
+                }">${moneySigned(item.amountCents)}</span>
               </span>
             </div>`,
         )}</div>`;
 
   return h`
     <div class="view">
-      <header class="view-header"><h1 class="view-title">Activity</h1></header>
+      <header class="view-header fade-up"><h1 class="view-title">Activity</h1></header>
       ${body}
     </div>`;
 }

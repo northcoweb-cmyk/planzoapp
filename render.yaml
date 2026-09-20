@@ -1,0 +1,49 @@
+# Render Blueprint — deploys KOVR Sports from this repository.
+#
+# Render reads this file from the repository root. Connect the repo at
+# https://dashboard.render.com/blueprints and Render builds kovr/Dockerfile
+# and gives the service a public https URL.
+#
+# KOVR_ODDS_API_KEY is marked `sync: false`, so Render prompts for it once in
+# the dashboard and stores it in its own secret store. It is never written to
+# this file or to git.
+#
+# This blueprint touches only the kovr/ directory. Nothing else in the
+# repository is built or deployed by it.
+
+services:
+  - type: web
+    name: kovr-sports
+    runtime: docker
+    repo: https://github.com/northcoweb-cmyk/planzoapp
+    branch: claude/funny-ptolemy-a1k18q
+    rootDir: kovr
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /api/config
+    autoDeployTrigger: commit
+    envVars:
+      # Prompted once in the Render dashboard. Never stored in this file.
+      - key: KOVR_ODDS_API_KEY
+        sync: false
+      # Developer tools stay off on anything reachable from the internet.
+      - key: KOVR_ADMIN_ENABLED
+        value: "0"
+      - key: KOVR_DB_PATH
+        value: /data/kovr.db
+      - key: KOVR_ODDS_REGIONS
+        value: us
+      - key: KOVR_ODDS_HOURLY_BUDGET
+        value: "180"
+
+    # Render's free tier has no persistent disk and sleeps when idle, so the
+    # simulated ledger resets on restart. Sports data is re-fetched from the
+    # provider either way. To keep the ledger, move to a paid instance type
+    # and uncomment:
+    #
+    # disk:
+    #   name: kovr-data
+    #   mountPath: /data
+    #   sizeGB: 1

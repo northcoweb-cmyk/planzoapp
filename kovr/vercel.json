@@ -1,0 +1,42 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "public",
+  "framework": null,
+  "functions": {
+    "api/[...path].ts": {
+      "maxDuration": 15
+    }
+  },
+  "rewrites": [
+    { "source": "/sports", "destination": "/index.html" },
+    { "source": "/bets", "destination": "/index.html" },
+    { "source": "/wallet", "destination": "/index.html" },
+    { "source": "/activity", "destination": "/index.html" },
+    { "source": "/profile", "destination": "/index.html" },
+    { "source": "/betslip", "destination": "/index.html" },
+    { "source": "/event/:id", "destination": "/index.html" },
+    { "source": "/league/:id", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [{ "key": "cache-control", "value": "no-cache" }]
+    },
+    {
+      "source": "/dist/(.*)",
+      "headers": [{ "key": "cache-control", "value": "public, max-age=3600" }]
+    },
+    {
+      "source": "/icons/(.*)",
+      "headers": [{ "key": "cache-control", "value": "public, max-age=604800, immutable" }]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "x-content-type-options", "value": "nosniff" },
+        { "key": "referrer-policy", "value": "same-origin" }
+      ]
+    }
+  ]
+}

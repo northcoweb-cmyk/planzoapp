@@ -1,22 +1,17 @@
 /**
- * Provider selection.
+ * The provider installed when no key is configured.
  *
- * When no key is configured, KOVR installs a provider that reports every call
- * as unavailable rather than one that returns invented data. The UI then
- * shows its data-unavailable state, which is the truth.
+ * Fails every call loudly. It never returns an empty list, which would read
+ * as "nothing on today" — the interface must be able to tell "we could not
+ * ask" apart from "there is nothing".
  */
 
-import type { Database } from '../store/db.js';
-import { config } from '../config/env.js';
 import type { EventQuery, ProviderHealth, SportsDataProvider } from './SportsDataProvider.js';
 import { ProviderError } from './SportsDataProvider.js';
 import type { EventResult, EventStatus, EventWithMarkets, League, SportEvent } from '../domain/types.js';
-import { TheOddsApiProvider } from './theoddsapi/provider.js';
 
-const NOT_CONFIGURED =
-  'No sports data provider is configured. Set KOVR_ODDS_API_KEY to enable live sports data.';
+const NOT_CONFIGURED = 'No sports data provider is configured. Set KOVR_ODDS_API_KEY to enable live sports data.';
 
-/** Fails every call loudly. It never returns an empty list, which would read as "no events today". */
 export class UnconfiguredProvider implements SportsDataProvider {
   readonly name = 'unconfigured';
 
@@ -43,7 +38,10 @@ export class UnconfiguredProvider implements SportsDataProvider {
   getEventStatuses(_leagueKey: string): Promise<Array<{ providerEventId: string; status: EventStatus }>> {
     return this.fail();
   }
-  getResults(_leagueKey: string, _daysBack?: number): Promise<Array<{ providerEventId: string; result: EventResult }>> {
+  getResults(
+    _leagueKey: string,
+    _daysBack?: number,
+  ): Promise<Array<{ providerEventId: string; result: EventResult }>> {
     return this.fail();
   }
 
@@ -59,20 +57,3 @@ export class UnconfiguredProvider implements SportsDataProvider {
     };
   }
 }
-
-let active: SportsDataProvider | null = null;
-
-export function provider(database: Database): SportsDataProvider {
-  if (!active) {
-    active = config().oddsApiKey === null ? new UnconfiguredProvider() : new TheOddsApiProvider(database);
-  }
-  return active;
-}
-
-/** Test and admin helper: install a specific provider implementation. */
-export function useProvider(next: SportsDataProvider | null): void {
-  active = next;
-}
-
-export { ProviderError } from './SportsDataProvider.js';
-export type { SportsDataProvider, ProviderHealth } from './SportsDataProvider.js';

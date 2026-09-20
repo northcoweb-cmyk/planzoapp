@@ -86,9 +86,16 @@ export function config(): KovrConfig {
   loadEnvFiles();
 
   const key = str('KOVR_ODDS_API_KEY', '').trim();
+
+  // Managed hosts assign the port through PORT and expect the process to
+  // bind every interface. KOVR_* still wins when set explicitly, so a local
+  // run stays bound to loopback.
+  const managedPort = int('PORT', 0);
+  const inContainer = process.env['KOVR_IN_CONTAINER'] === '1' || managedPort > 0;
+
   cached = {
-    port: int('KOVR_PORT', 4300),
-    host: str('KOVR_HOST', '127.0.0.1'),
+    port: int('KOVR_PORT', managedPort > 0 ? managedPort : 4300),
+    host: str('KOVR_HOST', inContainer ? '0.0.0.0' : '127.0.0.1'),
     dbPath: fromRoot(str('KOVR_DB_PATH', 'data/kovr.db')),
     // An unset key is a supported state: KOVR reports the data as
     // unavailable rather than inventing events to fill the screen.

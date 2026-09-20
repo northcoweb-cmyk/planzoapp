@@ -7,18 +7,16 @@
 
 import { createServer } from 'node:http';
 import type { Server } from 'node:http';
-import type { AppContext } from '../services/context.js';
-import { apiRoutes } from './routes/api.js';
-import { adminRoutes } from './routes/admin.js';
+import type { RuntimeContext } from '../runtime/context.js';
+import { sportsRoutes } from './routes/sports.js';
 import { serveAppShell, serveStatic } from './static.js';
 import { sendJson } from './router.js';
 
 /** Paths owned by the client-side router, which all render the app shell. */
-const APP_ROUTES = new Set(['/', '/sports', '/betslip', '/bets', '/wallet', '/profile', '/activity', '/admin']);
+const APP_ROUTES = new Set(['/', '/sports', '/betslip', '/bets', '/wallet', '/profile', '/activity']);
 
-export function createKovrServer(context: AppContext): Server {
-  const api = apiRoutes(context);
-  const admin = adminRoutes(context);
+export function createKovrServer(context: RuntimeContext): Server {
+  const api = sportsRoutes(context);
 
   return createServer((request, response) => {
     void (async () => {
@@ -35,7 +33,6 @@ export function createKovrServer(context: AppContext): Server {
         return;
       }
 
-      if (await admin.handle(request, response, url)) return;
       if (await api.handle(request, response, url)) return;
 
       if (url.pathname.startsWith('/api/')) {

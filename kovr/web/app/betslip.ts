@@ -1,29 +1,29 @@
 /**
  * The betslip.
  *
- * The preview here uses the *same* odds engine the server settles with —
- * `src/core/odds.ts` is compiled into both builds — so the number on the
- * button and the number in the ledger cannot drift apart.
+ * The preview uses the same odds engine the ledger settles with, so the
+ * number on the button and the number in the history cannot drift apart.
  *
- * The server still revalidates every price at placement. What the slip holds
- * is a record of what the user was shown, not an instruction on what to
- * charge.
+ * Placement re-fetches every event in the slip and reprices against what
+ * comes back. The slip's own prices are a record of what the user was shown,
+ * never an instruction on what to charge.
  */
 
 import { h, raw, render, classes } from './dom.js';
 import type { RawHtml } from './dom.js';
 import { icon } from './icons.js';
-import { money, odds as fmtOdds, eventTime } from './format.js';
+import { money, odds as fmtOdds, countdown } from './format.js';
 import { store, toast } from './store.js';
 import type { SlipLeg } from './store.js';
 import { api, ApiError } from './api.js';
-import type { OddsChangeView } from './api.js';
+import { ledger } from './ledgerClient.js';
+import type { OddsChange } from '../../src/ledger/ledger.js';
 import { combineParlayOdds, payoutCents, profitCents } from '../../src/core/odds.js';
-import { preferences } from './preferences.js';
 import { parseAmountToCents, MoneyError } from '../../src/core/money.js';
+import { preferences } from './preferences.js';
+import type { EventWithMarkets } from '../../src/domain/types.js';
 
-/** A pending price movement the user has been asked to accept. */
-let pendingChanges: OddsChangeView[] | null = null;
+let pendingChanges: OddsChange[] | null = null;
 let placing = false;
 
 export function clearPendingChanges(): void {
@@ -44,14 +44,20 @@ function stakeCentsFrom(input: string): number | null {
 
 function legRow(leg: SlipLeg): RawHtml {
   const lineLabel =
-    leg.line === null ? '' : leg.marketKey.startsWith('total') ? ` ${leg.line}` : leg.line > 0 ? ` +${leg.line}` : ` ${leg.line}`;
+    leg.line === null
+      ? ''
+      : leg.marketKey.startsWith('total')
+        ? ` ${leg.line}`
+        : leg.line > 0
+          ? ` +${leg.line}`
+          : ` ${leg.line}`;
 
   return h`
     <div class="slip-leg">
       <span class="slip-leg__body">
         <span class="slip-leg__pick">${leg.selectionName}${lineLabel}</span>
         <span class="slip-leg__meta">${leg.marketName} · ${leg.eventName}</span>
-        <span class="slip-leg__meta">${leg.leagueShortName} · ${eventTime(leg.eventStartTime)}</span>
+        <span class="slip-leg__meta">${leg.leagueShortName} · ${countdown(leg.eventStartTime)}</span>
       </span>
       <span class="slip-leg__price num">${fmtOdds(leg.price)}</span>
       <button class="slip-leg__remove" type="button" data-remove-leg="${leg.selectionId}"
@@ -59,7 +65,7 @@ function legRow(leg: SlipLeg): RawHtml {
     </div>`;
 }
 
-function changesPanel(changes: OddsChangeView[]): RawHtml {
+function changesPanel(changes: OddsChange[]): RawHtml {
   return h`
     <div class="odds-change" role="alert">
       <p class="odds-change__title">${icon('alert', 15)} ${
@@ -68,15 +74,15 @@ function changesPanel(changes: OddsChangeView[]): RawHtml {
       ${changes.map(
         (change) => h`
           <div class="odds-change__row">
-            <span style="flex:1;min-width:0">${change.selectionName}</span>
+            <span class="odds-change__name">${change.selectionName}</span>
             <span class="odds-change__old num">${fmtOdds(change.previousPrice)}</span>
             <span class="odds-change__arrow">→</span>
             <span class="odds-change__new num">${fmtOdds(change.currentPrice)}</span>
           </div>`,
       )}
-      <div style="display:flex;gap:8px">
-        <button class="btn btn--ghost btn--sm" style="flex:1" type="button" data-reject-odds>Cancel</button>
-        <button class="btn btn--primary btn--sm" style="flex:1" type="button" data-accept-odds>Accept new odds</button>
+      <div class="odds-change__actions">
+        <button class="btn btn--ghost btn--sm" type="button" data-reject-odds>Cancel</button>
+        <button class="btn btn--primary btn--sm" type="button" data-accept-odds>Accept</button>
       </div>
     </div>`;
 }
@@ -91,11 +97,11 @@ export function betslipMarkup(): RawHtml {
         <div class="slip__grip"></div>
         <header class="slip__head">
           <h2 class="slip__title">Betslip</h2>
-          <button class="slip-leg__remove" type="button" data-close-slip aria-label="Close betslip"
+          <button class="slip-leg__remove" type="button" data-close-slip aria-label="Close"
             style="margin-left:auto">${icon('close', 14)}</button>
         </header>
         <div class="slip__body">
-          <div class="empty" style="border:0;background:none;padding:36px 16px">
+          <div class="empty empty--bare">
             ${icon('slip', 30)}
             <p class="empty__title">Your betslip is empty</p>
             <p class="empty__body">Tap any price to add a selection.</p>
@@ -120,68 +126,77 @@ export function betslipMarkup(): RawHtml {
         <h2 class="slip__title">Betslip</h2>
         <span class="slip__count">${legs.length}</span>
         <button class="section__link" type="button" data-clear-slip style="margin-left:auto">Clear</button>
-        <button class="slip-leg__remove" type="button" data-close-slip aria-label="Close betslip">
+        <button class="slip-leg__remove" type="button" data-close-slip aria-label="Close">
           ${icon('close', 14)}
         </button>
       </header>
 
-      <div class="slip__body">
-        ${legs.map(legRow)}
-      </div>
+      <div class="slip__body">${legs.map(legRow)}</div>
 
       <footer class="slip__foot">
-        ${/* Pinned in the footer, not the scrolling body: a decision the user
-             must make should never be below the fold. */ ''}
         ${pendingChanges ? changesPanel(pendingChanges) : raw('')}
-        <div class="btn-grid">
+
+        <div class="btn-grid btn-grid--four">
           ${[10, 25, 50, 100].map(
             (amount) => h`<button class="btn btn--sm" type="button" data-quick-stake="${String(amount)}">$${amount}</button>`,
           )}
         </div>
 
-        <div class="stake-field">
+        <div class="stake-field stake-field--large">
           <span class="stake-field__prefix">$</span>
           <input type="text" inputmode="decimal" placeholder="0.00" value="${state.stakeInput}"
             data-stake-input aria-label="Stake" autocomplete="off" />
-          <span class="dim" style="font-size:12px">${legs.length > 1 ? `${legs.length} legs` : 'Single'}</span>
+          <span class="dim">${legs.length > 1 ? `${legs.length} legs` : 'Single'}</span>
         </div>
 
         ${
           overBalance
-            ? h`<p style="font-size:12.5px;color:var(--red-bright)">
-                 Stake exceeds your simulated balance of ${money(balance)}.
-               </p>`
+            ? h`<p class="slip__warning">Stake exceeds your balance of ${money(balance)}.</p>`
             : raw('')
         }
 
-        <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="payout-block">
           <div class="payout-line">
             <span class="muted">Odds</span>
             <span class="payout-line__value num">${fmtOdds(combined)}</span>
           </div>
           <div class="payout-line">
-            <span class="muted">Potential profit</span>
+            <span class="muted">To win</span>
             <span class="payout-line__value num">${money(profit)}</span>
           </div>
           <div class="payout-line payout-line--total">
-            <span>Potential payout</span>
+            <span>Total return</span>
             <span class="payout-line__value num">${money(payout)}</span>
           </div>
         </div>
 
-        <button class="${classes('btn', 'btn--primary', 'btn--block')}" type="button" data-place-bet
+        <button class="${classes('btn', 'btn--primary', 'btn--block', 'btn--lg')}" type="button" data-place-bet
           ${canPlace ? raw('') : raw('disabled')}>
           ${placing ? 'Placing…' : stakeCents === null ? 'Enter a stake' : `Place bet · ${money(stakeCents)}`}
         </button>
-
-        <p class="dim" style="font-size:11px;text-align:center">
-          Simulated wager. Prices are revalidated when you place.
-        </p>
       </footer>
     </div>`;
 }
 
-/** Place the slip. Handles the odds-change conversation. */
+/** Fetch every event in the slip, so placement prices against live data. */
+async function liveEvents(legs: readonly SlipLeg[]): Promise<Map<string, EventWithMarkets>> {
+  const ids = [...new Set(legs.map((leg) => leg.eventId))];
+  const live = new Map<string, EventWithMarkets>();
+
+  await Promise.all(
+    ids.map(async (id) => {
+      try {
+        const response = await api.event(id);
+        live.set(id, { event: response.data.event, markets: response.data.markets });
+      } catch {
+        // A missing event is simply absent, which placement reports as
+        // EVENT_NOT_FOUND rather than betting against stale prices.
+      }
+    }),
+  );
+  return live;
+}
+
 export async function placeBet(accept = false): Promise<boolean> {
   const state = store.get();
   const stakeCents = stakeCentsFrom(state.stakeInput);
@@ -189,43 +204,48 @@ export async function placeBet(accept = false): Promise<boolean> {
 
   placing = true;
   try {
-    const result = await api.placeBet(
-      state.slip.map((leg) => ({
-        eventId: leg.eventId,
-        marketKey: leg.marketKey,
-        selectionId: leg.selectionId,
-        displayedPrice: leg.price,
-      })),
-      stakeCents,
-      accept,
+    const live = await liveEvents(state.slip);
+    const book = await ledger();
+    const result = await book.place(
+      {
+        selections: state.slip.map((leg) => ({
+          eventId: leg.eventId,
+          marketKey: leg.marketKey,
+          selectionId: leg.selectionId,
+          displayedPrice: leg.price,
+        })),
+        stakeCents,
+        acceptCurrentOdds: accept,
+      },
+      live,
     );
 
-    pendingChanges = null;
-    store.setWallet(result.data.wallet);
-    store.clearSlip();
-    store.setStake('');
-    toast(`Bet placed — ${money(result.data.bet.potentialPayoutCents)} to pay`, 'success');
-    return true;
-  } catch (error) {
-    if (error instanceof ApiError && error.code === 'ODDS_CHANGED' && error.payload?.changes) {
-      const changes = error.payload.changes;
+    if (result.ok) {
+      pendingChanges = null;
+      store.setWallet(result.wallet);
+      store.clearSlip();
+      store.setStake(preferences().defaultStake);
+      await store.refreshCounts();
+      toast(`Bet placed — ${money(result.bet.potentialPayoutCents)} to return`, 'success');
+      return true;
+    }
 
-      // Only an unambiguous improvement may skip the prompt, and only once:
-      // the retry passes accept=true, so it cannot loop back to here.
-      if (!accept && preferences().autoAcceptImprovedOdds && changes.every((change) => change.improved)) {
-        for (const change of changes) store.repriceLeg(change.selectionId, change.currentPrice);
+    if (result.code === 'ODDS_CHANGED') {
+      // An unambiguous improvement may skip the prompt when asked for; the
+      // retry passes accept, so it cannot loop back to here.
+      if (!accept && preferences().autoAcceptImprovedOdds && result.changes.every((change) => change.improved)) {
+        for (const change of result.changes) store.repriceLeg(change.selectionId, change.currentPrice);
         return placeBet(true);
       }
-
-      // Otherwise show the move and let the user decide; nothing is placed.
-      pendingChanges = changes;
-      // Reprice by id: a display name is not unique across events.
-      for (const change of changes) {
-        store.repriceLeg(change.selectionId, change.currentPrice);
-      }
+      pendingChanges = result.changes;
+      for (const change of result.changes) store.repriceLeg(change.selectionId, change.currentPrice);
       store.openSlip();
       return false;
     }
+
+    toast(result.message, 'error');
+    return false;
+  } catch (error) {
     toast(error instanceof ApiError ? error.message : 'Could not place that bet.', 'error');
     return false;
   } finally {

@@ -8,6 +8,8 @@
   "scripts": {
     "clean": "node --experimental-strip-types scripts/clean.ts",
     "build": "npm run build:server && npm run build:client",
+    "build:public": "node scripts/build-public.mjs",
+    "build:vercel": "npm run build:server && npm run build:client && npm run build:public",
     "build:server": "tsc -p tsconfig.json",
     "build:client": "tsc -p tsconfig.client.json",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit",

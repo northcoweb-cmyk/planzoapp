@@ -1,232 +1,232 @@
 /**
- * The end-to-end path the specification calls out as critical:
+ * The end-to-end path, across the split runtime:
  *
- *   $10,000 -> pick a UFC fighter -> place $100 -> balance falls -> bet OPEN
- *   -> the market moves -> the placed bet keeps its price -> the fight is
- *   confirmed final -> the winner is confirmed -> the bet settles -> the
- *   correct payout lands -> activity updates -> the wallet reconciles.
+ *   the sports API serves a real-shaped card -> the ledger places a bet at
+ *   the shown price -> the market moves -> the placed bet keeps its price ->
+ *   the provider confirms a winner -> the ledger settles -> the correct
+ *   payout lands -> the ledger reconciles -> repeat sweeps change nothing.
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHarness } from './support/harness.js';
-import { UFC_LEAGUE, buildEvent, isoIn, moneylineMarket, resultFor } from './support/fakeProvider.js';
-import { formatAmericanOdds } from '../src/core/odds.js';
+import type { AddressInfo } from 'node:net';
+import { createContext } from '../src/runtime/context.js';
+import { createKovrServer } from '../src/http/server.js';
+import { createLedger } from './support/ledgerHarness.js';
+import {
+  FakeProvider,
+  UFC_LEAGUE,
+  buildEvent,
+  isoIn,
+  moneylineMarket,
+  resultFor,
+} from './support/fakeProvider.js';
+import { ProviderError } from '../src/providers/SportsDataProvider.js';
 import { formatCents } from '../src/core/money.js';
+import { formatAmericanOdds } from '../src/core/odds.js';
+import type { EventWithMarkets } from '../src/domain/types.js';
 
-test('UFC: full lifecycle from an empty account to a reconciled payout', async () => {
-  const h = createHarness();
+async function serve(provider: FakeProvider) {
+  const context = createContext(provider);
+  const server = createKovrServer(context);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  return {
+    context,
+    base: `http://127.0.0.1:${port}`,
+    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+  };
+}
+
+async function getJson(base: string, path: string): Promise<Record<string, unknown>> {
+  const response = await fetch(`${base}${path}`);
+  return (await response.json()) as Record<string, unknown>;
+}
+
+test('UFC: from an empty account to a reconciled payout', async () => {
+  const provider = new FakeProvider();
+  const fight = buildEvent({
+    providerEventId: 'ufc-312-main',
+    league: UFC_LEAGUE,
+    competitors: ['Fighter B', 'Fighter A'],
+    startTime: isoIn(5),
+  });
+  provider.setLeagueEvents(UFC_LEAGUE.providerKey, [{ event: fight, markets: [moneylineMarket(fight, [125, -150])] }]);
+
+  const served = await serve(provider);
+  const ledger = createLedger();
+
   try {
-    /* 1. A new demo account opens at $10,000.00, entirely from the ledger. */
-    const opening = h.context.wallet.ensureDemoAccount();
-    assert.equal(opening.wallet.balanceCents, 1_000_000);
-    assert.equal(formatCents(opening.wallet.balanceCents), '$10,000.00');
+    /* 1. A new account opens at $10,000, entirely from the ledger. */
+    assert.equal((await ledger.wallet()).balanceCents, 1_000_000);
+    assert.equal(formatCents((await ledger.wallet()).balanceCents), '$10,000.00');
 
-    /* 2. A real-shaped UFC card is synced in from the provider. */
-    const fight = buildEvent({
-      providerEventId: 'ufc-312-main',
-      league: UFC_LEAGUE,
-      competitors: ['Fighter B', 'Fighter A'],
-      startTime: isoIn(5),
-    });
-    h.provider.setLeagueEvents(UFC_LEAGUE.providerKey, [
-      { event: fight, markets: [moneylineMarket(fight, [125, -150])] },
-    ]);
-    h.seed(UFC_LEAGUE, [{ event: fight, markets: [moneylineMarket(fight, [125, -150])] }]);
+    /* 2. The feed serves the card the interface would render. */
+    const feed = await getJson(served.base, '/api/feed');
+    const data = feed['data'] as { totalEvents: number; headline: { event: { id: string } } | null };
+    assert.equal(data.totalEvents, 1);
+    assert.ok(data.headline, 'the hub leads with an event');
 
-    await h.context.sports.syncCatalog({ force: true });
-    const synced = await h.context.sports.syncLeague('ufc', { force: true });
-    assert.equal(synced.source, 'live');
-    assert.equal(synced.events, 1);
-
-    /* 3. The fighter shows at -150 in the market the UI would render. */
-    const view = h.context.sports.getEvent(fight.id);
-    const moneyline = view.data?.markets.find((market) => market.key === 'h2h');
+    /* 3. Fighter A shows at -150 in the event's market. */
+    const eventResponse = await getJson(served.base, `/api/event/${encodeURIComponent(fight.id)}`);
+    const detail = eventResponse['data'] as { markets: EventWithMarkets['markets'] };
+    const moneyline = detail.markets.find((market) => market.key === 'h2h');
     const fighterA = moneyline?.selections.find((selection) => selection.name === 'Fighter A');
     assert.ok(fighterA);
     assert.equal(fighterA.price, -150);
     assert.equal(formatAmericanOdds(fighterA.price), '-150');
 
-    /* 4. $100 is staked on Fighter A at the displayed price. */
-    const placed = h.context.betting.place({
-      selections: [{ eventId: fight.id, marketKey: 'h2h', selectionId: fighterA.id, displayedPrice: -150 }],
-      stakeCents: 10_000,
-    });
+    /* 4. $100 on Fighter A at the displayed price. */
+    const live = new Map<string, EventWithMarkets>([[fight.id, { event: fight, markets: detail.markets }]]);
+    const placed = await ledger.place(
+      {
+        selections: [{ eventId: fight.id, marketKey: 'h2h', selectionId: fighterA.id, displayedPrice: -150 }],
+        stakeCents: 10_000,
+      },
+      live,
+    );
     assert.ok(placed.ok);
     if (!placed.ok) return;
 
-    /* 5. The balance falls by exactly the stake and the bet is OPEN. */
+    /* 5. The balance falls by exactly the stake; the bet is OPEN. */
     assert.equal(placed.wallet.balanceCents, 990_000);
     assert.equal(placed.bet.status, 'OPEN');
     assert.equal(placed.bet.potentialPayoutCents, 16_667);
     assert.equal(formatCents(placed.bet.potentialPayoutCents), '$166.67');
-    assert.equal(h.context.betting.listBets(['OPEN']).length, 1);
 
-    /* 6. The market moves. Twice, and hard. */
-    h.context.repositories.events.saveMarkets(
-      fight.id,
-      [moneylineMarket(fight, [140, -175])],
-      new Date().toISOString(),
+    /* 6. The market moves. Hard. */
+    const moved = new Map<string, EventWithMarkets>([
+      [fight.id, { event: fight, markets: [moneylineMarket(fight, [180, -240])] }],
+    ]);
+    const refused = await ledger.place(
+      {
+        selections: [{ eventId: fight.id, marketKey: 'h2h', selectionId: fighterA.id, displayedPrice: -150 }],
+        stakeCents: 5_000,
+      },
+      moved,
     );
-    h.context.repositories.events.saveMarkets(
-      fight.id,
-      [moneylineMarket(fight, [180, -240])],
-      new Date().toISOString(),
-    );
-
-    const moved = h.context.repositories.events.findCurrentPrice(fight.id, 'h2h', fighterA.id);
-    assert.equal(moved?.price, -240, 'the live market really did move');
+    assert.ok(!refused.ok);
+    if (!refused.ok) assert.equal(refused.code, 'ODDS_CHANGED');
 
     /* 7. The placed bet is untouched by any of it. */
-    const held = h.context.betting.findBet(placed.bet.id);
+    const held = await ledger.findBet(placed.bet.id);
     assert.equal(held?.priceAmerican, -150);
     assert.equal(held?.selections[0]?.priceAmerican, -150);
     assert.equal(held?.potentialPayoutCents, 16_667);
     assert.equal(held?.status, 'OPEN');
 
     /* 8. The fight ends. Before a confirmed result, nothing settles. */
-    h.context.database.run(
-      "UPDATE events SET start_time = ?, status = 'UNKNOWN' WHERE id = ?",
-      isoIn(-2),
-      fight.id,
-    );
-    const premature = await h.context.settlement.sweep();
-    assert.equal(premature.betsSettled, 0, 'a passed start time settles nothing');
-    assert.equal(premature.betsPending, 1);
-    assert.equal(h.context.betting.findBet(placed.bet.id)?.status, 'OPEN');
+    provider.statuses.set(UFC_LEAGUE.providerKey, [{ providerEventId: fight.providerEventId, status: 'UNKNOWN' }]);
+    const early = await served.context.sports.settlementFacts([fight.id]);
+    const earlyMap = new Map(early.data.map((fact) => [fact.id, fact]));
+    assert.equal(earlyMap.get(fight.id)?.status, 'UNKNOWN');
 
-    /* 9. The provider confirms the result: Fighter A won. */
-    h.provider.setResults(UFC_LEAGUE.providerKey, [
+    const premature = await ledger.settle(earlyMap);
+    assert.equal(premature[0]?.status, 'PENDING', 'a passed start time settles nothing');
+    assert.equal((await ledger.findBet(placed.bet.id))?.status, 'OPEN');
+
+    /* 9. The provider confirms: Fighter A won. */
+    provider.setResults(UFC_LEAGUE.providerKey, [
       { providerEventId: fight.providerEventId, result: resultFor(fight, 'Fighter A', [0, 1]) },
     ]);
+    served.context.cache.clear();
 
-    const sweep = await h.context.settlement.sweep();
-    assert.equal(sweep.resultsRecorded, 1);
-    assert.equal(sweep.betsSettled, 1);
-    assert.deepEqual(sweep.errors, []);
+    const confirmed = await served.context.sports.settlementFacts([fight.id]);
+    const confirmedMap = new Map(confirmed.data.map((fact) => [fact.id, fact]));
+    assert.equal(confirmedMap.get(fight.id)?.status, 'FINAL');
+
+    const outcomes = await ledger.settle(confirmedMap);
+    assert.equal(outcomes[0]?.status, 'WON');
+    assert.equal(outcomes[0]?.payoutCents, 16_667);
 
     /* 10. The bet reads WON, still at the price it was struck at. */
-    const settled = h.context.betting.findBet(placed.bet.id);
+    const settled = await ledger.findBet(placed.bet.id);
     assert.equal(settled?.status, 'WON');
     assert.equal(settled?.payoutCents, 16_667);
     assert.equal(settled?.priceAmerican, -150, 'settled at the historical price, not -240');
     assert.ok(settled?.settledAt);
 
-    /* 11. The wallet holds exactly the right amount. */
-    assert.equal(h.context.wallet.getWallet().balanceCents, 1_006_667);
-    assert.equal(formatCents(h.context.wallet.getWallet().balanceCents), '$10,066.67');
+    /* 11. The balance is exactly right. */
+    assert.equal((await ledger.wallet()).balanceCents, 1_006_667);
+    assert.equal(formatCents((await ledger.wallet()).balanceCents), '$10,066.67');
 
-    /* 12. Activity tells the story in order. */
-    const activity = h.context.activity.list();
-    assert.deepEqual(
-      activity.map((item) => item.kind),
-      ['PAYOUT', 'BET', 'SYSTEM'],
-      'newest first: payout, the bet, the opening balance',
-    );
-    assert.equal(activity[0]?.amountCents, 16_667);
-    assert.equal(activity[0]?.status, '+$166.67');
-    assert.equal(activity[1]?.amountCents, -10_000);
-
-    /* 13. The ledger reconciles against the balance, to the cent. */
-    const check = h.context.wallet.reconcile();
-    assert.ok(check.balanced, 'ledger and balance agree');
+    /* 12. The ledger reconciles to the cent. */
+    const check = await ledger.reconcile();
+    assert.ok(check.balanced);
     assert.equal(check.ledgerTotalCents, 1_006_667);
     assert.equal(check.entries, 3);
 
-    /* 14. Re-running settlement changes nothing at all. */
-    const before = h.context.wallet.getWallet().balanceCents;
-    await h.context.settlement.sweep();
-    await h.context.settlement.sweep();
-    h.context.settlement.settleEvent(fight.id);
-    assert.equal(h.context.wallet.getWallet().balanceCents, before, 'no second payout');
-    assert.equal(
-      h.context.wallet.listTransactions().filter((t) => t.type === 'BET_PAYOUT').length,
-      1,
-    );
-    assert.ok(h.context.wallet.reconcile().balanced);
+    /* 13. Re-running settlement changes nothing at all. */
+    const before = (await ledger.wallet()).balanceCents;
+    await ledger.settle(confirmedMap);
+    await ledger.settle(confirmedMap);
+    assert.equal((await ledger.wallet()).balanceCents, before, 'no second payout');
+    assert.equal((await ledger.transactions()).filter((t) => t.type === 'BET_PAYOUT').length, 1);
+    assert.ok((await ledger.reconcile()).balanced);
   } finally {
-    h.close();
+    await served.close();
   }
 });
 
-test('the same lifecycle with a loss leaves the books straight', async () => {
-  const h = createHarness();
+test('a provider outage leaves bets open and says so', async () => {
+  const provider = new FakeProvider();
+  const fight = buildEvent({
+    providerEventId: 'ufc-outage',
+    league: UFC_LEAGUE,
+    competitors: ['Fighter N', 'Fighter M'],
+    startTime: isoIn(3),
+  });
+  const market = moneylineMarket(fight, [110, -130]);
+  provider.setLeagueEvents(UFC_LEAGUE.providerKey, [{ event: fight, markets: [market] }]);
+
+  const served = await serve(provider);
+  const ledger = createLedger();
+
   try {
-    h.context.wallet.ensureDemoAccount();
-    const fight = buildEvent({
-      providerEventId: 'ufc-312-co',
-      league: UFC_LEAGUE,
-      competitors: ['Fighter L', 'Fighter K'],
-      startTime: isoIn(4),
-    });
-    const market = moneylineMarket(fight, [200, -250]);
-    h.seed(UFC_LEAGUE, [{ event: fight, markets: [market] }]);
-
-    const underdog = market.selections[0];
-    assert.ok(underdog);
-    const placed = h.context.betting.place({
-      selections: [{ eventId: fight.id, marketKey: 'h2h', selectionId: underdog.id, displayedPrice: 200 }],
-      stakeCents: 25_000,
-    });
-    assert.ok(placed.ok);
-    if (!placed.ok) return;
-    assert.equal(placed.bet.potentialPayoutCents, 75_000, '$250 at +200 returns $750');
-
-    h.context.database.run("UPDATE events SET start_time = ? WHERE id = ?", isoIn(-3), fight.id);
-    h.provider.setResults(UFC_LEAGUE.providerKey, [
-      { providerEventId: fight.providerEventId, result: resultFor(fight, 'Fighter K', [0, 1]) },
-    ]);
-
-    await h.context.settlement.sweep();
-
-    assert.equal(h.context.betting.findBet(placed.bet.id)?.status, 'LOST');
-    assert.equal(h.context.wallet.getWallet().balanceCents, 975_000);
-    const check = h.context.wallet.reconcile();
-    assert.ok(check.balanced);
-    assert.equal(check.ledgerTotalCents, 975_000);
-  } finally {
-    h.close();
-  }
-});
-
-test('a provider outage during settlement leaves bets open and reports why', async () => {
-  const h = createHarness();
-  try {
-    h.context.wallet.ensureDemoAccount();
-    const fight = buildEvent({
-      providerEventId: 'ufc-outage-settle',
-      league: UFC_LEAGUE,
-      competitors: ['Fighter N', 'Fighter M'],
-      startTime: isoIn(3),
-    });
-    const market = moneylineMarket(fight, [110, -130]);
-    h.seed(UFC_LEAGUE, [{ event: fight, markets: [market] }]);
-
     const pick = market.selections[1];
     assert.ok(pick);
-    const placed = h.context.betting.place({
-      selections: [{ eventId: fight.id, marketKey: 'h2h', selectionId: pick.id, displayedPrice: -130 }],
-      stakeCents: 10_000,
-    });
+    const placed = await ledger.place(
+      {
+        selections: [{ eventId: fight.id, marketKey: 'h2h', selectionId: pick.id, displayedPrice: -130 }],
+        stakeCents: 10_000,
+      },
+      new Map([[fight.id, { event: fight, markets: [market] }]]),
+    );
     assert.ok(placed.ok);
     if (!placed.ok) return;
 
-    h.context.database.run("UPDATE events SET start_time = ? WHERE id = ?", isoIn(-2), fight.id);
+    provider.failure = new ProviderError('NETWORK', 'provider unreachable');
+    served.context.cache.clear();
 
-    const { ProviderError } = await import('../src/providers/SportsDataProvider.js');
-    h.provider.failure = new ProviderError('NETWORK', 'provider unreachable');
+    const facts = await served.context.sports.settlementFacts([fight.id]);
+    assert.equal(facts.data.length, 0, 'nothing was invented to fill the gap');
+    assert.equal(facts.freshness.source, 'unavailable');
 
-    const report = await h.context.settlement.sweep();
-    assert.equal(report.resultsRecorded, 0);
-    assert.equal(report.betsSettled, 0);
-    assert.equal(report.betsPending, 1);
-    assert.equal(report.errors.length, 1);
-    assert.match(report.errors[0] ?? '', /could not be reached/);
-
-    assert.equal(h.context.betting.findBet(placed.bet.id)?.status, 'OPEN');
-    assert.equal(h.context.wallet.getWallet().balanceCents, 990_000);
-    assert.ok(h.context.wallet.reconcile().balanced);
+    const outcomes = await ledger.settle(new Map(facts.data.map((fact) => [fact.id, fact])));
+    assert.equal(outcomes.length, 0);
+    assert.equal((await ledger.findBet(placed.bet.id))?.status, 'OPEN');
+    assert.equal((await ledger.wallet()).balanceCents, 990_000);
+    assert.ok((await ledger.reconcile()).balanced);
   } finally {
-    h.close();
+    await served.close();
+  }
+});
+
+test('the feed degrades to an honest unavailable state', async () => {
+  const provider = new FakeProvider();
+  provider.failure = new ProviderError('NOT_CONFIGURED', 'no key');
+  const served = await serve(provider);
+
+  try {
+    const feed = await getJson(served.base, '/api/feed');
+    const data = feed['data'] as { totalEvents: number; headline: unknown };
+    const freshness = feed['freshness'] as { source: string; error: string };
+
+    assert.equal(data.totalEvents, 0, 'an empty hub, not a fabricated one');
+    assert.equal(data.headline, null);
+    assert.equal(freshness.source, 'unavailable');
+    assert.equal(freshness.error, 'No sports data provider is configured.');
+  } finally {
+    await served.close();
   }
 });

@@ -16,7 +16,7 @@ import type { EventResult, EventStatus, EventWithMarkets, League, SportEvent } f
 import { CORE_MARKET_KEYS } from '../../domain/markets.js';
 import { categoryForGroup, leagueEditorialFor } from '../../domain/catalog.js';
 import { config } from '../../config/env.js';
-import type { Database } from '../../store/db.js';
+import type { RequestLog } from '../../runtime/cache.js';
 import { TheOddsApiClient } from './client.js';
 import {
   PROVIDER_NAME,
@@ -56,8 +56,8 @@ export class TheOddsApiProvider implements SportsDataProvider {
   private catalogue: Map<string, League> = new Map();
   private catalogueFetchedAt = 0;
 
-  constructor(database: Database) {
-    this.client = new TheOddsApiClient(database);
+  constructor(log: RequestLog) {
+    this.client = new TheOddsApiClient(log);
   }
 
   isConfigured(): boolean {

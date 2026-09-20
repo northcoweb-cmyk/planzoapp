@@ -12,7 +12,7 @@
  */
 
 import { config, loadEnvFiles } from '../src/config/env.js';
-import { createInMemoryDatabase } from '../src/store/db.js';
+import { RequestLog } from '../src/runtime/cache.js';
 import { TheOddsApiProvider } from '../src/providers/theoddsapi/provider.js';
 import { ProviderError } from '../src/providers/SportsDataProvider.js';
 import { isValidAmericanOdds, formatAmericanOdds } from '../src/core/odds.js';
@@ -52,8 +52,7 @@ async function main(): Promise<void> {
   }
   check(true, 'An API key is configured (value never printed)');
 
-  const database = createInMemoryDatabase();
-  const provider = new TheOddsApiProvider(database);
+  const provider = new TheOddsApiProvider(new RequestLog());
 
   /* ── 1. Catalogue ─────────────────────────────────────────────────── */
 
@@ -216,7 +215,6 @@ async function main(): Promise<void> {
   const inSeason = leagues.filter((league) => hasCurrentContent(league.seasonState)).length;
   note(`${inSeason} competitions would be surfaced as having current content`);
 
-  database.close();
 
   console.log(
     failures === 0

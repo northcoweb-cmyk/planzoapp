@@ -110,11 +110,12 @@ export class Router {
 
 export function sendJson(response: ServerResponse, status: number, payload: unknown): void {
   const body = JSON.stringify(payload);
-  response.writeHead(status, {
-    'content-type': 'application/json; charset=utf-8',
-    'content-length': Buffer.byteLength(body),
-    'cache-control': 'no-store',
-  });
+  // A handler that set its own cache policy keeps it; everything else is
+  // uncacheable by default, which is the safe way round.
+  if (!response.getHeader('cache-control')) response.setHeader('cache-control', 'no-store');
+  response.setHeader('content-type', 'application/json; charset=utf-8');
+  response.setHeader('content-length', Buffer.byteLength(body));
+  response.writeHead(status);
   response.end(body);
 }
 

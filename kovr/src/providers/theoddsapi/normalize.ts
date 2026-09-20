@@ -121,7 +121,7 @@ export function normaliseEvent(
   const participants = participantsFor(league.providerKey, league.categoryId, home, away);
 
   return {
-    id: internalEventId(PROVIDER_NAME, raw.id),
+    id: internalEventId(league.providerKey, raw.id),
     providerEventId: raw.id,
     leagueId: league.id,
     categoryId: league.categoryId,

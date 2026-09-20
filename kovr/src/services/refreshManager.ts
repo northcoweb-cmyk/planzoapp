@@ -18,7 +18,7 @@ import type { FreshnessClass } from '../domain/status.js';
 import { buildFreshness } from '../domain/status.js';
 import { ProviderError } from '../providers/SportsDataProvider.js';
 import { redactSecrets } from '../config/env.js';
-import type { MetaRepository } from '../store/repositories/metaRepo.js';
+import type { CacheStore } from '../runtime/cache.js';
 
 /** How long a cached payload stays authoritative, by data class. */
 export const CACHE_TTL_MS = {
@@ -44,11 +44,8 @@ interface InFlight {
 
 export class RefreshManager {
   private readonly inFlight = new Map<string, InFlight>();
-  private readonly meta: MetaRepository;
 
-  constructor(meta: MetaRepository) {
-    this.meta = meta;
-  }
+  constructor(private readonly cache: CacheStore) {}
 
   /**
    * Fetch through the cache.
@@ -69,7 +66,7 @@ export class RefreshManager {
     const nowIso = new Date(now).toISOString();
 
     if (!options.forceRefresh) {
-      const cached = this.meta.getCache(key, nowIso);
+      const cached = this.cache.get(key, nowIso);
       if (cached) {
         const parsed = RefreshManager.parse<T>(cached.payload);
         if (parsed.ok) {
@@ -103,7 +100,7 @@ export class RefreshManager {
       const data = await promise;
       const fetchedAt = new Date().toISOString();
       const expiresAt = new Date(Date.now() + CACHE_TTL_MS[cacheClass]).toISOString();
-      this.meta.setCache(key, JSON.stringify(data), fetchedAt, expiresAt);
+      this.cache.set(key, { payload: JSON.stringify(data), fetchedAt, expiresAt });
       return { data, freshness: buildFreshness('live', fetchedAt, freshnessClass, null, Date.now()) };
     } catch (error) {
       const message = RefreshManager.describe(error);
@@ -118,7 +115,7 @@ export class RefreshManager {
    * Never synthesises a payload to fill the gap.
    */
   private fallbackToCache<T>(key: string, freshnessClass: FreshnessClass, error: string): LoadResult<T> {
-    const stale = this.meta.getCacheIgnoringExpiry(key);
+    const stale = this.cache.getStale(key);
     if (stale) {
       const parsed = RefreshManager.parse<T>(stale.payload);
       if (parsed.ok) {

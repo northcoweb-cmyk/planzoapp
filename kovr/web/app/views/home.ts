@@ -1,49 +1,72 @@
 /**
- * Home.
+ * Home — the hub.
  *
- * Sections are drawn only when they hold something. An empty rail is never
- * padded out to make the page look busier than the data is.
+ * Everything on, across every competition KOVR pulls: a hero for the event
+ * most worth opening the app for, a live rail, and the full board below,
+ * filterable by sport without leaving the page.
  */
 
-import { h, raw } from '../dom.js';
+import { h, raw, classes } from '../dom.js';
 import type { RawHtml } from '../dom.js';
 import { api } from '../api.js';
-import type { FeedEntry, HomeFeed } from '../api.js';
-import { eventCard, emptyState, freshnessBanner, freshnessLine, skeletonList, walletSummary } from '../components.js';
-import { money, moneySigned, eventTime, pluralise } from '../format.js';
-import { store } from '../store.js';
-import type { SportEvent } from '../../../src/domain/types.js';
+import type { FeedEntry, FeedSections } from '../api.js';
+import {
+  emptyState,
+  eventGrid,
+  freshnessBanner,
+  freshnessLine,
+  heroCard,
+  section,
+  skeletonList,
+} from '../components.js';
+import { categoryIcon, icon } from '../icons.js';
 
-function section(title: string, body: RawHtml, link?: { label: string; action: string }): RawHtml {
-  return h`
-    <section class="section">
-      <div class="section__head">
-        <h2 class="section-title">${title}</h2>
-        ${link ? h`<button class="section__link" type="button" ${raw(link.action)}>${link.label} →</button>` : raw('')}
-      </div>
-      ${body}
-    </section>`;
+/** Sport filter, held across renders so it survives a refresh. */
+let activeLeague: string | null = null;
+
+export function setLeagueFilter(leagueId: string | null): void {
+  activeLeague = leagueId;
 }
 
-function cards(entries: FeedEntry[], leagueName: (event: SportEvent) => string, featured = false): RawHtml {
-  return h`<div class="section event-grid">${entries.map((entry) =>
-    eventCard(entry.event, {
-      leagueShortName: leagueName(entry.event),
-      markets: entry.markets,
-      marketCount: entry.marketCount,
-      featured,
-    }),
-  )}</div>`;
+export function currentLeagueFilter(): string | null {
+  return activeLeague;
 }
 
 export function homeSkeleton(): RawHtml {
-  return h`<div class="view">${skeletonList(1, 'row')}${skeletonList(3, 'card')}</div>`;
+  return h`<div class="view">
+    <div class="skeleton skeleton--hero"></div>
+    ${skeletonList(4, 'card')}
+  </div>`;
+}
+
+function filterRail(feed: FeedSections): RawHtml {
+  if (feed.leagues.length <= 1) return raw('');
+
+  return h`
+    <div class="chip-rail" role="tablist" aria-label="Filter by sport">
+      <button class="chip" type="button" role="tab" data-league-filter=""
+        aria-pressed="${activeLeague === null ? 'true' : 'false'}">
+        All<span class="chip__count">${feed.totalEvents}</span>
+      </button>
+      ${feed.leagues.map(
+        (league) => h`
+          <button class="chip" type="button" role="tab" data-league-filter="${league.id}"
+            aria-pressed="${activeLeague === league.id ? 'true' : 'false'}">
+            ${categoryIcon(league.categoryId, 15)} ${league.shortName}
+            <span class="chip__count">${league.count}</span>
+          </button>`,
+      )}
+    </div>`;
+}
+
+function matchesFilter(entry: FeedEntry): boolean {
+  return activeLeague === null || entry.leagueId === activeLeague;
 }
 
 export async function renderHome(): Promise<RawHtml> {
-  let feed: HomeFeed;
+  let response;
   try {
-    feed = await api.home();
+    response = await api.feed();
   } catch {
     return h`<div class="view">${freshnessBanner({
       source: 'unavailable',
@@ -54,141 +77,84 @@ export async function renderHome(): Promise<RawHtml> {
     })}</div>`;
   }
 
-  store.setWallet(feed.wallet);
-  store.setOpenBetCount(feed.openBets.length);
+  const feed = response.data;
 
-  const leagueNameFor = (event: SportEvent): string =>
-    feed.data.byLeague.find((entry) => entry.league.id === event.leagueId)?.league.shortName ??
-    event.leagueId.toUpperCase();
+  if (feed.totalEvents === 0) {
+    return h`
+      <div class="view">
+        ${freshnessBanner(response.freshness)}
+        ${emptyState(
+          'Nothing on right now',
+          'KOVR shows the events its data provider currently lists. Check back when the next card is announced.',
+          'empty',
+        )}
+      </div>`;
+  }
 
-  const sections: RawHtml[] = [];
+  // When a sport is selected, the hero follows it rather than staying on a
+  // different competition's event.
+  const filteredLive = feed.live.filter(matchesFilter);
+  const filteredNext = feed.next.filter(matchesFilter);
+  const hero =
+    activeLeague === null
+      ? feed.headline
+      : (filteredLive[0] ??
+        filteredNext[0] ??
+        feed.byLeague.find((group) => group.league.id === activeLeague)?.events[0] ??
+        null);
 
-  // An event appears once. Without this the same fight shows under Live,
-  // Featured and its own league, which reads as padding rather than depth.
   const shown = new Set<string>();
   const unseen = (entries: FeedEntry[]): FeedEntry[] =>
     entries.filter((entry) => {
-      if (shown.has(entry.event.id)) return false;
+      if (!matchesFilter(entry) || shown.has(entry.event.id)) return false;
       shown.add(entry.event.id);
       return true;
     });
 
-  if (feed.data.live.length > 0) {
+  if (hero) shown.add(hero.event.id);
+
+  const sections: RawHtml[] = [];
+
+  const live = unseen(feed.live);
+  if (live.length > 0) {
+    sections.push(section(`Live now`, eventGrid(live)));
+  }
+
+  const next = unseen(feed.next);
+  if (next.length > 0) {
+    sections.push(section('Starting soon', eventGrid(next)));
+  }
+
+  for (const group of feed.byLeague) {
+    if (activeLeague !== null && group.league.id !== activeLeague) continue;
+    const events = unseen(group.events);
+    if (events.length === 0) continue;
     sections.push(
-      section(
-        'Live now',
-        cards(unseen(feed.data.live), leagueNameFor),
-        { label: 'All sports', action: 'data-nav="/sports"' },
-      ),
+      section(group.league.shortName, eventGrid(events), {
+        label: 'All',
+        attr: `data-open-league="${group.league.id}"`,
+      }),
     );
   }
 
-  if (feed.data.featured.length > 0) {
-    const featured = unseen(feed.data.featured).slice(0, 4);
-    if (featured.length > 0) sections.push(section('Featured', cards(featured, leagueNameFor, true)));
-  }
-
-  if (feed.data.startingSoon.length > 0) {
-    const soon = unseen(feed.data.startingSoon).slice(0, 6);
-    if (soon.length > 0) sections.push(section('Starting soon', cards(soon, leagueNameFor)));
-  }
-
-  for (const entry of feed.data.byLeague.slice(0, 6)) {
-    const remaining = unseen(entry.events).slice(0, 4);
-    if (remaining.length === 0) continue;
-    sections.push(
-      section(
-        entry.league.shortName,
-        cards(remaining, () => entry.league.shortName),
-        { label: 'View all', action: `data-open-league="${entry.league.id}"` },
-      ),
-    );
-  }
-
-  const openBets =
-    feed.openBets.length > 0
-      ? section(
-          `Open ${pluralise(feed.openBets.length, 'bet')}`,
-          h`<div class="card">${feed.openBets.map(
-            (bet) => h`
-              <button class="row row--button" type="button" data-nav="/bets">
-                <span class="row__body">
-                  <span class="row__title">${
-                    bet.selections.length === 1
-                      ? (bet.selections[0]?.selectionName ?? 'Selection')
-                      : `${bet.selections.length}-leg parlay`
-                  }</span>
-                  <span class="row__meta">${
-                    bet.selections[0] ? eventTime(bet.selections[0].eventStartTime) : ''
-                  }</span>
-                </span>
-                <span class="row__value">
-                  <span class="row__amount num">${money(bet.stakeCents)}</span>
-                  <span class="row__meta num">to pay ${money(bet.potentialPayoutCents)}</span>
-                </span>
-              </button>`,
-          )}</div>`,
-          { label: 'My bets', action: 'data-nav="/bets"' },
-        )
-      : raw('');
-
-  const activity =
-    feed.activity.length > 0
-      ? section(
-          'Recent activity',
-          h`<div class="card">${feed.activity.slice(0, 5).map(
-            (item) => h`
-              <div class="row">
-                <span class="row__body">
-                  <span class="row__title">${item.title}</span>
-                  <span class="row__meta">${item.detail}</span>
-                </span>
-                <span class="row__value">
-                  <span class="${
-                    (item.amountCents ?? 0) >= 0 ? 'row__amount row__amount--credit num' : 'row__amount row__amount--debit num'
-                  }">${moneySigned(item.amountCents ?? 0)}</span>
-                </span>
-              </div>`,
-          )}</div>`,
-          { label: 'All activity', action: 'data-nav="/activity"' },
-        )
-      : raw('');
-
-  const nothing =
-    sections.length === 0
-      ? feed.freshness.source === 'unavailable'
-        ? raw('')
-        : emptyState(
-            'No events to show',
-            'KOVR shows the competitions its data provider currently offers. Nothing is scheduled with prices right now.',
-          )
-      : raw('');
+  const nothingLeft = sections.length === 0 && !hero;
 
   return h`
-    <div class="view">
-      ${freshnessBanner(feed.freshness)}
-      ${walletSummary(
-        feed.wallet.balanceCents,
-        'Simulated funds. KOVR never holds or moves real money.',
-      )}
-      <div class="stat-grid">
-        <div class="stat">
-          <span class="stat__value num">${feed.openBets.length}</span>
-          <span class="stat__label">Open bets</span>
-        </div>
-        <div class="stat">
-          <span class="stat__value num">${feed.data.live.length}</span>
-          <span class="stat__label">Live now</span>
-        </div>
-        <div class="stat">
-          <span class="stat__value num">${feed.data.byLeague.length}</span>
-          <span class="stat__label">Leagues</span>
-        </div>
-      </div>
+    <div class="view view--home">
+      ${freshnessBanner(response.freshness)}
+      ${hero ? heroCard(hero) : raw('')}
+      ${filterRail(feed)}
+      ${
+        nothingLeft
+          ? emptyState('Nothing in this sport right now', 'Pick another sport, or check back shortly.')
+          : raw('')
+      }
       ${sections}
-      ${openBets}
-      ${activity}
-      ${nothing}
-      <div style="display:flex;justify-content:center;padding-top:4px">${freshnessLine(feed.freshness)}</div>
+      <div class="view__foot">
+        ${freshnessLine(response.freshness)}
+        <button class="${classes('btn', 'btn--ghost', 'btn--sm')}" type="button" data-reload>
+          ${icon('refresh', 14)} Refresh
+        </button>
+      </div>
     </div>`;
 }

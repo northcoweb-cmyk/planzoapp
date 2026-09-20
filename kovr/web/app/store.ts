@@ -8,6 +8,7 @@
 
 import type { Wallet } from '../../src/domain/types.js';
 import type { PublicConfigView } from './api.js';
+import { ledger } from './ledgerClient.js';
 
 export interface SlipLeg {
   eventId: string;
@@ -105,6 +106,20 @@ export const store = {
 
   setWallet(wallet: Wallet | null): void {
     state.wallet = wallet;
+    emit();
+  },
+
+  /** Re-read the balance from the ledger on this device. */
+  async refreshWallet(): Promise<Wallet> {
+    const wallet = await (await ledger()).wallet();
+    state.wallet = wallet;
+    emit();
+    return wallet;
+  },
+
+  async refreshCounts(): Promise<void> {
+    const open = await (await ledger()).bets(['OPEN']);
+    state.openBetCount = open.length;
     emit();
   },
 

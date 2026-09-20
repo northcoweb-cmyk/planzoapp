@@ -1,69 +1,78 @@
 /**
- * Settlement alerts.
+ * Settlement.
  *
- * Polls the user's own bets and raises an in-app alert the first time one
- * changes out of OPEN. Deliberately not a browser push notification: KOVR
- * has no account, no server-side subscription and nothing to push with, and
- * asking for notification permission it cannot honour would be theatre.
+ * Asks the server for confirmed status and results on the events this
+ * device has open bets on, then grades them locally with the same engine
+ * the tests cover. Runs on a timer and on every foreground.
  */
 
 import { api } from './api.js';
 import { toast } from './store.js';
+import { store } from './store.js';
 import { money } from './format.js';
 import { preferences } from './preferences.js';
+import { ledger } from './ledgerClient.js';
 
-const POLL_MS = 45_000;
-
-let known = new Map<string, string>();
+const POLL_MS = 60_000;
 let timer: number | null = null;
+let running = false;
 
-function describe(status: string, payoutCents: number | null): string {
+function describe(status: string, payoutCents: number): string {
   switch (status) {
     case 'WON':
-      return `Bet won — ${money(payoutCents ?? 0)} returned`;
+      return `Bet won — ${money(payoutCents)} returned`;
     case 'LOST':
       return 'Bet lost';
     case 'PUSH':
-      return `Push — ${money(payoutCents ?? 0)} stake returned`;
+      return `Push — ${money(payoutCents)} returned`;
     case 'VOID':
-      return `Voided — ${money(payoutCents ?? 0)} stake returned`;
-    case 'CANCELLED':
-      return 'Event cancelled — stake returned';
+      return `Void — ${money(payoutCents)} returned`;
     default:
       return `Bet ${status.toLowerCase()}`;
   }
 }
 
-async function poll(): Promise<void> {
-  if (!preferences().notifyOnSettlement) return;
-  if (document.visibilityState !== 'visible') return;
+export async function runSettlement(announce = true): Promise<number> {
+  if (running) return 0;
+  running = true;
 
   try {
-    const response = await api.bets();
-    const next = new Map<string, string>();
+    const book = await ledger();
+    const openIds = await book.openEventIds();
+    if (openIds.length === 0) return 0;
 
-    for (const bet of response.data) {
-      next.set(bet.id, bet.status);
-      const previous = known.get(bet.id);
-      // Only a transition out of OPEN is news; a bet first seen already
-      // settled predates this session and is not announced.
-      if (previous === 'OPEN' && bet.status !== 'OPEN') {
-        toast(describe(bet.status, bet.payoutCents), bet.status === 'WON' ? 'success' : 'info');
+    const response = await api.settlement(openIds);
+    const facts = new Map(response.data.map((fact) => [fact.id, { status: fact.status, result: fact.result }]));
+    const outcomes = await book.settle(facts);
+
+    const graded = outcomes.filter((outcome) => outcome.status !== 'PENDING');
+    if (graded.length === 0) return 0;
+
+    await store.refreshWallet();
+    await store.refreshCounts();
+
+    if (announce && preferences().notifyOnSettlement) {
+      for (const outcome of graded) {
+        toast(describe(outcome.status, outcome.payoutCents), outcome.status === 'WON' ? 'success' : 'info');
       }
     }
-    known = next;
+    return graded.length;
   } catch {
-    // A failed poll is not worth interrupting the user over.
+    // A failed check is not worth interrupting anyone over; the next one
+    // will try again, and nothing is graded on incomplete information.
+    return 0;
+  } finally {
+    running = false;
   }
 }
 
 export function startSettlementWatch(): void {
   if (timer !== null) return;
-  void poll();
-  timer = window.setInterval(() => void poll(), POLL_MS);
-}
-
-export function stopSettlementWatch(): void {
-  if (timer !== null) window.clearInterval(timer);
-  timer = null;
+  void runSettlement(false);
+  timer = window.setInterval(() => {
+    if (document.visibilityState === 'visible') void runSettlement();
+  }, POLL_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void runSettlement();
+  });
 }

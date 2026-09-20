@@ -1,0 +1,51 @@
+# KOVR Sports — Fly.io deployment.
+#
+#   fly launch --no-deploy --copy-config --name <your-app-name>
+#   fly volumes create kovr_data --size 1
+#   fly secrets set KOVR_ODDS_API_KEY=<your key>     # stored by Fly, never in git
+#   fly deploy
+#
+# Fly gives a persistent volume on the free allowance, so the simulated
+# ledger survives restarts. Run these from the kovr/ directory.
+
+app = "kovr-sports"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "4300"
+  KOVR_DB_PATH = "/data/kovr.db"
+  # Developer tools stay off on anything reachable from the internet.
+  KOVR_ADMIN_ENABLED = "0"
+  KOVR_ODDS_REGIONS = "us"
+  KOVR_ODDS_HOURLY_BUDGET = "180"
+
+[http_service]
+  internal_port = 4300
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.http_options.response.headers]
+    X-Content-Type-Options = "nosniff"
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/api/config"
+
+# The simulated ledger lives here. Without it a restart resets the demo
+# account — which is survivable, but a volume is one command.
+[[mounts]]
+  source = "kovr_data"
+  destination = "/data"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

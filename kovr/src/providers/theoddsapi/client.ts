@@ -9,7 +9,7 @@
 
 import { config, redactSecrets } from '../../config/env.js';
 import { ProviderError } from '../SportsDataProvider.js';
-import type { Database } from '../../store/db.js';
+import type { RequestLog } from '../../runtime/cache.js';
 
 const BASE_URL = 'https://api.the-odds-api.com/v4';
 const REQUEST_TIMEOUT_MS = 12_000;
@@ -33,14 +33,14 @@ function parseHeaderInt(value: string | null): number | null {
 }
 
 export class TheOddsApiClient {
-  private readonly database: Database;
+  private readonly log: RequestLog;
   private lastSuccessAt: string | null = null;
   private lastErrorAt: string | null = null;
   private lastError: string | null = null;
   private lastQuota: QuotaHeaders = { remaining: null, used: null, lastCost: null };
 
-  constructor(database: Database) {
-    this.database = database;
+  constructor(log: RequestLog) {
+    this.log = log;
   }
 
   isConfigured(): boolean {
@@ -49,12 +49,7 @@ export class TheOddsApiClient {
 
   /** Provider calls KOVR has made in the trailing hour. */
   requestsInLastHour(now: number = Date.now()): number {
-    const since = new Date(now - 60 * 60 * 1000).toISOString();
-    const row = this.database.get<{ n: number }>(
-      'SELECT COUNT(*) AS n FROM provider_requests WHERE requested_at >= ?',
-      since,
-    );
-    return row ? Number(row.n) : 0;
+    return this.log.countSince(new Date(now - 60 * 60 * 1000).toISOString());
   }
 
   getQuota(): QuotaHeaders {
@@ -82,19 +77,16 @@ export class TheOddsApiClient {
     error: string | null;
     quota: QuotaHeaders;
   }): void {
-    this.database.run(
-      `INSERT INTO provider_requests
-         (endpoint, requested_at, duration_ms, http_status, ok, error, quota_remaining, quota_used)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      entry.endpoint,
-      entry.requestedAt,
-      entry.durationMs,
-      entry.status,
-      entry.ok ? 1 : 0,
-      entry.error,
-      entry.quota.remaining,
-      entry.quota.used,
-    );
+    this.log.record({
+      endpoint: entry.endpoint,
+      requestedAt: entry.requestedAt,
+      durationMs: entry.durationMs,
+      httpStatus: entry.status,
+      ok: entry.ok,
+      error: entry.error,
+      quotaRemaining: entry.quota.remaining,
+      quotaUsed: entry.quota.used,
+    });
   }
 
   /**
