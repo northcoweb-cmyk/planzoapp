@@ -200,6 +200,11 @@ CREATE TABLE IF NOT EXISTS bet_selections (
   -- column; a later market move creates new odds rows, never a rewrite here.
   price_american          INTEGER NOT NULL CHECK (abs(price_american) >= 100),
   bookmaker_key           TEXT NOT NULL,
+  -- Whether this market offered a Draw when the bet was struck. Captured at
+  -- placement because grading a drawn result differs between a two-way
+  -- moneyline (push) and a three-way market (loss), and the market may no
+  -- longer be on file by the time the result arrives.
+  market_offers_draw      INTEGER NOT NULL DEFAULT 0 CHECK (market_offers_draw IN (0, 1)),
   status                  TEXT NOT NULL DEFAULT 'OPEN'
                             CHECK (status IN ('OPEN','WON','LOST','PUSH','VOID','CANCELLED')),
   settled_at              TEXT

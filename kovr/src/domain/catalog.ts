@@ -66,6 +66,24 @@ export function categoryForGroup(group: string): SportCategory {
   return { id: slugify(group) || 'other', name: group.trim() || 'Other', priority: 50, icon: 'generic' };
 }
 
+/**
+ * Look up a category by the id a League already carries.
+ *
+ * Preferred over re-deriving from a group name, which would lose the
+ * editorial priority that decides where a sport sits in the navigation.
+ * An id KOVR has not seen yields a category built from the slug itself.
+ */
+export function categoryById(id: CategoryId): SportCategory {
+  for (const category of Object.values(CATEGORY_BY_PROVIDER_GROUP)) {
+    if (category.id === id) return category;
+  }
+  const name = id
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+  return { id, name: name || 'Other', priority: 50, icon: 'generic' };
+}
+
 export function allKnownCategories(): SportCategory[] {
   const seen = new Map<CategoryId, SportCategory>();
   for (const category of Object.values(CATEGORY_BY_PROVIDER_GROUP)) {

@@ -292,6 +292,11 @@ export interface BetSelection {
   /** Immutable: the price the bettor accepted. */
   priceAmerican: AmericanOdds;
   bookmakerKey: string;
+  /**
+   * Whether the market offered a Draw when this bet was struck. Recorded at
+   * placement so a drawn result grades the same way years later.
+   */
+  marketOffersDraw: boolean;
   status: BetStatus;
   settledAt: string | null;
 }
