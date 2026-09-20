@@ -12,9 +12,9 @@ import { dateTime, money, odds as fmtOdds } from '../format.js';
 import { ledger } from '../ledgerClient.js';
 import type { Bet } from '../../../src/domain/types.js';
 
-let tab: 'open' | 'settled' = 'open';
+let tab: 'open' | 'settled' | 'all' = 'open';
 
-export function setBetsTab(next: 'open' | 'settled'): void {
+export function setBetsTab(next: 'open' | 'settled' | 'all'): void {
   tab = next;
 }
 
@@ -70,17 +70,23 @@ export async function renderBets(): Promise<RawHtml> {
   const store = await ledger();
   const counts = await store.counts();
   const settledCount = counts.WON + counts.LOST + counts.PUSH + counts.VOID + counts.CANCELLED;
-  const bets = await store.bets(
-    tab === 'open' ? (['OPEN'] as const) : (['WON', 'LOST', 'PUSH', 'VOID', 'CANCELLED'] as const),
-  );
+  const statuses =
+    tab === 'open'
+      ? (['OPEN'] as const)
+      : tab === 'settled'
+        ? (['WON', 'LOST', 'PUSH', 'VOID', 'CANCELLED'] as const)
+        : undefined;
+  const bets = await store.bets(statuses);
 
   const body =
     bets.length === 0
       ? emptyState(
-          tab === 'open' ? 'No open bets' : 'No settled bets yet',
+          tab === 'open' ? 'No open bets' : tab === 'settled' ? 'No settled bets yet' : 'No bets yet',
           tab === 'open'
             ? 'Picks you place appear here until their event is confirmed final.'
-            : 'A bet settles once a confirmed result comes in — never on the clock alone.',
+            : tab === 'settled'
+              ? 'A bet settles once a confirmed result comes in — never on the clock alone.'
+              : 'Every bet you place, open or settled, shows up here.',
           'ticket',
         )
       : h`<div class="section">${bets.map(betCard)}</div>`;
@@ -96,6 +102,8 @@ export async function renderBets(): Promise<RawHtml> {
           aria-selected="${tab === 'open' ? 'true' : 'false'}">Open (${counts.OPEN})</button>
         <button class="tab" role="tab" type="button" data-bets-tab="settled"
           aria-selected="${tab === 'settled' ? 'true' : 'false'}">Settled (${settledCount})</button>
+        <button class="tab" role="tab" type="button" data-bets-tab="all"
+          aria-selected="${tab === 'all' ? 'true' : 'false'}">All (${counts.OPEN + settledCount})</button>
       </div>
       ${body}
     </div>`;

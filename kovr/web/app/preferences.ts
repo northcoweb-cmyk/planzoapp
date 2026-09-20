@@ -17,6 +17,22 @@ export interface Preferences {
   defaultStake: string;
   /** Raise an in-app alert when an open bet settles. */
   notifyOnSettlement: boolean;
+  /**
+   * A self-set cap on any single stake, in cents. 0 means no cap. Enforced
+   * at placement — this is a real limit, not a decorative number.
+   */
+  maxStakeCents: number;
+  /**
+   * When set and in the future, betting and deposits are blocked until this
+   * ISO timestamp. A real, locally-enforced cool-off: once set, nothing in
+   * the UI offers a way to shorten or cancel it before it lapses.
+   */
+  selfExcludedUntil: string | null;
+  /**
+   * The welcome deposit boost, tracked through its own lifecycle so it can
+   * be claimed once and applied exactly once. See promotions.ts.
+   */
+  welcomeBoostState: 'unclaimed' | 'claimed' | 'used';
 }
 
 const KEY = 'kovr.preferences.v1';
@@ -25,6 +41,9 @@ const DEFAULTS: Preferences = {
   autoAcceptImprovedOdds: false,
   defaultStake: '',
   notifyOnSettlement: true,
+  maxStakeCents: 0,
+  selfExcludedUntil: null,
+  welcomeBoostState: 'unclaimed',
 };
 
 let cached: Preferences | null = null;
@@ -41,6 +60,15 @@ export function preferences(): Preferences {
           autoAcceptImprovedOdds: record.autoAcceptImprovedOdds === true,
           defaultStake: typeof record.defaultStake === 'string' ? record.defaultStake : '',
           notifyOnSettlement: record.notifyOnSettlement !== false,
+          maxStakeCents:
+            typeof record.maxStakeCents === 'number' && Number.isFinite(record.maxStakeCents) && record.maxStakeCents >= 0
+              ? record.maxStakeCents
+              : 0,
+          selfExcludedUntil: typeof record.selfExcludedUntil === 'string' ? record.selfExcludedUntil : null,
+          welcomeBoostState:
+            record.welcomeBoostState === 'claimed' || record.welcomeBoostState === 'used'
+              ? record.welcomeBoostState
+              : 'unclaimed',
         };
         return cached;
       }
@@ -61,4 +89,21 @@ export function setPreference<K extends keyof Preferences>(key: K, value: Prefer
     // A preference that cannot be persisted still applies for this session.
   }
   return next;
+}
+
+/** Whether a cool-off is currently in effect, and until when. */
+export function selfExclusionStatus(now = Date.now()): { active: boolean; until: string | null } {
+  const until = preferences().selfExcludedUntil;
+  if (!until) return { active: false, until: null };
+  return { active: Date.parse(until) > now, until };
+}
+
+/**
+ * Start a cool-off for the given number of hours from now. There is no
+ * corresponding "cancel" — once set, nothing in the UI can shorten it,
+ * which is the point of a real cool-off rather than a decorative one.
+ */
+export function setExclusion(hours: number): Preferences {
+  const until = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+  return setPreference('selfExcludedUntil', until);
 }

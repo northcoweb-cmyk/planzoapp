@@ -12,7 +12,7 @@
 import { h, raw, render, classes } from './dom.js';
 import type { RawHtml } from './dom.js';
 import { icon } from './icons.js';
-import { money, odds as fmtOdds, countdown } from './format.js';
+import { money, odds as fmtOdds, countdown, dateTime } from './format.js';
 import { store, toast } from './store.js';
 import type { SlipLeg } from './store.js';
 import { api, ApiError } from './api.js';
@@ -20,7 +20,7 @@ import { ledger } from './ledgerClient.js';
 import type { OddsChange } from '../../src/ledger/ledger.js';
 import { combineParlayOdds, payoutCents, profitCents } from '../../src/core/odds.js';
 import { parseAmountToCents, MoneyError } from '../../src/core/money.js';
-import { preferences } from './preferences.js';
+import { preferences, selfExclusionStatus } from './preferences.js';
 import type { EventWithMarkets } from '../../src/domain/types.js';
 
 let pendingChanges: OddsChange[] | null = null;
@@ -202,6 +202,18 @@ export async function placeBet(accept = false): Promise<boolean> {
   const stakeCents = stakeCentsFrom(state.stakeInput);
   if (stakeCents === null || state.slip.length === 0) return false;
 
+  const exclusion = selfExclusionStatus();
+  if (exclusion.active) {
+    toast(`Betting is paused until ${exclusion.until ? dateTime(exclusion.until) : 'your cool-off ends'}.`, 'error');
+    return false;
+  }
+
+  const cap = preferences().maxStakeCents;
+  if (cap > 0 && stakeCents > cap) {
+    toast(`Your stake limit is ${money(cap)} per bet. Adjust it in Account → Responsible gaming.`, 'error');
+    return false;
+  }
+
   placing = true;
   try {
     const live = await liveEvents(state.slip);
@@ -226,6 +238,7 @@ export async function placeBet(accept = false): Promise<boolean> {
       store.clearSlip();
       store.setStake(preferences().defaultStake);
       await store.refreshCounts();
+      void store.refreshRewards();
       toast(`Bet placed — ${money(result.bet.potentialPayoutCents)} to return`, 'success');
       return true;
     }

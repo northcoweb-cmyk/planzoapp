@@ -13,7 +13,7 @@ import { serveAppShell, serveStatic } from './static.js';
 import { sendJson } from './router.js';
 
 /** Paths owned by the client-side router, which all render the app shell. */
-const APP_ROUTES = new Set(['/', '/sports', '/betslip', '/bets', '/wallet', '/profile', '/activity']);
+const APP_ROUTES = new Set(['/', '/sports', '/betslip', '/bets', '/wallet', '/profile', '/account', '/rewards', '/promotions', '/activity', '/help']);
 
 export function createKovrServer(context: RuntimeContext): Server {
   const api = sportsRoutes(context);

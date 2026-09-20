@@ -1,15 +1,20 @@
-/** Profile, preferences and account information. */
+/**
+ * Account — profile, wallet access, preferences, responsible gaming and
+ * support, grouped the way a real account screen is: not a long flat list
+ * of settings.
+ */
 
 import { h, raw } from '../dom.js';
 import type { RawHtml } from '../dom.js';
 import { icon } from '../icons.js';
 import { skeletonList } from '../components.js';
 import { dateTime, money } from '../format.js';
-import { preferences } from '../preferences.js';
+import { preferences, selfExclusionStatus } from '../preferences.js';
 import { ledger } from '../ledgerClient.js';
+import { store } from '../store.js';
 
-export function profileSkeleton(): RawHtml {
-  return h`<div class="view">${skeletonList(5, 'row')}</div>`;
+export function accountSkeleton(): RawHtml {
+  return h`<div class="view">${skeletonList(6, 'row')}</div>`;
 }
 
 function linkRow(label: string, meta: string, target: string, iconName: string): RawHtml {
@@ -24,16 +29,20 @@ function linkRow(label: string, meta: string, target: string, iconName: string):
     </button>`;
 }
 
-export async function renderProfile(): Promise<RawHtml> {
-  const store = await ledger();
+const STAKE_CAP_PRESETS = [0, 2500, 10000, 25000];
+
+export async function renderAccount(): Promise<RawHtml> {
+  const book = await ledger();
   const [wallet, counts, reconciliation] = await Promise.all([
-    store.wallet(),
-    store.counts(),
-    store.reconcile(),
+    book.wallet(),
+    book.counts(),
+    book.reconcile(),
   ]);
   const settled = counts.WON + counts.LOST + counts.PUSH + counts.VOID + counts.CANCELLED;
   const prefs = preferences();
+  const exclusion = selfExclusionStatus();
   const winRate = settled > 0 ? Math.round((counts.WON / settled) * 100) : 0;
+  const tier = store.get().rewards?.tier ?? 'Bronze';
 
   return h`
     <div class="view">
@@ -43,32 +52,53 @@ export async function renderProfile(): Promise<RawHtml> {
         <span class="profile-card__avatar">K</span>
         <span class="profile-card__body">
           <span class="profile-card__name">Your account</span>
-          <span class="profile-card__meta">Kept on this device</span>
+          <span class="profile-card__meta">${tier} tier · kept on this device</span>
         </span>
+        <button class="profile-card__balance" type="button" data-nav="/wallet">
+          <span class="dim">Balance</span>
+          <span class="num">${money(wallet.balanceCents)}</span>
+        </button>
       </section>
+
+      ${
+        exclusion.active
+          ? h`<div class="banner banner--error">${icon('shield', 16)}
+               <div><p class="banner__title">Betting and deposits are paused</p>
+               <p>Your cool-off ends ${exclusion.until ? dateTime(exclusion.until) : 'soon'}.</p></div>
+             </div>`
+          : raw('')
+      }
 
       <div class="stat-grid fade-up">
         <div class="stat">
-          <span class="stat__value num">${money(wallet.balanceCents)}</span>
-          <span class="stat__label">Balance</span>
-        </div>
-        <div class="stat">
           <span class="stat__value num">${counts.OPEN}</span>
-          <span class="stat__label">Open</span>
+          <span class="stat__label">Open bets</span>
         </div>
         <div class="stat">
           <span class="stat__value num">${settled === 0 ? '—' : `${winRate}%`}</span>
           <span class="stat__label">Win rate</span>
         </div>
+        <div class="stat">
+          <span class="stat__value num">${settled}</span>
+          <span class="stat__label">Settled</span>
+        </div>
       </div>
 
       <section class="section fade-up">
-        <h2 class="section-title">Account</h2>
+        <h2 class="section-title">Betting</h2>
         <div class="card">
           ${linkRow('My bets', `${counts.OPEN} open · ${settled} settled`, '/bets', 'bets')}
-          ${linkRow('Wallet', money(wallet.balanceCents), '/wallet', 'wallet')}
-          ${linkRow('Activity', 'Bets, funding and returns', '/activity', 'activity')}
           ${linkRow('Sports', 'Browse every competition', '/sports', 'sports')}
+          ${linkRow('Rewards', `${tier} tier`, '/rewards', 'rewards')}
+          ${linkRow('Promotions', 'Current offers', '/promotions', 'tag')}
+        </div>
+      </section>
+
+      <section class="section fade-up">
+        <h2 class="section-title">Wallet</h2>
+        <div class="card">
+          ${linkRow('Balance & funding', money(wallet.balanceCents), '/wallet', 'wallet')}
+          ${linkRow('Activity', 'Bets, funding and returns', '/activity', 'activity')}
         </div>
       </section>
 
@@ -107,6 +137,56 @@ export async function renderProfile(): Promise<RawHtml> {
       </section>
 
       <section class="section fade-up">
+        <h2 class="section-title">Responsible gaming</h2>
+        <div class="card">
+          <div class="row">
+            <span class="row__body">
+              <span class="row__title">Per-bet stake limit</span>
+              <span class="row__meta">${
+                prefs.maxStakeCents > 0
+                  ? `Bets over ${money(prefs.maxStakeCents)} are blocked.`
+                  : 'No limit set.'
+              }</span>
+            </span>
+          </div>
+          <div class="row" style="padding-top:0">
+            <div class="btn-grid btn-grid--four" style="width:100%">
+              ${STAKE_CAP_PRESETS.map(
+                (cap) => h`
+                  <button class="${`btn btn--sm${prefs.maxStakeCents === cap ? ' btn--active' : ''}`}"
+                    type="button" data-stake-cap="${String(cap)}">
+                    ${cap === 0 ? 'None' : money(cap)}
+                  </button>`,
+              )}
+            </div>
+          </div>
+          <button class="row row--button" type="button" data-open-exclusion>
+            <span class="avatar" aria-hidden="true">${icon('shield', 16)}</span>
+            <span class="row__body">
+              <span class="row__title">Take a break</span>
+              <span class="row__meta">${
+                exclusion.active
+                  ? `Paused until ${exclusion.until ? dateTime(exclusion.until) : ''}`
+                  : 'Pause betting and deposits for a set period'
+              }</span>
+            </span>
+            ${icon('chevron', 16)}
+          </button>
+        </div>
+        <p class="dim" style="padding:0 2px">
+          These limits are enforced on this device. If you or someone you know has a gambling problem,
+          contact the National Council on Problem Gambling at 1-800-522-4700.
+        </p>
+      </section>
+
+      <section class="section fade-up">
+        <h2 class="section-title">Support</h2>
+        <div class="card">
+          ${linkRow('Help center', 'Common questions and answers', '/help', 'headset')}
+        </div>
+      </section>
+
+      <section class="section fade-up">
         <h2 class="section-title">Data</h2>
         <div class="card">
           <div class="row">
@@ -126,8 +206,8 @@ export async function renderProfile(): Promise<RawHtml> {
             <span class="row__body">
               <span class="row__title">Storage</span>
               <span class="row__meta">
-                Your balance, bets and preferences are stored on this device only. No sign-up, no password,
-                nothing sent anywhere.
+                Your balance, bets and preferences are stored on this device only. No sign-up, no
+                password, nothing sent anywhere.
               </span>
             </span>
           </div>

@@ -9,6 +9,8 @@
 import type { Wallet } from '../../src/domain/types.js';
 import type { PublicConfigView } from './api.js';
 import { ledger } from './ledgerClient.js';
+import { computeRewards } from './rewards.js';
+import type { RewardsSummary } from './rewards.js';
 
 export interface SlipLeg {
   eventId: string;
@@ -31,6 +33,7 @@ interface State {
   stakeInput: string;
   slipOpen: boolean;
   openBetCount: number;
+  rewards: RewardsSummary | null;
 }
 
 type Listener = (state: State) => void;
@@ -80,6 +83,7 @@ const state: State = {
   })(),
   slipOpen: false,
   openBetCount: 0,
+  rewards: null,
 };
 
 const listeners = new Set<Listener>();
@@ -121,6 +125,15 @@ export const store = {
     const open = await (await ledger()).bets(['OPEN']);
     state.openBetCount = open.length;
     emit();
+  },
+
+  /** Recompute rewards from the ledger's transaction history. */
+  async refreshRewards(): Promise<RewardsSummary> {
+    const transactions = await (await ledger()).transactions(1000);
+    const summary = computeRewards(transactions);
+    state.rewards = summary;
+    emit();
+    return summary;
   },
 
   setOpenBetCount(count: number): void {

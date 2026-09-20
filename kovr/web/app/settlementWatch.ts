@@ -50,6 +50,7 @@ export async function runSettlement(announce = true): Promise<number> {
 
     await store.refreshWallet();
     await store.refreshCounts();
+    void store.refreshRewards();
 
     if (announce && preferences().notifyOnSettlement) {
       for (const outcome of graded) {

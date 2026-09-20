@@ -14,6 +14,10 @@
     { "source": "/wallet", "destination": "/index.html" },
     { "source": "/activity", "destination": "/index.html" },
     { "source": "/profile", "destination": "/index.html" },
+    { "source": "/account", "destination": "/index.html" },
+    { "source": "/rewards", "destination": "/index.html" },
+    { "source": "/promotions", "destination": "/index.html" },
+    { "source": "/help", "destination": "/index.html" },
     { "source": "/betslip", "destination": "/index.html" },
     { "source": "/event/:id", "destination": "/index.html" },
     { "source": "/league/:id", "destination": "/index.html" }

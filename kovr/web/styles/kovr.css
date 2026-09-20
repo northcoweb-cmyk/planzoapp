@@ -834,3 +834,173 @@ svg { flex: none; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ─────────────────────────── floating slip FAB ─────────────────────── */
+
+.slip-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+  z-index: 45;
+  display: flex; align-items: center; gap: 8px;
+  height: 52px; padding: 0 20px 0 18px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, var(--red-bright) 0%, var(--red) 55%, var(--red-deep) 100%);
+  color: #fff;
+  box-shadow: 0 10px 30px -8px var(--red-glow), var(--shadow-2);
+  font-size: 14px; font-weight: 750;
+  animation: fade-up 320ms var(--spring) both;
+  transition: transform 160ms var(--ease);
+}
+.slip-fab:active { transform: scale(0.96); }
+.slip-fab::after {
+  content: 'Betslip';
+}
+.slip-fab__count {
+  display: grid; place-items: center;
+  min-width: 22px; height: 22px; padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 12px; font-weight: 800;
+}
+
+@media (min-width: 1080px) {
+  .slip-fab { display: none; }
+}
+
+/* ─────────────────────────── active state btn ───────────────────────── */
+
+.btn--active {
+  background: linear-gradient(180deg, var(--red-bright) 0%, var(--red) 100%);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* ─────────────────────────── sidebar label ──────────────────────────── */
+
+.sidebar__label {
+  padding: 6px 12px 2px;
+  font-size: 10.5px; font-weight: 750; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-4);
+}
+
+/* ───────────────────────────── profile card ─────────────────────────── */
+
+.profile-card__balance {
+  margin-left: auto;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 15px; font-weight: 750;
+  transition: background 160ms var(--ease);
+}
+.profile-card__balance:hover { background: var(--surface-3); }
+.profile-card__balance .dim { font-size: 10px; }
+
+/* ───────────────────────────── tier badges ──────────────────────────── */
+
+.tier-badge {
+  flex: none;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--tier-color) 55%, white 10%), var(--tier-color) 70%);
+  color: #1a1206;
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--tier-color) 70%, transparent);
+  border: 2px solid color-mix(in srgb, var(--tier-color) 40%, black 20%);
+}
+
+.rewards-hero {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 30px 20px 26px;
+  border-radius: var(--r-xl);
+  background: linear-gradient(165deg, #171B25 0%, #0D1016 100%);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-2);
+  text-align: center;
+}
+.rewards-hero__glow {
+  position: absolute; inset: -30% -10% auto -10%; height: 60%;
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--tier-color) 35%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.rewards-hero__tier {
+  margin-top: 12px;
+  font-size: 13px; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--tier-color);
+}
+.rewards-hero__points {
+  font-size: 34px; font-weight: 800; letter-spacing: -0.03em;
+}
+
+.rewards-progress { width: 100%; max-width: 320px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.rewards-progress__track {
+  height: 8px; border-radius: var(--r-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.rewards-progress__fill {
+  height: 100%; border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--tier-color), color-mix(in srgb, var(--tier-color) 60%, white 20%));
+  transition: width 500ms var(--ease-out);
+}
+.rewards-progress__label { font-size: 12px; color: var(--text-3); }
+
+.tier-ladder {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+}
+.tier-step {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 14px 6px;
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  opacity: 0.4;
+}
+.tier-step--reached { opacity: 1; border-color: var(--line-strong); }
+.tier-step__name { font-size: 11.5px; font-weight: 700; }
+
+/* ────────────────────────────── promo cards ─────────────────────────── */
+
+.promo-list { display: flex; flex-direction: column; gap: 12px; }
+
+.promo-card {
+  padding: 18px;
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(120% 100% at 100% 0%, rgba(232, 18, 31, 0.14) 0%, transparent 60%),
+    var(--surface-1);
+  border: 1px solid var(--line-strong);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.promo-card__badge {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--red-wash);
+  border: 1px solid var(--line-red);
+  color: var(--red-bright);
+  font-size: 11px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.promo-card__title { font-size: 17px; font-weight: 750; letter-spacing: -0.018em; }
+.promo-card__body { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+.promo-card__meta { display: flex; gap: 14px; font-size: 11.5px; color: var(--text-3); }
+.promo-card__meta span { display: inline-flex; align-items: center; gap: 5px; }
+.promo-card__status {
+  display: flex; align-items: center; gap: 7px;
+  padding: 11px 14px;
+  border-radius: var(--r-md);
+  background: rgba(47, 217, 139, 0.1);
+  border: 1px solid rgba(47, 217, 139, 0.3);
+  color: var(--win);
+  font-size: 13px; font-weight: 700;
+}
+.promo-card__status--done { background: var(--surface-2); border-color: var(--line); color: var(--text-3); }
+
+/* ─────────────────────────── exclusion sheet ────────────────────────── */
+
+.exclusion-sheet .btn { height: 48px; }

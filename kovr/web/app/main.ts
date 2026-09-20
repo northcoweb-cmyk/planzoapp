@@ -14,7 +14,7 @@ import { store, toast, onToasts } from './store.js';
 import type { Toast } from './store.js';
 import { betslipMarkup, placeBet, clearPendingChanges } from './betslip.js';
 import { ledger } from './ledgerClient.js';
-import { preferences, setPreference } from './preferences.js';
+import { preferences, setPreference, selfExclusionStatus, setExclusion } from './preferences.js';
 import { startSettlementWatch, runSettlement } from './settlementWatch.js';
 import { parseAmountToCents, MoneyError } from '../../src/core/money.js';
 import { LedgerError } from '../../src/ledger/ledger.js';
@@ -23,7 +23,10 @@ import { renderSports, renderLeague, sportsSkeleton } from './views/sports.js';
 import { renderEvent, eventSkeleton } from './views/event.js';
 import { renderBets, betsSkeleton, setBetsTab } from './views/bets.js';
 import { renderWallet, renderActivity, walletSkeleton } from './views/wallet.js';
-import { renderProfile, profileSkeleton } from './views/profile.js';
+import { renderAccount, accountSkeleton } from './views/account.js';
+import { renderRewards, rewardsSkeleton } from './views/rewards.js';
+import { renderPromotions, promotionsSkeleton } from './views/promotions.js';
+import { renderHelp } from './views/help.js';
 
 interface NavItem {
   path: string;
@@ -33,11 +36,10 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { path: '/', label: 'Home', icon: 'home' },
+  { path: '/bets', label: 'My Bets', icon: 'bets' },
   { path: '/sports', label: 'Sports', icon: 'sports' },
-  { path: '/betslip', label: 'Slip', icon: 'slip' },
-  { path: '/bets', label: 'Bets', icon: 'bets' },
-  { path: '/wallet', label: 'Wallet', icon: 'wallet' },
-  { path: '/profile', label: 'You', icon: 'profile' },
+  { path: '/rewards', label: 'Rewards', icon: 'rewards' },
+  { path: '/account', label: 'Account', icon: 'profile' },
 ];
 
 const currentPath = (): string => window.location.pathname;
@@ -46,6 +48,9 @@ function isActive(path: string): boolean {
   const here = currentPath();
   if (path === '/') return here === '/';
   if (path === '/sports') return here === '/sports' || here.startsWith('/league/');
+  if (path === '/account') {
+    return here === '/account' || here === '/wallet' || here === '/activity' || here === '/profile';
+  }
   return here.startsWith(path);
 }
 
@@ -84,11 +89,9 @@ function bottomNavMarkup(): RawHtml {
     <nav class="bottom-nav" aria-label="Primary">
       ${NAV.map((item) => {
         const badge =
-          item.path === '/betslip' && state.slip.length > 0
-            ? h`<span class="nav-item__badge">${state.slip.length}</span>`
-            : item.path === '/bets' && state.openBetCount > 0
-              ? h`<span class="nav-item__badge">${state.openBetCount}</span>`
-              : raw('');
+          item.path === '/bets' && state.openBetCount > 0
+            ? h`<span class="nav-item__badge">${state.openBetCount}</span>`
+            : raw('');
         return h`
           <button class="nav-item" type="button" data-nav="${item.path}"
             ${isActive(item.path) ? raw('aria-current="page"') : raw('')}>
@@ -100,12 +103,27 @@ function bottomNavMarkup(): RawHtml {
     </nav>`;
 }
 
+/**
+ * Floating access to the betslip. The slip is not a nav tab (five tabs is
+ * the limit), so this is how it stays reachable everywhere on mobile — a
+ * single tap opens it as a sheet. Hidden until there is something in it.
+ */
+function slipFabMarkup(): RawHtml {
+  const count = store.get().slip.length;
+  if (count === 0) return raw('');
+  return h`
+    <button class="slip-fab" type="button" data-nav="/betslip" aria-label="Open betslip, ${count} selections">
+      ${icon('slip', 19)}
+      <span class="slip-fab__count">${count}</span>
+    </button>`;
+}
+
 function sidebarMarkup(): RawHtml {
   const state = store.get();
   return h`
     <aside class="sidebar">
       <div class="sidebar__group">
-        ${NAV.filter((item) => item.path !== '/betslip').map(
+        ${NAV.map(
           (item) => h`
             <button class="sidebar__item" type="button" data-nav="${item.path}"
               ${isActive(item.path) ? raw('aria-current="page"') : raw('')}>
@@ -113,6 +131,17 @@ function sidebarMarkup(): RawHtml {
               ${item.path === '/bets' && state.openBetCount > 0 ? h`<span class="pill">${state.openBetCount}</span>` : raw('')}
             </button>`,
         )}
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__label">More</p>
+        <button class="sidebar__item" type="button" data-nav="/promotions"
+          ${isActive('/promotions') ? raw('aria-current="page"') : raw('')}>
+          ${icon('tag', 17)} <span>Promotions</span>
+        </button>
+        <button class="sidebar__item" type="button" data-nav="/wallet"
+          ${isActive('/wallet') ? raw('aria-current="page"') : raw('')}>
+          ${icon('wallet', 17)} <span>Wallet</span>
+        </button>
         <button class="sidebar__item" type="button" data-nav="/activity"
           ${isActive('/activity') ? raw('aria-current="page"') : raw('')}>
           ${icon('activity', 17)} <span>Activity</span>
@@ -127,6 +156,7 @@ function shellMarkup(): RawHtml {
     ${sidebarMarkup()}
     <main class="app-main" id="view"></main>
     <div class="slip-panel" id="slip-panel"></div>
+    <div id="slip-fab">${slipFabMarkup()}</div>
     ${bottomNavMarkup()}
     <div class="toast-stack" id="toasts" aria-live="polite"></div>
     <div id="sheet"></div>`;
@@ -163,9 +193,17 @@ async function route(): Promise<void> {
     } else if (path === '/activity') {
       show(walletSkeleton());
       show(await renderActivity());
-    } else if (path === '/profile') {
-      show(profileSkeleton());
-      show(await renderProfile());
+    } else if (path === '/account' || path === '/profile') {
+      show(accountSkeleton());
+      show(await renderAccount());
+    } else if (path === '/rewards') {
+      show(rewardsSkeleton());
+      show(await renderRewards());
+    } else if (path === '/promotions') {
+      show(promotionsSkeleton());
+      show(await renderPromotions());
+    } else if (path === '/help') {
+      show(renderHelp());
     } else {
       show(h`<div class="view">
         <div class="empty">${icon('empty', 30)}
@@ -192,9 +230,11 @@ function refreshChrome(): void {
   const header = qs('.app-header');
   const nav = qs('.bottom-nav');
   const sidebar = qs('.sidebar');
+  const fab = qs('#slip-fab');
   if (header) header.outerHTML = headerMarkup().value;
   if (nav) nav.outerHTML = bottomNavMarkup().value;
   if (sidebar) sidebar.outerHTML = sidebarMarkup().value;
+  if (fab) render(fab, slipFabMarkup());
   renderSlip();
 }
 
@@ -209,7 +249,7 @@ function renderSlip(): void {
   if (state.slipOpen) {
     render(sheet, h`<div class="sheet-backdrop" data-close-slip></div>${betslipMarkup()}`);
     document.body.classList.add('is-locked');
-  } else if (!sheet.querySelector('.balance-sheet')) {
+  } else if (!sheet.querySelector('.balance-sheet') && !sheet.querySelector('.exclusion-sheet')) {
     sheet.innerHTML = '';
     document.body.classList.remove('is-locked');
   }
@@ -301,6 +341,59 @@ async function applyBalance(): Promise<void> {
   }
 }
 
+/* ─────────────────────── responsible-gaming sheet ───────────────────── */
+
+const EXCLUSION_OPTIONS: Array<[label: string, hours: number]> = [
+  ['24 hours', 24],
+  ['7 days', 24 * 7],
+  ['30 days', 24 * 30],
+  ['90 days', 24 * 90],
+];
+
+function openExclusionSheet(): void {
+  const sheet = qs('#sheet');
+  if (!sheet) return;
+
+  const active = selfExclusionStatus();
+  render(
+    sheet,
+    h`
+      <div class="sheet-backdrop" data-close-exclusion></div>
+      <div class="slip exclusion-sheet">
+        <div class="slip__grip"></div>
+        <header class="slip__head">
+          <h2 class="slip__title">Take a break</h2>
+          <button class="slip-leg__remove" type="button" data-close-exclusion aria-label="Close"
+            style="margin-left:auto">${icon('close', 14)}</button>
+        </header>
+        <div class="slip__foot">
+          ${
+            active.active
+              ? h`<p class="muted">Already paused until ${active.until ? new Date(active.until).toLocaleString() : ''}.
+                   This cannot be shortened once set.</p>`
+              : h`
+                <p class="muted">Betting and deposits will be blocked on this device until the period ends.
+                  This cannot be undone early.</p>
+                <div class="btn-grid" style="grid-template-columns:1fr 1fr">
+                  ${EXCLUSION_OPTIONS.map(
+                    ([label, hours]) => h`
+                      <button class="btn" type="button" data-exclusion-confirm="${String(hours)}">${label}</button>`,
+                  )}
+                </div>`
+          }
+        </div>
+      </div>`,
+  );
+  document.body.classList.add('is-locked');
+}
+
+function closeExclusionSheet(): void {
+  const sheet = qs('#sheet');
+  if (sheet) sheet.innerHTML = '';
+  document.body.classList.remove('is-locked');
+  renderSlip();
+}
+
 /* ───────────────────────────── interaction ─────────────────────────── */
 
 function wireEvents(root: HTMLElement): void {
@@ -355,7 +448,8 @@ function wireEvents(root: HTMLElement): void {
 
     const betsTab = target.closest('[data-bets-tab]');
     if (betsTab instanceof HTMLElement) {
-      setBetsTab(betsTab.dataset['betsTab'] === 'settled' ? 'settled' : 'open');
+      const value = betsTab.dataset['betsTab'];
+      setBetsTab(value === 'settled' ? 'settled' : value === 'all' ? 'all' : 'open');
       void route();
       return;
     }
@@ -363,6 +457,7 @@ function wireEvents(root: HTMLElement): void {
     void handleSlipClick(target);
     void handleWalletClick(target);
     void handleBalanceSheetClick(target);
+    handleExclusionSheetClick(target);
   });
 
   root.addEventListener('input', (event) => {
@@ -504,8 +599,25 @@ async function handleWalletClick(target: Element): Promise<void> {
     store.setWallet(wallet);
     store.clearSlip();
     await store.refreshCounts();
+    await store.refreshRewards();
     toast('Account reset', 'success');
     void route();
+    return;
+  }
+
+  if (target.closest('[data-claim-welcome-boost]')) {
+    setPreference('welcomeBoostState', 'claimed');
+    toast('Boost claimed — make a deposit from Wallet to apply it', 'success');
+    void route();
+    return;
+  }
+
+  const stakeCap = target.closest('[data-stake-cap]');
+  if (stakeCap instanceof HTMLElement) {
+    setPreference('maxStakeCents', Number(stakeCap.dataset['stakeCap'] ?? '0'));
+    toast('Stake limit updated', 'success');
+    void route();
+    return;
   }
 }
 
@@ -514,11 +626,32 @@ async function moveMoney(kind: 'deposit' | 'withdraw', amountCents: number): Pro
     toast('Enter a valid amount.', 'error');
     return;
   }
+  // A cool-off blocks adding funds too — only withdrawing stays open, since
+  // that only ever reduces what is at risk.
+  if (kind === 'deposit') {
+    const exclusion = selfExclusionStatus();
+    if (exclusion.active) {
+      toast('Deposits are paused for the length of your cool-off.', 'error');
+      return;
+    }
+  }
   try {
     const book = await ledger();
     const wallet = kind === 'deposit' ? await book.deposit(amountCents) : await book.withdraw(amountCents);
     store.setWallet(wallet);
     toast(kind === 'deposit' ? `${money(amountCents)} added` : `${money(amountCents)} withdrawn`, 'success');
+
+    if (kind === 'deposit' && preferences().welcomeBoostState === 'claimed') {
+      const bonusCents = Math.min(Math.round(amountCents * 0.2), 20_000);
+      if (bonusCents > 0) {
+        const boosted = await book.deposit(bonusCents);
+        store.setWallet(boosted);
+        toast(`Welcome boost applied — ${money(bonusCents)} extra`, 'success');
+      }
+      setPreference('welcomeBoostState', 'used');
+    }
+
+    void store.refreshRewards();
     void route();
   } catch (error) {
     toast(error instanceof LedgerError ? error.message : 'That did not work.', 'error');
@@ -537,6 +670,27 @@ async function handleBalanceSheetClick(target: Element): Promise<void> {
     return;
   }
   if (target.closest('[data-balance-apply]')) await applyBalance();
+}
+
+function handleExclusionSheetClick(target: Element): void {
+  if (target.closest('[data-open-exclusion]')) {
+    openExclusionSheet();
+    return;
+  }
+  if (target.closest('[data-close-exclusion]')) {
+    closeExclusionSheet();
+    return;
+  }
+  const confirm = target.closest('[data-exclusion-confirm]');
+  if (confirm instanceof HTMLElement) {
+    const hours = Number(confirm.dataset['exclusionConfirm'] ?? '0');
+    if (hours > 0) {
+      setExclusion(hours);
+      closeExclusionSheet();
+      toast('Cool-off started', 'success');
+      void route();
+    }
+  }
 }
 
 /* ─────────────────────────────── toasts ────────────────────────────── */
@@ -583,6 +737,7 @@ async function boot(): Promise<void> {
 
   await store.refreshWallet();
   await store.refreshCounts();
+  await store.refreshRewards();
 
   const defaultStake = preferences().defaultStake;
   if (defaultStake !== '' && store.get().stakeInput === '') store.setStake(defaultStake);

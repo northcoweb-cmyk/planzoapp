@@ -45,6 +45,14 @@ const PATHS: Readonly<Record<string, string>> = {
   tools: '<path d="M14.5 6.5a3.5 3.5 0 0 1 4.8 4.4L21 12.6 12.6 21 4 12.4l8.4-8.4 1.7 1.7A3.5 3.5 0 0 1 14.5 6.5Z"/>',
   download: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/>',
   upload: '<path d="M12 20V9M7.5 13.5 12 9l4.5 4.5"/><path d="M4.5 4.5h15"/>',
+  rewards: '<path d="M12 3 14.5 8.5 20.5 9.3 16 13.2 17.2 19.2 12 16.1 6.8 19.2 8 13.2 3.5 9.3 9.5 8.5Z"/>',
+  crown: '<path d="M4 8.5 8 12l4-6 4 6 4-3.5V17a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M5 20.5h14"/>',
+  tag: '<path d="M4 4h7.5a1 1 0 0 1 .7.3l8 8a1 1 0 0 1 0 1.4l-6.5 6.5a1 1 0 0 1-1.4 0l-8-8A1 1 0 0 1 4 11.5Z"/><circle cx="8.5" cy="8.5" r="1.3"/>',
+  gift: '<rect x="4" y="9.5" width="16" height="10.5" rx="1"/><path d="M4 13.5h16M12 9.5v10.5"/><path d="M12 9.5c-1-3-3-4.5-4.5-3.5S6.5 9.5 12 9.5c5.5 0 5-2.5 3.5-3.5S13 6.5 12 9.5Z"/>',
+  history: '<path d="M4 12a8 8 0 1 1 2.6 5.9"/><path d="M4 8v4h4"/><path d="M12 8v4l3 2"/>',
+  headset: '<path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.3"/><rect x="17" y="13" width="4" height="6" rx="1.3"/><path d="M20 19a4 4 0 0 1-4 3h-2"/>',
+  logout: '<path d="M9 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h3"/><path d="M13 8l4 4-4 4M17 12H9"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
 };
 
 /** Render an icon. An unknown name falls back to the neutral mark. */
