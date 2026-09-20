@@ -6,3 +6,9 @@ dist/
 app/node_modules/
 app/dist/
 app/dist-single/
+
+# KOVR (isolated sub-project) — build output and local data
+kovr/node_modules/
+kovr/dist/
+kovr/web/dist/
+kovr/data/

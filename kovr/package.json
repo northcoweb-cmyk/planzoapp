@@ -1,0 +1,30 @@
+{
+  "name": "kovr-sports",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KOVR Sports — premium sportsbook simulator. Real sports data, real odds, simulated money only.",
+  "type": "module",
+  "engines": { "node": ">=22.5.0" },
+  "scripts": {
+    "clean": "node --experimental-strip-types scripts/clean.ts",
+    "build": "npm run build:server && npm run build:client && npm run build:icons",
+    "build:server": "tsc -p tsconfig.json",
+    "build:client": "tsc -p tsconfig.client.json",
+    "build:icons": "node scripts/build-icons.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "npm run build:server && node --test --test-reporter=spec \"dist/test/**/*.test.js\"",
+    "start": "node dist/src/index.js",
+    "dev": "npm run build && node dist/src/index.js",
+    "verify:live": "npm run build:server && node dist/scripts/verify-live.js"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^22.19.0",
+    "eslint": "^9.39.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0"
+  }
+}

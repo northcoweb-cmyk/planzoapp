@@ -1,0 +1,11 @@
+# KOVR — never commit secrets, build output, or local data
+.env
+.env.local
+.env.*.local
+node_modules/
+dist/
+web/dist/
+data/
+*.log
+.DS_Store
+coverage/
