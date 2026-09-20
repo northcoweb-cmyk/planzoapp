@@ -144,6 +144,7 @@ export interface QuoteView {
 export interface OddsChangeView {
   eventId: string;
   eventName: string;
+  selectionId: string;
   selectionName: string;
   marketName: string;
   previousPrice: number;

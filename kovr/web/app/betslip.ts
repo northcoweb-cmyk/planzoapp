@@ -209,11 +209,9 @@ export async function placeBet(accept = false): Promise<boolean> {
     if (error instanceof ApiError && error.code === 'ODDS_CHANGED' && error.payload?.changes) {
       // Show the move and let the user decide; nothing is placed meanwhile.
       pendingChanges = error.payload.changes;
+      // Reprice by id: a display name is not unique across events.
       for (const change of error.payload.changes) {
-        store.repriceLeg(
-          state.slip.find((leg) => leg.selectionName === change.selectionName)?.selectionId ?? '',
-          change.currentPrice,
-        );
+        store.repriceLeg(change.selectionId, change.currentPrice);
       }
       store.openSlip();
       return false;

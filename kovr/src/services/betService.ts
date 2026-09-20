@@ -50,6 +50,8 @@ export interface PlaceBetRequest {
 export interface OddsChange {
   eventId: string;
   eventName: string;
+  /** Identifies the leg exactly; two events can share a selection name. */
+  selectionId: string;
   selectionName: string;
   marketName: string;
   previousPrice: AmericanOdds;
@@ -239,6 +241,7 @@ export class BetService {
         changes.push({
           eventId: leg.event.id,
           eventName: leg.event.name,
+          selectionId: leg.selection.id,
           selectionName: leg.selection.name,
           marketName: leg.market.name,
           previousPrice: leg.request.displayedPrice,

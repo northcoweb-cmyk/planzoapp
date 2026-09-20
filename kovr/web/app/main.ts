@@ -513,6 +513,16 @@ async function boot(): Promise<void> {
 
   window.addEventListener('popstate', () => void route());
 
+  // The header balance is the one piece of chrome that changes on its own.
+  let lastBalance: number | null = null;
+  store.subscribe((state) => {
+    const balance = state.wallet?.balanceCents ?? null;
+    if (balance === lastBalance) return;
+    lastBalance = balance;
+    const chip = qs('.balance-chip__value');
+    if (chip) chip.textContent = balance === null ? '—' : money(balance);
+  });
+
   try {
     const [config, wallet] = await Promise.all([api.config(), api.wallet()]);
     store.setConfig(config);
