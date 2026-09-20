@@ -12,7 +12,7 @@ import type {
   ProviderHealth,
   SportsDataProvider,
 } from '../../src/providers/SportsDataProvider.js';
-import { ProviderError } from '../../src/providers/SportsDataProvider.js';
+import type { ProviderError } from '../../src/providers/SportsDataProvider.js';
 import type {
   EventResult,
   EventStatus,

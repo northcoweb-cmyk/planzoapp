@@ -23,5 +23,7 @@
     "isolatedModules": true
   },
   "include": ["web/app/**/*.ts", "src/core/**/*.ts", "src/domain/**/*.ts"],
-  "exclude": ["node_modules", "dist", "web/dist"]
+  // identity.ts depends on node:crypto and is server-only; the browser
+  // never derives an id, it only ever displays one the server sent.
+  "exclude": ["node_modules", "dist", "web/dist", "src/domain/identity.ts"]
 }

@@ -145,7 +145,7 @@ test('a league sync survives an outage and keeps serving what it already has', a
     // The event is still readable, and still labelled for what it is.
     const feed = h.context.sports.getLeagueEvents('ufc');
     assert.equal(feed.data.length, 1);
-    assert.equal(feed.data[0]?.name, 'Fighter J vs Fighter I');
+    assert.equal(feed.data[0]?.event.name, 'Fighter J vs Fighter I');
   } finally {
     h.close();
   }

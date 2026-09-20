@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>KOVR Sports</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
+    />
+    <meta name="description" content="KOVR Sports — a premium sportsbook simulator. Real sports data, real odds, simulated money only." />
+    <meta name="theme-color" content="#07080A" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Installed-app behaviour on iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="KOVR" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+    <link rel="stylesheet" href="/styles/kovr.css" />
+  </head>
+  <body>
+    <!--
+      KOVR Sports is a simulator. Every balance, stake and payout in this
+      application is a demo value; no real funds are held, moved or requested.
+      Sports events, competitors, prices and results come from a live data
+      provider, and when that provider cannot be reached the interface says so
+      rather than showing anything invented.
+    -->
+    <div id="app">
+      <noscript>
+        <div style="padding: 32px; text-align: center; color: #A3AAB7; font-family: system-ui, sans-serif">
+          <h1 style="color: #F6F7F9">KOVR Sports</h1>
+          <p>KOVR needs JavaScript to show live odds and keep them current.</p>
+        </div>
+      </noscript>
+    </div>
+    <script type="module" src="/dist/web/app/main.js"></script>
+  </body>
+</html>

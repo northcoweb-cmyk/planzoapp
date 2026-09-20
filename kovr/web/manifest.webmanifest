@@ -1,0 +1,26 @@
+{
+  "name": "KOVR Sports",
+  "short_name": "KOVR",
+  "description": "A premium sportsbook simulator. Real sports data, real odds, simulated money only.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#07080A",
+  "theme_color": "#07080A",
+  "categories": ["sports", "entertainment", "games"],
+  "icons": [
+    { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "My bets", "url": "/bets" },
+    { "name": "Wallet", "url": "/wallet" },
+    { "name": "Sports", "url": "/sports" }
+  ]
+}

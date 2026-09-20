@@ -13,6 +13,7 @@ import type {
   EventWithMarkets,
   Freshness,
   League,
+  Market,
   SeasonState,
   SportCategory,
   SportEvent,
@@ -28,6 +29,14 @@ import type { MediaService } from './mediaService.js';
 export interface LeagueGroup {
   category: SportCategory;
   leagues: League[];
+}
+
+/** An event as the feed serves it: with its headline price attached. */
+export interface FeedEntry {
+  event: SportEvent;
+  markets: Market[];
+  /** How many markets exist in total, for the "N markets" affordance. */
+  marketCount: number;
 }
 
 export interface SyncOutcome {
@@ -210,19 +219,17 @@ export class SportsService {
     return buildFreshness('cache', lastUpdatedAt, className);
   }
 
-  getLeagueEvents(leagueId: string, limit = 60): Envelope<SportEvent[]> {
-    const events = this.media.decorateEvents(
-      this.events.findEvents({
-        leagueId,
-        statuses: ['UPCOMING', 'LIVE', 'PAUSED'],
-        limit,
-      }),
-    );
-    const newest = events.reduce<string | null>(
+  getLeagueEvents(leagueId: string, limit = 60): Envelope<FeedEntry[]> {
+    const raw = this.events.findEvents({
+      leagueId,
+      statuses: ['UPCOMING', 'LIVE', 'PAUSED'],
+      limit,
+    });
+    const newest = raw.reduce<string | null>(
       (latest, event) => (latest === null || event.lastUpdatedAt > latest ? event.lastUpdatedAt : latest),
       null,
     );
-    return { data: events, freshness: this.storedFreshness(newest, 'upcomingOdds') };
+    return { data: this.withPrimaryMarkets(raw), freshness: this.storedFreshness(newest, 'upcomingOdds') };
   }
 
   getEvent(eventId: string): Envelope<EventWithMarkets | null> {
@@ -240,16 +247,37 @@ export class SportsService {
   }
 
   /**
+   * The headline market for an event — the moneyline where one is priced,
+   * otherwise whatever the provider ranked first. Returned with feed events
+   * so a card can show a price without a request of its own.
+   */
+  private primaryMarket(eventId: string): Market[] {
+    const markets = this.events.listMarkets(eventId);
+    if (markets.length === 0) return [];
+    const moneyline = markets.find((market) => market.kind === 'MONEYLINE');
+    return [moneyline ?? (markets[0] as Market)];
+  }
+
+  /** Attach the headline market and verified artwork to a list of events. */
+  private withPrimaryMarkets(events: readonly SportEvent[]): FeedEntry[] {
+    return this.media.decorateEvents(events).map((event) => ({
+      event,
+      markets: this.primaryMarket(event.id),
+      marketCount: this.events.listMarkets(event.id).length,
+    }));
+  }
+
+  /**
    * The home feed.
    *
    * Sections appear only when they hold something. KOVR does not pad the page
    * with an empty "Live now" rail to keep the layout tidy.
    */
   getHomeFeed(): Envelope<{
-    live: SportEvent[];
-    featured: SportEvent[];
-    startingSoon: SportEvent[];
-    byLeague: Array<{ league: League; events: SportEvent[] }>;
+    live: FeedEntry[];
+    featured: FeedEntry[];
+    startingSoon: FeedEntry[];
+    byLeague: Array<{ league: League; events: FeedEntry[] }>;
   }> {
     const now = new Date();
     const nowIso = now.toISOString();
@@ -287,12 +315,12 @@ export class SportsService {
 
     return {
       data: {
-        live: this.media.decorateEvents(live),
-        featured: this.media.decorateEvents(featured),
-        startingSoon: this.media.decorateEvents(startingSoon),
+        live: this.withPrimaryMarkets(live),
+        featured: this.withPrimaryMarkets(featured),
+        startingSoon: this.withPrimaryMarkets(startingSoon),
         byLeague: byLeague.map((entry) => ({
           league: entry.league,
-          events: this.media.decorateEvents(entry.events),
+          events: this.withPrimaryMarkets(entry.events),
         })),
       },
       freshness: this.storedFreshness(this.events.mostRecentFetchAt(), 'upcomingOdds'),

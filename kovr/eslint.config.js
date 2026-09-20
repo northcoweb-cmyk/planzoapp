@@ -25,8 +25,15 @@ export default tseslint.config(
     },
   },
   {
-    // Node scripts and the dev-only icon builder may log to stdout.
+    // Node scripts may log to stdout.
     files: ['scripts/**/*'],
     rules: { 'no-console': 'off' },
+  },
+  {
+    // The service worker runs in its own global scope, not Node's.
+    files: ['web/sw.js'],
+    languageOptions: {
+      globals: { self: 'readonly', caches: 'readonly', fetch: 'readonly', Response: 'readonly', URL: 'readonly' },
+    },
   },
 );
