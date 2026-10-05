@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iPhone Simulator</title>
+<style>
+  :root { --bg:#0f1115; --panel:#1a1d24; --line:#2a2f3a; --text:#e8eaf0; --muted:#8a91a0; --accent:#4f8cff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+  header { display:flex; gap:8px; padding:12px 16px; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap; align-items:center; }
+  header button, header select { background:#262b36; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 12px; font:inherit; cursor:pointer; }
+  header button:hover { border-color:var(--accent); }
+  #url { flex:1; min-width:220px; background:#0b0d11; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 12px; font:inherit; }
+  #url:focus { outline:none; border-color:var(--accent); }
+  #go { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  main { flex:1; display:flex; align-items:center; justify-content:center; padding:24px 16px; }
+  .phone { position:relative; padding:14px; border-radius:64px; background:#050505; border:2px solid #3a3d44; box-shadow:0 0 0 6px #14161b, 0 30px 80px rgba(0,0,0,.6); transform-origin:top center; }
+  .screen { position:relative; border-radius:50px; overflow:hidden; background:#fff; }
+  canvas { display:block; touch-action:none; cursor:pointer; outline:none; }
+  .island { position:absolute; top:11px; left:50%; width:110px; height:32px; margin-left:-55px; background:#000; border-radius:20px; pointer-events:none; z-index:3; }
+  .home { position:absolute; bottom:8px; left:50%; width:130px; height:5px; margin-left:-65px; background:rgba(0,0,0,.55); border-radius:3px; pointer-events:none; z-index:3; }
+  .overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:32px; color:#666; background:#f4f5f7; z-index:2; font-size:15px; }
+  .bar { position:absolute; top:0; left:0; height:3px; width:100%; background:var(--accent); z-index:4; animation:load 1.2s infinite; display:none; }
+  .bar.on { display:block; }
+  @keyframes load { 0%{transform:scaleX(.05);transform-origin:left} 50%{transform:scaleX(1);transform-origin:left} 51%{transform-origin:right} 100%{transform:scaleX(.05);transform-origin:right} }
+  #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#262b36; border:1px solid var(--line); padding:10px 16px; border-radius:10px; max-width:90vw; display:none; z-index:10; }
+  #toast.err { border-color:#ff5d5d; }
+  .chk { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:13px; white-space:nowrap; }
+  iframe { display:block; border:0; background:#fff; }
+  .overlay button { margin-top:12px; background:var(--accent); color:#fff; border:0; border-radius:8px; padding:9px 14px; font:inherit; cursor:pointer; }
+  .overlay small { display:block; margin-top:8px; color:#888; }
+  .hint { color:var(--muted); font-size:12px; text-align:center; padding:0 16px 16px; }
+</style>
+</head>
+<body>
+<header>
+  <button id="back" title="Back">‹</button>
+  <button id="fwd" title="Forward">›</button>
+  <button id="reload" title="Reload">⟳</button>
+  <input id="url" placeholder="Paste a Vercel link, e.g. my-app.vercel.app" autocomplete="off" spellcheck="false">
+  <button id="go">Go</button>
+  <select id="mode" title="How the app is rendered" style="display:none"></select>
+  <select id="model"></select>
+  <label class="chk" title="Poll the site and reload when a new deploy is detected"><input type="checkbox" id="auto" checked> Auto-reload on deploy</label>
+  <button id="shot" title="Save a screenshot">📷</button>
+  <button id="clear" title="Forget cookies and logins">Clear logins</button>
+</header>
+<main>
+  <div class="phone" id="phone">
+    <div class="screen" id="screen">
+      <div class="island"></div><div class="home"></div><div class="bar" id="bar"></div>
+      <div class="overlay" id="overlay">Starting iPhone…</div>
+      <canvas id="cv" tabindex="0"></canvas>
+      <iframe id="fr" title="app" allow="clipboard-read; clipboard-write; geolocation; camera; microphone; fullscreen" style="display:none"></iframe>
+    </div>
+  </div>
+</main>
+<div class="hint" id="hint"></div>
+<div id="toast"></div>
+<script>
+const MODELS = { 'iphone-15-pro':'iPhone 15 Pro','iphone-15-pro-max':'iPhone 15 Pro Max','iphone-13':'iPhone 13','iphone-se':'iPhone SE' };
+const $ = (id) => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d'), urlEl = $('url'), modelEl = $('model');
+for (const [k, v] of Object.entries(MODELS)) modelEl.add(new Option(v, k));
+const params = new URLSearchParams(location.search);
+modelEl.value = params.get('model') || localStorage.getItem('model') || 'iphone-15-pro';
+if (!MODELS[modelEl.value]) modelEl.value = 'iphone-15-pro';
+
+let ws, W = 393, H = 852, ready = false, mode = 'embed', engineAvail = false;
+let pendingUrl = params.get('url') || localStorage.getItem('lastUrl') || '';
+const fr = $('fr'), overlay = $('overlay');
+const send = (o) => ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
+const dims = { 'iphone-15-pro':[393,852], 'iphone-15-pro-max':[430,932], 'iphone-13':[390,844], 'iphone-se':[375,667] };
+
+function toast(msg, err) {
+  const t = $('toast'); t.textContent = msg; t.className = err ? 'err' : ''; t.style.display = 'block';
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', err ? 6000 : 3000);
+}
+function showOverlay(html) { overlay.innerHTML = html; overlay.style.display = 'flex'; }
+function fit() {
+  const ph = $('phone'); ph.style.transform = 'none';
+  const avail = window.innerHeight - 150, need = H + 32;
+  const s = Math.min(1, avail / need);
+  for (const el of [cv, fr]) { el.style.width = W + 'px'; el.style.height = H + 'px'; }
+  ph.style.transform = `scale(${s})`; ph.style.marginBottom = `${-(need * (1 - s))}px`;
+}
+function normalizeUrl(u) { u = u.trim(); if (!u) return ''; return /^[a-z][a-z0-9+.-]*:/i.test(u) ? u : (/^(localhost|127\.|192\.168\.|10\.)/.test(u) ? 'http://' : 'https://') + u; }
+function remember(u) { try { localStorage.setItem('lastUrl', u); const q = new URLSearchParams(location.search); q.set('url', u); history.replaceState(null, '', '?' + q); } catch {} }
+
+// ---------- real-browser engine (only when running the local server) ----------
+function connect() {
+  if (ws && ws.readyState <= 1) return;
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+  ws.onopen = () => { ready = false; showOverlay('Starting iPhone…'); send({ t: 'start', model: modelEl.value, url: pendingUrl }); };
+  ws.onclose = () => { if (mode === 'engine') showOverlay('Disconnected (another tab may have taken over).<button onclick="location.reload()">Reconnect</button>'); };
+  const img = new Image();
+  img.onload = () => { if (cv.width !== img.width) { cv.width = img.width; cv.height = img.height; } ctx.drawImage(img, 0, 0, cv.width, cv.height); };
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    if (m.t === 'frame') img.src = 'data:image/jpeg;base64,' + m.data;
+    else if (m.t === 'ready') { W = m.w; H = m.h; ready = true; overlay.style.display = 'none'; fit(); cv.focus(); }
+    else if (m.t === 'url') { if (document.activeElement !== urlEl) urlEl.value = m.url; pendingUrl = m.url; remember(m.url); }
+    else if (m.t === 'loading') $('bar').classList.toggle('on', m.loading);
+    else if (m.t === 'toast') toast(m.message);
+    else if (m.t === 'error') { toast(m.message, true); $('bar').classList.remove('on'); }
+    else if (m.t === 'screenshot') { const a = document.createElement('a'); a.href = 'data:image/png;base64,' + m.data; a.download = 'iphone-screenshot.png'; a.click(); }
+  };
+}
+
+// ---------- mode handling ----------
+function applyMode() {
+  const embed = mode === 'embed';
+  fr.style.display = embed ? 'block' : 'none'; cv.style.display = embed ? 'none' : 'block';
+  for (const id of ['back', 'fwd', 'shot', 'clear']) $(id).style.display = embed ? 'none' : '';
+  $('hint').textContent = embed
+    ? 'Fast mode: your app loads directly in a phone-sized frame — use your mouse/scroll, type normally. Reload (⟳) or auto-reload picks up new deploys. Cookie-based logins can be blocked by the browser here; use Real browser mode for those.'
+    : 'Real browser mode: drag = swipe · scroll wheel · type on your keyboard · ⌘/Ctrl+V pastes · logins are remembered until “Clear logins”.';
+  [W, H] = dims[modelEl.value]; fit();
+}
+function load(url, { fresh = true } = {}) {
+  url = normalizeUrl(url); if (!url) return;
+  pendingUrl = url; urlEl.value = url; remember(url); lastFp = null;
+  if (mode === 'engine') { overlay.style.display = 'none'; send({ t: 'goto', url }); cv.focus(); return; }
+  checkThenLoad(url);
+}
+async function checkThenLoad(url) {
+  $('bar').classList.add('on'); showOverlay('Loading…');
+  let info = null;
+  try { info = await (await fetch('/api/check?url=' + encodeURIComponent(url))).json(); } catch {}
+  $('bar').classList.remove('on');
+  if (info && info.error) { showOverlay(`Couldn't reach that URL.<small>${info.error.replace(/</g, '&lt;')}</small>`); return; }
+  if (info && info.blocked) {
+    showOverlay(`This site doesn't allow being shown inside another page.<small>${info.blocked.replace(/</g, '&lt;')}</small>` +
+      (engineAvail ? '<button id="sw">Open in Real browser mode</button>' : '<small>Run the local engine (see README) to view sites like this.</small>'));
+    const b = $('sw'); if (b) b.onclick = () => { $('mode').value = 'engine'; $('mode').onchange(); };
+    return;
+  }
+  if (info) lastFp = info.fingerprint;
+  overlay.style.display = 'none';
+  setFrame(url);
+}
+function setFrame(url) { fr.src = 'about:blank'; setTimeout(() => { fr.src = url; }, 30); }
+function reload() {
+  if (mode === 'engine') return send({ t: 'reload' });
+  if (pendingUrl) { const u = pendingUrl; showOverlay('Reloading…'); setTimeout(() => { overlay.style.display = 'none'; }, 400); setFrame(u); }
+}
+// Poll for a new deploy: build-asset fingerprint changes → reload.
+let lastFp = null;
+setInterval(async () => {
+  if (!$('auto').checked || !pendingUrl || document.hidden) return;
+  try {
+    const info = await (await fetch('/api/check?url=' + encodeURIComponent(pendingUrl))).json();
+    if (!info.fingerprint) return;
+    if (lastFp && info.fingerprint !== lastFp) { lastFp = info.fingerprint; toast('New deploy detected — reloaded'); reload(); }
+    else if (!lastFp) lastFp = info.fingerprint;
+  } catch {}
+}, 8000);
+
+function go() { load(urlEl.value); }
+$('go').onclick = go;
+urlEl.onkeydown = (e) => { if (e.key === 'Enter') go(); };
+urlEl.onfocus = () => urlEl.select();
+$('back').onclick = () => send({ t: 'back' });
+$('fwd').onclick = () => send({ t: 'forward' });
+$('reload').onclick = reload;
+$('shot').onclick = () => send({ t: 'screenshot' });
+$('clear').onclick = () => { if (confirm('Forget all cookies, logins and site data in the simulator?')) send({ t: 'clear' }); };
+modelEl.onchange = () => {
+  localStorage.setItem('model', modelEl.value);
+  if (mode === 'engine') { showOverlay('Switching device…'); send({ t: 'start', model: modelEl.value, url: pendingUrl }); }
+  else { [W, H] = dims[modelEl.value]; fit(); }
+};
+$('mode').onchange = () => {
+  mode = $('mode').value; localStorage.setItem('mode', mode); applyMode();
+  if (mode === 'engine') { connect(); } else { if (ws) ws.close(); if (pendingUrl) load(pendingUrl); else showOverlay('Paste a Vercel link above and press Go.'); }
+};
+window.onresize = fit;
+window.addEventListener('keydown', (e) => { if ((e.key === 'r' || e.key === 'R') && !e.metaKey && !e.ctrlKey && document.activeElement === document.body) reload(); });
+
+// --- input: mouse → touch, wheel → scroll, keyboard → keys/text ---
+const pt = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+let down = false, lastMove = 0;
+cv.addEventListener('pointerdown', (e) => { cv.focus(); cv.setPointerCapture(e.pointerId); down = true; send({ t: 'touch', phase: 'start', ...pt(e) }); });
+cv.addEventListener('pointermove', (e) => { if (!down) return; const n = performance.now(); if (n - lastMove < 12) return; lastMove = n; send({ t: 'touch', phase: 'move', ...pt(e) }); });
+const up = (phase) => (e) => { if (!down) return; down = false; if (phase === 'end') send({ t: 'touch', phase: 'move', ...pt(e) }); send({ t: 'touch', phase }); };
+cv.addEventListener('pointerup', up('end')); cv.addEventListener('pointercancel', up('cancel'));
+cv.addEventListener('wheel', (e) => { e.preventDefault(); const p = pt(e); send({ t: 'wheel', x: p.x, y: p.y, dx: e.deltaX, dy: e.deltaY }); }, { passive: false });
+cv.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') return; // let the paste event handle it
+  if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) return;
+  e.preventDefault();
+  let key = e.key === ' ' ? 'Space' : e.key;
+  const mods = [e.ctrlKey && 'Control', e.metaKey && 'Meta', e.altKey && 'Alt', e.shiftKey && key.length > 1 && 'Shift'].filter(Boolean);
+  // Cmd shortcuts on a Mac map to Control in the Chromium on the server
+  const m2 = mods.map((x) => x === 'Meta' ? 'Control' : x);
+  send({ t: 'key', key: [...new Set(m2), key].join('+') });
+});
+cv.addEventListener('paste', (e) => { e.preventDefault(); const text = e.clipboardData.getData('text'); if (text) send({ t: 'text', text }); });
+
+(async () => {
+  try { engineAvail = (await (await fetch('/api/info')).json()).engine; } catch {}
+  if (engineAvail) {
+    const sel = $('mode'); sel.style.display = '';
+    sel.add(new Option('Real browser (touch, swipe, logins)', 'engine')); sel.add(new Option('Fast (embedded)', 'embed'));
+    mode = localStorage.getItem('mode') || 'engine'; sel.value = mode;
+  }
+  applyMode();
+  if (mode === 'engine') connect();
+  else if (pendingUrl) load(pendingUrl);
+  else showOverlay('Paste a Vercel link above and press Go.');
+  if (pendingUrl) urlEl.value = pendingUrl;
+})();
+</script>
+</body>
+</html>
