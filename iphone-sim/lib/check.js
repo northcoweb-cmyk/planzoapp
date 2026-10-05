@@ -71,4 +71,4 @@ async function checkUrl(input, { origin = '', allowPrivate = false } = {}) {
   };
 }
 
-module.exports = { checkUrl, normalize };
+module.exports = { checkUrl, normalize, assertPublic };

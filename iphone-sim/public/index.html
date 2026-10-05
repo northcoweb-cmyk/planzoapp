@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>if (window.top !== window.self) { location.replace('/_sim/root'); } // the app tried to load "/" inside the frame: show the app, not the simulator</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>iPhone Simulator</title>
@@ -67,7 +68,7 @@ const params = new URLSearchParams(location.search);
 modelEl.value = params.get('model') || localStorage.getItem('model') || 'iphone-15-pro';
 if (!MODELS[modelEl.value]) modelEl.value = 'iphone-15-pro';
 
-let ws, W = 393, H = 852, ready = false, mode = 'embed', engineAvail = false;
+let ws, W = 393, H = 852, ready = false, mode = 'proxy', engineAvail = false;
 let pendingUrl = params.get('url') || localStorage.getItem('lastUrl') || '';
 const fr = $('fr'), overlay = $('overlay');
 const send = (o) => ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
@@ -110,11 +111,14 @@ function connect() {
 
 // ---------- mode handling ----------
 function applyMode() {
-  const embed = mode === 'embed';
+  const embed = mode !== 'engine';
   fr.style.display = embed ? 'block' : 'none'; cv.style.display = embed ? 'none' : 'block';
-  for (const id of ['back', 'fwd', 'shot', 'clear']) $(id).style.display = embed ? 'none' : '';
-  $('hint').textContent = embed
-    ? 'Fast mode: your app loads directly in a phone-sized frame — use your mouse/scroll, type normally. Reload (⟳) or auto-reload picks up new deploys. Cookie-based logins can be blocked by the browser here; use Real browser mode for those.'
+  for (const id of ['shot', 'clear']) $(id).style.display = embed ? 'none' : '';
+  for (const id of ['back', 'fwd']) $(id).style.display = (embed && mode !== 'proxy') ? 'none' : '';
+  $('hint').textContent = mode === 'proxy'
+    ? 'Proxy mode: your app runs through this page so logins and cookies work, inside a phone-sized frame. Use mouse/scroll and type normally. ⟳ or auto-reload picks up new deploys. Only *.vercel.app apps are allowed by default.'
+    : embed
+    ? 'Direct frame mode: your app loads directly in a phone-sized frame. Cookie-based logins are usually blocked here — use Proxy mode for those.'
     : 'Real browser mode: drag = swipe · scroll wheel · type on your keyboard · ⌘/Ctrl+V pastes · logins are remembered until “Clear logins”.';
   [W, H] = dims[modelEl.value]; fit();
 }
@@ -127,10 +131,10 @@ function load(url, { fresh = true } = {}) {
 async function checkThenLoad(url) {
   $('bar').classList.add('on'); showOverlay('Loading…');
   let info = null;
-  try { info = await (await fetch('/api/check?url=' + encodeURIComponent(url))).json(); } catch {}
+  try { info = await (await fetch('/api/sim-check?url=' + encodeURIComponent(url))).json(); } catch {}
   $('bar').classList.remove('on');
   if (info && info.error) { showOverlay(`Couldn't reach that URL.<small>${info.error.replace(/</g, '&lt;')}</small>`); return; }
-  if (info && info.blocked) {
+  if (info && info.blocked && mode !== 'proxy') {
     showOverlay(`This site doesn't allow being shown inside another page.<small>${info.blocked.replace(/</g, '&lt;')}</small>` +
       (engineAvail ? '<button id="sw">Open in Real browser mode</button>' : '<small>Run the local engine (see README) to view sites like this.</small>'));
     const b = $('sw'); if (b) b.onclick = () => { $('mode').value = 'engine'; $('mode').onchange(); };
@@ -140,7 +144,28 @@ async function checkThenLoad(url) {
   overlay.style.display = 'none';
   setFrame(url);
 }
-function setFrame(url) { fr.src = 'about:blank'; setTimeout(() => { fr.src = url; }, 30); }
+let proxyOrigin = '';
+function setFrame(url) {
+  let src = url;
+  if (mode === 'proxy') {
+    const u = new URL(url);
+    document.cookie = `sim_origin=${encodeURIComponent(u.origin)}; path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
+    src = (u.pathname === '/' ? '/_sim/root' : u.pathname) + u.search + u.hash; // bare / is the simulator page itself
+    proxyOrigin = u.origin;
+  }
+  fr.src = 'about:blank'; setTimeout(() => { fr.src = src; }, 30);
+}
+// Same-origin in proxy mode, so follow the app's own navigation (URL bar, back/forward).
+fr.addEventListener('load', () => {
+  if (mode !== 'proxy' || !proxyOrigin) return;
+  try {
+    const l = fr.contentWindow.location;
+    if (l.href === 'about:blank') return;
+    const cur = proxyOrigin + (l.pathname === '/_sim/root' ? '/' : l.pathname) + l.search + l.hash;
+    if (document.activeElement !== urlEl) urlEl.value = cur;
+    pendingUrl = cur; remember(cur);
+  } catch {}
+});
 function reload() {
   if (mode === 'engine') return send({ t: 'reload' });
   if (pendingUrl) { const u = pendingUrl; showOverlay('Reloading…'); setTimeout(() => { overlay.style.display = 'none'; }, 400); setFrame(u); }
@@ -150,7 +175,7 @@ let lastFp = null;
 setInterval(async () => {
   if (!$('auto').checked || !pendingUrl || document.hidden) return;
   try {
-    const info = await (await fetch('/api/check?url=' + encodeURIComponent(pendingUrl))).json();
+    const info = await (await fetch('/api/sim-check?url=' + encodeURIComponent(pendingUrl))).json();
     if (!info.fingerprint) return;
     if (lastFp && info.fingerprint !== lastFp) { lastFp = info.fingerprint; toast('New deploy detected — reloaded'); reload(); }
     else if (!lastFp) lastFp = info.fingerprint;
@@ -161,8 +186,8 @@ function go() { load(urlEl.value); }
 $('go').onclick = go;
 urlEl.onkeydown = (e) => { if (e.key === 'Enter') go(); };
 urlEl.onfocus = () => urlEl.select();
-$('back').onclick = () => send({ t: 'back' });
-$('fwd').onclick = () => send({ t: 'forward' });
+$('back').onclick = () => { if (mode === 'proxy') { try { fr.contentWindow.history.back(); } catch {} } else send({ t: 'back' }); };
+$('fwd').onclick = () => { if (mode === 'proxy') { try { fr.contentWindow.history.forward(); } catch {} } else send({ t: 'forward' }); };
 $('reload').onclick = reload;
 $('shot').onclick = () => send({ t: 'screenshot' });
 $('clear').onclick = () => { if (confirm('Forget all cookies, logins and site data in the simulator?')) send({ t: 'clear' }); };
@@ -199,12 +224,13 @@ cv.addEventListener('keydown', (e) => {
 cv.addEventListener('paste', (e) => { e.preventDefault(); const text = e.clipboardData.getData('text'); if (text) send({ t: 'text', text }); });
 
 (async () => {
-  try { engineAvail = (await (await fetch('/api/info')).json()).engine; } catch {}
-  if (engineAvail) {
-    const sel = $('mode'); sel.style.display = '';
-    sel.add(new Option('Real browser (touch, swipe, logins)', 'engine')); sel.add(new Option('Fast (embedded)', 'embed'));
-    mode = localStorage.getItem('mode') || 'engine'; sel.value = mode;
-  }
+  try { engineAvail = (await (await fetch('/api/sim-info')).json()).engine; } catch {}
+  const sel = $('mode'); sel.style.display = '';
+  if (engineAvail) sel.add(new Option('Real browser (touch, swipe, logins)', 'engine'));
+  sel.add(new Option('Proxy (logins work)', 'proxy')); sel.add(new Option('Direct frame', 'embed'));
+  mode = localStorage.getItem('mode') || (engineAvail ? 'engine' : 'proxy');
+  if (![...sel.options].some((o) => o.value === mode)) mode = engineAvail ? 'engine' : 'proxy';
+  sel.value = mode;
   applyMode();
   if (mode === 'engine') connect();
   else if (pendingUrl) load(pendingUrl);

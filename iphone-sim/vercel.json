@@ -4,5 +4,19 @@
   "installCommand": null,
   "buildCommand": null,
   "outputDirectory": "public",
-  "functions": { "api/*.js": { "maxDuration": 15 } }
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/_sim/root",
+      "destination": "/api/proxy?__p=/"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/api/proxy?__p=/:path*"
+    }
+  ]
 }
