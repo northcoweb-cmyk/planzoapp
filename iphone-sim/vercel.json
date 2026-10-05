@@ -4,5 +4,10 @@
   "installCommand": null,
   "buildCommand": null,
   "outputDirectory": "public",
-  "functions": { "api/*.js": { "maxDuration": 15 } }
+  "functions": { "api/*.js": { "maxDuration": 30 } },
+  "rewrites": [
+    { "source": "/", "has": [{ "type": "header", "key": "sec-fetch-dest", "value": "iframe" }], "destination": "/api/proxy?__p=/" },
+    { "source": "/", "destination": "/shell.html" },
+    { "source": "/:path*", "destination": "/api/proxy?__p=/:path*" }
+  ]
 }
