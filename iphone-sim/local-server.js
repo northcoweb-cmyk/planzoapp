@@ -9,7 +9,8 @@ const { WebSocketServer } = require('ws');
 
 const PORT = Number(process.env.PORT || 4321);
 const HOST = process.env.HOST || '127.0.0.1'; // keep local: this server can open any URL
-const PROFILE_DIR = path.join(__dirname, 'profile');
+const PROFILE_DIR = process.env.PROFILE_DIR || path.join(__dirname, 'profile'); // point at a persistent volume when hosted
+const ACCESS_KEY = process.env.ACCESS_KEY || ''; // REQUIRED when hosted publicly: the server can open any URL
 const PUBLIC = path.join(__dirname, 'public');
 
 // Full-screen iPhone sizes (CSS px). DPR 3 like the real devices.
@@ -53,8 +54,20 @@ function normalizeUrl(input) {
 }
 
 const { checkUrl } = require('./lib/check');
+const cookieOf = (req, n) => ((req.headers.cookie || '').split(/;\s*/).map((c) => c.split('=')).find(([k]) => k === n) || [])[1] || '';
+const authed = (req) => !ACCESS_KEY || decodeURIComponent(cookieOf(req, 'sim_key')) === ACCESS_KEY;
+
 const server = http.createServer(async (req, res) => {
   const p = req.url.split('?')[0];
+  if (ACCESS_KEY) {
+    const key = new URL(req.url, 'http://x').searchParams.get('key');
+    if (key === ACCESS_KEY) {
+      const secure = req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : '';
+      res.writeHead(302, { 'Set-Cookie': `sim_key=${encodeURIComponent(ACCESS_KEY)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secure}`, Location: '/' });
+      return res.end();
+    }
+    if (!authed(req)) { res.writeHead(401, { 'Content-Type': 'text/html' }); return res.end('<body style="font:16px sans-serif;padding:40px;background:#111;color:#eee">Locked. Open this page once with <code>?key=YOUR_ACCESS_KEY</code> added to the URL.'); }
+  }
   if (p === '/api/info') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"engine":true}'); }
   if (p === '/api/check') {
     const q = new URL(req.url, 'http://x').searchParams.get('url');
@@ -70,7 +83,7 @@ const server = http.createServer(async (req, res) => {
   fs.createReadStream(file).pipe(res);
 });
 
-const wss = new WebSocketServer({ server, path: '/ws' });
+const wss = new WebSocketServer({ server, path: '/ws', verifyClient: ({ req }) => authed(req) });
 let active = null; // only one live session (they share one persistent profile = saved logins)
 
 wss.on('connection', (ws) => {
