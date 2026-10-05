@@ -74,8 +74,8 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 let active = null; // only one live session (they share one persistent profile = saved logins)
 
 wss.on('connection', (ws) => {
-  if (active) active.close();
   const session = new Session(ws);
+  session.prev = active ? active.close() : Promise.resolve(); // old browser must fully exit before the new one opens the same profile
   active = session;
   ws.on('close', () => { session.close(); if (active === session) active = null; });
   ws.on('message', (raw) => {
@@ -87,10 +87,14 @@ wss.on('connection', (ws) => {
 });
 
 class Session {
-  constructor(ws) { this.ws = ws; this.queue = Promise.resolve(); this.context = null; this.page = null; this.cdp = null; this.model = null; this.closed = false; }
+  constructor(ws) { this.ws = ws; this.queue = Promise.resolve(); this.prev = Promise.resolve(); this.starting = null; this.context = null; this.page = null; this.cdp = null; this.model = null; this.closed = false; }
   send(o) { if (this.ws.readyState === 1) this.ws.send(JSON.stringify(o)); }
 
-  async start(modelKey, url) {
+  start(modelKey, url) { return (this.starting = this._start(modelKey, url)); }
+
+  async _start(modelKey, url) {
+    await this.prev;
+    if (this.closed) return;
     await this.teardown();
     const m = MODELS[modelKey] || MODELS['iphone-15-pro'];
     this.model = m;
@@ -107,10 +111,12 @@ class Session {
       locale: 'en-US',
       acceptDownloads: false,
     });
+    if (this.closed) { try { await this.context.close(); } catch {} this.context = null; return; }
     // OAuth / target=_blank popups: follow the newest page, return when it closes.
     this.context.on('page', (p) => this.attach(p));
     const first = this.context.pages()[0] || await this.context.newPage();
     await this.attach(first);
+    if (this.closed || !this.page) return;
     this.send({ t: 'ready', w: m.w, h: m.h, label: m.label });
     if (url) await this.goto(url);
   }
@@ -147,7 +153,9 @@ class Session {
     const url = normalizeUrl(raw);
     if (!url) return this.send({ t: 'error', message: 'That does not look like a valid URL.' });
     this.send({ t: 'loading', loading: true });
-    try { await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }); }
+    const page = this.page;
+    if (!page) { this.send({ t: 'loading', loading: false }); return this.send({ t: 'error', message: 'The browser is still starting — try again in a second.' }); }
+    try { await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }); }
     catch (e) { this.send({ t: 'error', message: `Could not load ${url}: ${String(e.message).split('\n')[0]}` }); }
     this.send({ t: 'loading', loading: false });
   }
@@ -156,10 +164,11 @@ class Session {
     switch (m.t) {
       case 'start': return this.start(m.model, m.url);
       case 'goto': return this.goto(m.url);
-      case 'back': return void (await this.page.goBack({ timeout: 15000 }).catch(() => {}));
-      case 'forward': return void (await this.page.goForward({ timeout: 15000 }).catch(() => {}));
-      case 'reload': return void (await this.page.reload({ timeout: 30000 }).catch(() => {}));
+      case 'back': return void (await this.page?.goBack({ timeout: 15000 }).catch(() => {}));
+      case 'forward': return void (await this.page?.goForward({ timeout: 15000 }).catch(() => {}));
+      case 'reload': return void (await this.page?.reload({ timeout: 30000 }).catch(() => {}));
       case 'screenshot': {
+        if (!this.page) return;
         const buf = await this.page.screenshot({ type: 'png' });
         return this.send({ t: 'screenshot', data: buf.toString('base64') });
       }
@@ -181,8 +190,8 @@ class Session {
         }));
       case 'wheel':
         return void (await cdp.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: m.x, y: m.y, deltaX: m.dx, deltaY: m.dy }));
-      case 'key': return void (await this.page.keyboard.press(m.key));
-      case 'text': return void (await this.page.keyboard.insertText(m.text));
+      case 'key': return void (await this.page?.keyboard.press(m.key));
+      case 'text': return void (await this.page?.keyboard.insertText(m.text));
     }
   }
 
@@ -191,7 +200,7 @@ class Session {
     if (this.context) { try { await this.context.close(); } catch {} this.context = null; }
     this.page = null;
   }
-  async close() { this.closed = true; await this.teardown(); }
+  async close() { this.closed = true; try { await this.starting; } catch {} await this.teardown(); }
 }
 
 server.listen(PORT, HOST, () => {
