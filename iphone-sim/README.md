@@ -44,3 +44,13 @@ Open http://localhost:4321, paste a link, hit Go.
 
 > The local engine lives in `local-server.js` (not `server.js`) on purpose: Vercel treats `server.js`
 > as an app entry point and would try to run the browser engine in a serverless function.
+
+## Host the real-browser engine (logins + swipe, works from any device)
+
+Vercel can't run it, so use a host that runs Docker. The engine serves its own page too, so this link
+*is* the full simulator. **Always set `ACCESS_KEY`** — otherwise anyone could use your server to browse.
+
+**Render:** New → Blueprint → pick this repo (uses `render.yaml`; Starter plan, 1 GB disk keeps logins) →
+set `ACCESS_KEY` to a long random string → Deploy. Then open `https://<your-app>.onrender.com/?key=<ACCESS_KEY>`
+once on each device (it saves a cookie). Railway/Fly: build from `iphone-sim/Dockerfile`, set `ACCESS_KEY`,
+and mount a volume at `/data` if you want logins to persist.

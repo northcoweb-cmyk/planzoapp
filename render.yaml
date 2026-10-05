@@ -1,0 +1,17 @@
+# Render Blueprint: New → Blueprint → pick this repo. Set ACCESS_KEY when prompted.
+services:
+  - type: web
+    name: iphone-sim
+    runtime: docker
+    dockerfilePath: ./iphone-sim/Dockerfile
+    dockerContext: ./iphone-sim
+    plan: starter        # Chromium needs ~1GB; free (512MB) will crash
+    envVars:
+      - key: ACCESS_KEY
+        sync: false
+      - key: PORT
+        value: "4321"
+    disk:
+      name: profile
+      mountPath: /data
+      sizeGB: 1
