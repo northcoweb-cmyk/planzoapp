@@ -41,3 +41,6 @@ Open http://localhost:4321, paste a link, hit Go.
 ## Notes
 - Binds to 127.0.0.1 only (it can open any URL from your machine; don't expose it).
 - One session at a time. Camera, push notifications, Face ID and iOS-only APIs aren't emulated.
+
+> The local engine lives in `local-server.js` (not `server.js`) on purpose: Vercel treats `server.js`
+> as an app entry point and would try to run the browser engine in a serverless function.
