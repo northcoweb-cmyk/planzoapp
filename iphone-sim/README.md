@@ -6,18 +6,6 @@ type, log in, OAuth popups — the site runs in a real Chromium with iPhone emul
 
 Not an iframe, so sites that block framing, cookies/logins, and redirects all work.
 
-## Proxy mode (default on Vercel): logins work
-
-In a cross-site iframe the browser drops an app's login cookie (login → bounce back to login).
-Proxy mode serves your app *through the simulator's own address*, so cookies are first-party:
-login, refresh, reload and back/forward all work. It also presents an iPhone user agent.
-
-- Only `*.vercel.app` apps are allowed by default, and private/internal addresses are always blocked.
-  Add custom domains in Vercel → Settings → Environment Variables: `ALLOWED_HOSTS=*.vercel.app,myapp.com`.
-- Not supported: WebSockets, apps that redirect to another site for login (Google/Apple sign-in pages
-  that refuse framing), and apps whose backend rejects the simulator's origin.
-- This makes the simulator a web proxy, so don't share the link publicly.
-
 ## Deploy to Vercel (hosted version)
 
 1. Vercel → **Add New Project** → import this repo.
