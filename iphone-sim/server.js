@@ -52,8 +52,15 @@ function normalizeUrl(input) {
   } catch { return null; }
 }
 
-const server = http.createServer((req, res) => {
+const { checkUrl } = require('./lib/check');
+const server = http.createServer(async (req, res) => {
   const p = req.url.split('?')[0];
+  if (p === '/api/info') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"engine":true}'); }
+  if (p === '/api/check') {
+    const q = new URL(req.url, 'http://x').searchParams.get('url');
+    let out; try { out = await checkUrl(q, { allowPrivate: true }); } catch (e) { out = { ok: false, error: String(e.message || e) }; }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(out));
+  }
   const file = path.join(PUBLIC, p === '/' ? 'index.html' : p);
   if (!file.startsWith(PUBLIC) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     res.writeHead(404); return res.end('Not found');

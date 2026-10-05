@@ -6,7 +6,23 @@ type, log in, OAuth popups — the site runs in a real Chromium with iPhone emul
 
 Not an iframe, so sites that block framing, cookies/logins, and redirects all work.
 
-## Run
+## Deploy to Vercel (hosted version)
+
+1. Vercel → **Add New Project** → import this repo.
+2. Set **Root Directory** to `iphone-sim`. Framework preset: *Other*. No build command.
+3. Deploy. Every push to the branch you deploy redeploys the simulator itself.
+
+The hosted version runs in **Fast (embedded)** mode: it loads your app directly in an iPhone-sized
+frame (so CSS media queries and `100vh` behave like a phone). Paste any link and press Go.
+
+- **Reload:** ⟳ button or press `R`. **Auto-reload on deploy** polls the site every 8s and reloads
+  when its build assets change (i.e. when you push a new deploy). Your last URL is remembered.
+- It checks the site first and tells you if it forbids embedding (`X-Frame-Options` / CSP `frame-ancestors`).
+- Limits of embedding: mouse (not touch) input, back/forward are the app's own, and cookie-based
+  logins may be blocked by the browser in a cross-site frame (token/localStorage logins work).
+  For those, run the local Real browser engine below — Vercel serverless can't host a live Chromium.
+
+## Run locally (Real browser engine)
 
 ```bash
 cd iphone-sim
