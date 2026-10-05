@@ -68,13 +68,13 @@ const server = http.createServer(async (req, res) => {
     }
     if (!authed(req)) { res.writeHead(401, { 'Content-Type': 'text/html' }); return res.end('<body style="font:16px sans-serif;padding:40px;background:#111;color:#eee">Locked. Open this page once with <code>?key=YOUR_ACCESS_KEY</code> added to the URL.'); }
   }
-  if (p === '/api/info') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"engine":true}'); }
-  if (p === '/api/check') {
+  if (p === '/api/sim-info') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"engine":true}'); }
+  if (p === '/api/sim-check') {
     const q = new URL(req.url, 'http://x').searchParams.get('url');
     let out; try { out = await checkUrl(q, { allowPrivate: true }); } catch (e) { out = { ok: false, error: String(e.message || e) }; }
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(out));
   }
-  const file = path.join(PUBLIC, p === '/' ? 'index.html' : p);
+  const file = path.join(PUBLIC, p === '/' ? 'shell.html' : p);
   if (!file.startsWith(PUBLIC) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     res.writeHead(404); return res.end('Not found');
   }
