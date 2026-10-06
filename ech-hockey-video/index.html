@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>East Coast New Gear</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <div class="fill" id="navyBg"></div>
+  <div class="fill" id="redBg"></div>
+  <div class="fill" id="ice"><canvas id="scratch" width="1080" height="1920"></canvas></div>
+  <div id="stage">
+    <div id="cam">
+      <div id="rink" class="abs" style="width:1080px;height:1080px"></div>
+      <div id="slashes" class="abs"></div>
+      <div id="outlines" class="abs"></div>
+      <div id="glows" class="abs"></div>
+      <div id="prods" class="abs"></div>
+      <div id="callouts" class="abs"></div>
+      <div id="type" class="abs"></div>
+      <div id="flapHost" class="abs"></div>
+      <div id="stamps" class="abs"></div>
+      <img id="logo" class="abs" src="assets/img/logo.png" alt="">
+      <div id="puck"></div>
+      <svg id="cracks" width="1080" height="1080"></svg>
+      <canvas id="particles" width="1080" height="1080"></canvas>
+      <div id="tagTL"><i></i>East Coast · New arrivals</div>
+    </div>
+  </div>
+  <div class="fill" id="black"></div>
+  <div class="fill" id="flash"></div>
+  <div class="fill" id="vignette"></div>
+  <canvas id="grain" width="540" height="540"></canvas>
+</div>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="ink"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -9 6.2" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in"/></filter>
+</svg>
+<div id="player"><button id="pp">Play</button><input id="scrub" type="range" min="0" max="20.6" step="0.001" value="0"><span id="tc">0.00s</span></div>
+<audio id="aud" src="audio/mix.wav" preload="auto"></audio>
+<script src="scene.js"></script>
+</body>
+</html>
