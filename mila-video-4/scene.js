@@ -262,7 +262,7 @@
           set(c.messy, { opacity: mo, transform: `scale(${w / c.mw},${h / c.mh})`, transformOrigin: '0 0' });
           set(c.tidy, { opacity: to2, transform: `scale(${w / 760},${h / 98})`, transformOrigin: '0 0' });
           set(c.ring, { left: '0px', top: '0px', width: '760px', height: '98px', opacity: b >= T ? 1 - P(b, T, T + 0.8) : 0, transform: `scale(${(w / 760) * (1 + 0.05 * P(b, T, T + 0.8))},${(h / 98) * (1 + 0.2 * P(b, T, T + 0.8))})`, transformOrigin: '50% 50%' });
-          set(c.ap, { background: 'transparent' }); c.ap.querySelector('.lbl').style.opacity = 1; c.ap.querySelector('svg').style.opacity = 0;
+          set(c.ap, { background: 'transparent', borderColor: 'rgba(11,11,18,.22)', boxShadow: 'none', transform: 'none' }); c.ap.querySelector('.lbl').style.opacity = 1; c.ap.querySelector('svg').style.opacity = 0;
         } else {
           vis(c.el, true);
           const T = APPROVE_T[i];
