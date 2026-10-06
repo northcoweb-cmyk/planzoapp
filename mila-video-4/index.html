@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chaos to Calm</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <div class="fill" id="bgGlow"><div class="glowb" id="gA"></div><div class="glowb" id="gB"></div><div class="glowb" id="gC"></div></div>
+  <div class="fill" id="whips"><div class="wp" id="wp0"></div><div class="wp" id="wp1"></div><div class="wp" id="wp2"></div><div class="wp" id="wp3"></div></div>
+
+  <div id="stage">
+    <div id="cam">
+      <div id="chaosBack" class="abs"></div>
+
+      <!-- phone -->
+      <div id="rig">
+        <div id="phone"><div id="screen">
+          <canvas id="stars" width="780" height="1688"></canvas>
+          <div id="island"></div>
+          <div id="status"><span class="time" id="sbTime">8:47</span><span class="icons" id="sbIcons"></span></div>
+
+          <div class="scr" id="sLock">
+            <div id="lkDate">Friday, October 9</div><div id="lkTime" class="serif">8:47</div>
+            <div id="lkList"></div>
+          </div>
+
+          <div class="scr" id="sBrief">
+            <div class="h1 serif">Listing brief</div><div class="h1sub">From your message · just now</div>
+            <div id="brief" class="glass">
+              <div class="caps">Get me ready</div>
+              <div class="title serif">27 Fernwood Hollow Ct</div><div class="sub">Germantown, MD 20874 · $849,000</div>
+              <div class="ph photo" style="background-image:url(assets/photos/hero_farmhouse.jpg)"></div>
+              <div class="rows"><div class="row bw"><span class="chk"></span>Photos pulled · 24</div><div class="row bw"><span class="chk"></span>Description drafted</div><div class="row bw"><span class="chk"></span>Open house · Sun 1–4 PM</div></div>
+            </div>
+          </div>
+
+          <div class="scr" id="sContent">
+            <div class="h1 serif">Content</div><div class="h1sub">Instagram · 3 slides</div>
+            <div id="cTrack" class="photo" style="background-image:url(assets/photos/hero_farmhouse.jpg)"></div>
+          </div>
+
+          <div class="scr" id="sEmail">
+            <div id="emailCard" class="glass">
+              <div class="caps" style="margin:2px 2px 10px">Email draft · Open house</div>
+              <div class="field"><span class="k">To</span><span>Germantown buyers · 23</span></div>
+              <div class="field"><span class="k">Subject</span><span style="font-weight:600">Open house Sunday 1–4 PM, 27 Fernwood Hollow Ct</span></div>
+              <div id="emailBody"></div>
+              <div id="sig" style="padding-top:6px"><div class="serif" style="font-size:22px">Sarah Bennett</div><div style="font:400 12px/1.4 var(--sans);color:rgba(255,255,255,.5)">Coastline Realty Group</div></div>
+            </div>
+          </div>
+
+          <div class="scr" id="sTexts">
+            <div class="h1 serif">Follow-ups</div><div class="h1sub">Everyone from last week · 3 queued</div>
+            <div class="tc glass" style="top:150px"><div class="hd"><span class="avatar">JE</span>Jordan Ellis<span class="q">Queued</span></div><div class="bub">Thanks for coming by last week! Open house Sunday 1–4 if you want a second look.</div></div>
+            <div class="tc glass" style="top:300px"><div class="hd"><span class="avatar">PS</span>Priya Shah<span class="q">Queued</span></div><div class="bub">Hi Priya! The Germantown farmhouse is open Sunday 1–4. Want me to save you a time?</div></div>
+            <div class="tc glass" style="top:450px"><div class="hd"><span class="avatar">DO</span>Dana Ortiz<span class="q">Queued</span></div><div class="bub">Sorry I missed your calls! Free at 4 today?</div></div>
+          </div>
+
+          <div class="scr" id="sCal">
+            <div class="h1 serif">Sunday</div><div class="h1sub">October 11 · open house</div>
+            <div id="ev" class="glass">
+              <div class="photo" style="background-image:url(assets/photos/hero_farmhouse.jpg)"></div><div class="ov"></div>
+              <div class="tx"><div class="caps" style="color:var(--peach)">Sun · Oct 11</div><div class="ttl serif">Open house</div><div class="tm">1–4 PM · 27 Fernwood Hollow Ct</div></div>
+              <div class="acts"><div class="act">↗ Directions</div><div class="act">✉ Follow-up</div><div class="act">⌂ Property</div><div class="act">➤ Send details</div></div>
+            </div>
+          </div>
+
+          <div id="homeInd"></div>
+        </div></div>
+      </div>
+
+      <div id="chaosFront" class="abs"></div>
+      <div id="fan" class="abs"></div>
+
+      <!-- calm: the chat box -->
+      <div id="calm" class="abs" style="width:1080px;height:1080px">
+        <div id="askLbl">MILA</div>
+        <div id="composer" class="lglass">
+          <div id="cTxt"><span id="typed"></span><span id="caret"></span><span id="cPh">What do you need to get done?</span></div>
+          <div id="cPlus"></div><div id="cMic"></div><div id="cSend"></div>
+        </div>
+        <div id="cGlow"></div>
+      </div>
+
+      <!-- approval stack -->
+      <div id="stack" class="abs" style="width:1080px;height:1080px">
+        <div id="youBub" class="lglass"></div>
+        <div id="stackTitle">Ready for approval</div><div id="stackCount">5</div>
+        <div id="cards"></div>
+      </div>
+
+      <div id="words" class="abs"></div>
+      <div id="wpCard" class="lglass"><div class="k" id="wpK"></div><div class="a" id="wpA"></div><div class="c" id="wpC"></div></div>
+
+      <div id="endc" class="abs" style="width:1080px;height:1080px">
+        <div id="wordmark">Mila</div>
+        <div id="tagline"><div class="ln"><span>Your AI operations manager for real estate.</span></div></div>
+        <div id="cta"><div class="ln"><span>Comment <span class="q">“Mila”</span></span></div><div class="ln"><span>for a 7-day free trial.</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fill" id="flash"></div>
+  <canvas id="grain" width="540" height="540"></canvas>
+</div>
+<svg width="0" height="0" style="position:absolute"><filter id="mb" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur id="mbBlur" stdDeviation="0 0"/></filter></svg>
+<div id="player"><button id="pp">Play</button><input id="scrub" type="range" min="0" max="21.34" step="0.001" value="0"><span id="tc">0.00s</span></div>
+<audio id="aud" src="audio/mix.wav" preload="auto"></audio>
+<script src="scene.js"></script>
+</body>
+</html>
