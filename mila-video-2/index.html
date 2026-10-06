@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mila Film Two</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <!-- ======== main world: photo plates, phone, type ======== -->
+  <div id="main" class="full">
+    <div id="plates" class="full">
+      <div class="plate" id="pDay" style="background-image:url(assets/photos/day_loft.jpg)"></div>
+      <div class="plate" id="pDusk" style="background-image:url(assets/photos/dusk_sofa.jpg)"></div>
+      <div class="plate" id="pKitchen" style="background-image:url(assets/photos/night_kitchen.jpg)"></div>
+      <div class="plate" id="pLiving" style="background-image:url(assets/photos/night_living.jpg)"></div>
+      <div class="full" id="tint"></div>
+      <div class="full" id="tint2"></div>
+    </div>
+
+    <div id="cab" class="full"><div id="streaks" class="full"></div>
+      <svg id="cabFrame" width="1080" height="1080"><defs><mask id="cabHole"><rect width="1080" height="1080" fill="#fff"/><rect x="60" y="120" width="960" height="760" rx="120" fill="#000"/></mask></defs>
+        <rect width="1080" height="1080" fill="#05060b" mask="url(#cabHole)"/></svg></div>
+
+    <div id="wordsBack" class="full"></div>
+
+    <div id="rig">
+      <div id="phShadow"></div>
+      <div id="phone">
+        <div id="screen">
+          <div id="dayBg"><div id="daySun"></div></div>
+          <div id="nightBg"><canvas id="stars" width="780" height="1688"></canvas><div id="pmoon"></div></div>
+          <div id="island"></div>
+          <div id="status"><span class="time" id="sbTime">7:42</span><span class="icons" id="sbIcons"></span></div>
+
+          <!-- HOME (morning) -->
+          <div class="scr" id="sHome">
+            <div class="date caps">Tuesday, October 6</div>
+            <div class="greet serif">Good morning,<br>Sarah.</div>
+            <div id="composer" class="glass">
+              <div class="txt"><span id="typed"></span><span id="caret"></span><span class="ph" id="ph">What do you need to get done?</span></div>
+              <div class="plus" data-i="plus"></div><div class="mic" data-i="mic"></div><div id="send" data-i="arrow"></div>
+            </div>
+            <div id="composerGlow"></div>
+            <div class="chips"><span class="chip">Get me ready to list</span><span class="chip">Set up an open house</span><span class="chip">Who should I follow up with?</span></div>
+            <div id="todayLbl" class="serif">Today</div>
+            <div class="tcard glass" style="top:472px"><div class="th photo" style="background-image:url(assets/photos/dusk_sofa.jpg)"></div><div><div class="t">Buyer consult · 10:00</div><div class="d">The Coopers · Zoom</div></div></div>
+            <div class="tcard glass" style="top:558px"><div class="th icon-tile" data-i="phone"></div><div><div class="t">Call Priya Shah · 12:30</div><div class="d">Pre-approval update</div></div></div>
+            <div class="tcard glass" style="top:644px"><div class="th photo" style="background-image:url(assets/photos/night_kitchen.jpg)"></div><div><div class="t">88 Horatio St · closing Fri</div><div class="d">2 items left</div></div></div>
+          </div>
+
+          <!-- LISTING BRIEF -->
+          <div class="scr" id="sBrief">
+            <div class="navtitle serif">Mila</div>
+            <div id="ub">Set me up for 245 W 19th St, New York. Showing at 3.</div>
+            <div id="brief" class="glass">
+              <div class="caps">Listing brief</div>
+              <div id="ring"><svg viewBox="0 0 46 46" width="46" height="46"><circle cx="23" cy="23" r="19" fill="none" stroke="var(--chip)" stroke-width="3.5"/><circle id="ringArc" cx="23" cy="23" r="19" fill="none" stroke="url(#rg)" stroke-width="3.5" stroke-linecap="round" transform="rotate(-90 23 23)" stroke-dasharray="119.4"/><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb4ff"/><stop offset=".55" stop-color="#a68cff"/><stop offset="1" stop-color="#ffc9a8"/></linearGradient></defs></svg><div id="ringPct">0%</div></div>
+              <div class="title serif">245 W 19th St, Apt 6B</div>
+              <div class="sub">New York, NY 10011 · $1,250,000</div>
+              <div id="thumbs"><div class="photo" style="background-image:url(assets/photos/day_loft.jpg)"></div><div class="photo" style="background-image:url(assets/photos/dusk_sofa.jpg)"></div><div class="photo" style="background-image:url(assets/photos/night_kitchen.jpg)"></div><div class="photo" style="background-image:url(assets/photos/night_living.jpg)"></div></div>
+              <div class="rows">
+                <div class="row brow"><span class="chk"></span>Photos pulled · 4</div>
+                <div class="row brow"><span class="chk"></span>Description drafted</div>
+                <div class="row brow"><span class="chk"></span>Missing: floor plan, board package</div>
+              </div>
+              <div class="btns"><span class="btn">Open</span><span class="btn">See tasks</span><span class="btn primary">Start listing</span></div>
+            </div>
+          </div>
+
+          <!-- CONTENT: carousel -->
+          <div class="scr" id="sContent">
+            <div class="h1 serif">Content</div>
+            <div class="h1sub">245 W 19th St · 2 drafts</div>
+            <div class="chips"><span class="chip on">Carousel</span><span class="chip">Story</span><span class="chip">Email</span></div>
+            <div id="track">
+              <div class="slide"><div class="photo" style="background-image:url(assets/photos/day_loft.jpg)"></div><div class="gr"></div><span class="pg">1/3</span>
+                <div class="tx"><div class="k">Just listed</div><div class="a">245 W 19th St, Apt 6B</div><div class="c">New York, NY 10011</div></div></div>
+              <div class="slide"><div class="photo" style="background-image:url(assets/photos/dusk_sofa.jpg)"></div><div class="dim"></div><span class="pg">2/3</span>
+                <div class="k" style="position:absolute;left:22px;top:26px">Offered at</div><div class="price">$1,250,000</div>
+                <div class="grid"><div class="cell"><b>2</b><span>Beds</span></div><div class="cell"><b>2</b><span>Baths</span></div><div class="cell"><b>1,140</b><span>Sq ft</span></div><div class="cell"><b>6B</b><span>Chelsea</span></div></div></div>
+              <div class="slide"><div class="photo" style="background-image:url(assets/photos/night_living.jpg)"></div><span class="pg">3/3</span>
+                <div class="cta"><div class="k">Open house</div><div class="big">Sunday</div><div class="tm">1–4 PM · Apt 6B</div><span class="pill">Save your spot</span></div></div>
+            </div>
+            <div id="cdots"><i></i><i></i><i></i></div>
+          </div>
+
+          <!-- APPROVALS (the day -> night moment) -->
+          <div class="scr" id="sApprove">
+            <div class="h1 serif" style="font-size:36px">Ready for approval</div>
+            <div id="apCount">4</div>
+            <div class="h1sub">Nothing goes out until you say so.</div>
+            <div class="acard glass"><div class="thumb photo" style="background-image:url(assets/photos/day_loft.jpg)"></div><div class="t">Instagram carousel</div><div class="d">3 slides · 245 W 19th St</div><span class="btn ab">Approve</span></div>
+            <div class="acard glass"><div class="thumb photo" style="background-image:url(assets/photos/night_living.jpg)"></div><div class="t">Story · open house</div><div class="d">Sunday 1–4 PM</div><span class="btn ab">Approve</span></div>
+            <div class="acard glass"><div class="icon-tile" data-i="mail"></div><div class="t">Viewing email</div><div class="d">Jordan Ellis · 3 PM today</div><span class="btn ab">Approve</span></div>
+            <div class="acard glass"><div class="icon-tile" data-i="msg"></div><div class="t">3 follow-up texts</div><div class="d">Jordan, Priya, the Coopers</div><span class="btn ab">Approve</span></div>
+            <div id="touch"></div>
+            <div id="allClear"></div>
+          </div>
+
+          <!-- VOICE LOG -->
+          <div class="scr" id="sVoice">
+            <div class="h1 serif">Log a call</div>
+            <div class="h1sub">Just talk. Mila writes it up.</div>
+            <div id="listen" class="caps">Listening…</div>
+            <div id="wave"></div>
+            <div id="micRing"></div><div id="mic" data-i="mic"></div>
+            <div id="note" class="glass">
+              <div class="caps">Call · Jordan Ellis · 7:52 PM</div>
+              <div class="q serif">Wants a 2BR under $1.3M.</div>
+              <div class="d">Chelsea or West Village. Pre-approved. Loved 6B, wants a second look Friday.</div>
+              <div class="chips2"><span class="chip on">Follow up Fri</span><span class="chip">Buyer · Touring</span></div>
+              <div class="row saved"><span class="chk"></span>Saved to Jordan Ellis</div>
+            </div>
+          </div>
+
+          <!-- WEEK OVERVIEW -->
+          <div class="scr" id="sWeek">
+            <div class="h1 serif">This week</div>
+            <div class="caps" style="position:absolute;left:24px;top:160px">Pipeline value</div>
+            <div id="wkVal" class="serif">$2.40M</div>
+            <div id="wkUp" class="chip on">+ $1.25M this week</div>
+            <div id="bars"></div>
+            <div id="wkStats"><div class="stat glass"><b id="s1">0</b><span>showings</span></div><div class="stat glass"><b id="s2">0</b><span>open house</span></div><div class="stat glass"><b id="s3">0</b><span>tasks done</span></div></div>
+          </div>
+
+          <!-- WHAT AM I FORGETTING -->
+          <div class="scr" id="sForget">
+            <div id="fq">What am I forgetting today?</div>
+            <div id="fcard" class="glass">
+              <div class="caps">Before tomorrow</div>
+              <div class="rows">
+                <div class="rw"><span class="chk"></span>Board package to the Coopers</div>
+                <div class="rw"><span class="chk"></span>Confirm Saturday photographer</div>
+                <div class="rw"><span class="chk"></span>Lockbox code · 88 Horatio St</div>
+              </div>
+            </div>
+            <div id="clear"><div class="ck"></div><div class="w">All clear.</div><div class="s">Goodnight, Sarah.</div></div>
+          </div>
+
+          <div id="tabbar" class="glass">
+            <div id="tabPill"><span id="pillIcon"></span><span id="pillLabel">Home</span></div>
+            <div class="tab" data-i="home"></div><div class="tab" data-i="users"></div><div class="tab" data-i="house"></div>
+            <div class="tab" data-i="spark"></div><div class="tab" data-i="cal"></div><div class="tab" data-i="dots"></div>
+          </div>
+          <div id="homeInd"></div>
+          <div id="glare"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="wordsFront" class="full" style="z-index:22"></div>
+  </div>
+
+  <!-- ======== map (address resolves) ======== -->
+  <div id="map" class="full">
+    <svg id="mapSvg" width="1080" height="1080"></svg>
+    <div id="mripple"></div>
+    <svg id="mpin" viewBox="0 0 46 60"><path d="M23 59C23 59 3 36 3 22a20 20 0 0 1 40 0c0 14-20 37-20 37z" fill="#0b0b12"/><circle cx="23" cy="22" r="8" fill="#a68cff"/></svg>
+    <div id="mapTxt"><div class="a" id="mapA"></div><div class="b" id="mapB"></div></div>
+  </div>
+
+  <!-- ======== story panel (split screen) ======== -->
+  <div id="story" class="full">
+    <div id="storyBg"><div class="plate" style="left:0;top:0;width:540px;height:1080px;background-image:url(assets/photos/day_loft.jpg);filter:blur(28px) brightness(.55)"></div></div>
+    <div id="storyCard"><div class="photo" style="background-image:url(assets/photos/day_loft.jpg)"></div><div class="gr"></div>
+      <div class="bars"><i><b></b></i><i><b></b></i><i><b></b></i></div>
+      <div class="tx"><div class="big">Open house<br>Sunday</div><div class="sm">1–4 PM · Apt 6B</div><span class="stk">245 W 19th St</span></div></div>
+    <div id="seam"></div>
+  </div>
+
+  <!-- ======== the building: one continuous scroll through the day ======== -->
+  <div id="building" class="full"><div id="bsky"></div><div id="tower"></div></div>
+
+  <div id="fg" class="full"></div>
+  <div id="rings" class="full"></div>
+  <div id="leaks" class="full"><div class="leak" id="leakA"></div><div class="leak" id="leakB"></div></div>
+  <div id="streakA"></div>
+
+  <div id="endcard" class="full">
+    <div id="endGrad"></div><div id="endCity" style="background-image:url(assets/photos/night_living.jpg)"></div>
+    <div id="endTx">
+      <div id="wordmark">Mila</div>
+      <div id="tagline"><div class="ln"><span>Your AI operations manager for real estate.</span></div></div>
+      <div id="cta"><div class="ln"><span>Comment <span class="q">“Mila”</span></span></div><div class="ln"><span>for a 7-day free trial.</span></div></div>
+    </div>
+  </div>
+
+  <div id="hud" class="full">
+    <svg id="arc" width="1080" height="200"><defs><linearGradient id="arcG" x1="0" x2="1"><stop offset="0" stop-color="#8fb4ff"/><stop offset=".5" stop-color="#a68cff"/><stop offset="1" stop-color="#ffc9a8"/></linearGradient></defs>
+      <path id="arcPath" d="M150 168 Q540 40 930 168" fill="none" stroke="url(#arcG)" stroke-width="1.6" stroke-dasharray="2 7" stroke-linecap="round"/>
+      <path id="arcDone" d="M150 168 Q540 40 930 168" fill="none" stroke="url(#arcG)" stroke-width="2.2" stroke-linecap="round"/>
+      <line x1="120" y1="168" x2="960" y2="168" stroke="rgba(255,255,255,.35)" stroke-width="1"/></svg>
+    <div id="sun"></div><div id="moon"></div>
+    <div id="clock"><div id="clockLbl"><span id="lblA"></span><span id="lblB"></span></div><div id="clockTime"><span id="ctA"></span><span id="ctB"></span></div></div>
+  </div>
+
+  <div id="letterbox" class="full"></div>
+  <div id="vignette" class="full"></div>
+  <canvas id="grain" width="540" height="540"></canvas>
+  <div id="flash" class="full"></div>
+</div>
+
+<svg width="0" height="0" style="position:absolute"><filter id="mbRig" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur id="mbRigBlur" stdDeviation="0 0"/></filter></svg>
+<div id="player"><button id="pp">Play</button><input id="scrub" type="range" min="0" max="25.26" step="0.001" value="0"><span id="tc">0.00s</span></div>
+<audio id="aud" src="audio/mix.wav" preload="auto"></audio>
+<script src="scene.js"></script>
+</body>
+</html>
