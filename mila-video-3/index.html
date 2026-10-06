@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contract to Keys</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <div id="cam" class="full">
+    <!-- S1: built Texas highway at sunrise, seen through the windshield -->
+    <div id="road" class="full"><svg id="roadSvg" width="1080" height="1080"></svg></div>
+
+    <!-- photo plates -->
+    <div id="plates" class="full" style="filter:url(#heat)">
+      <div class="plate" id="pA"><div class="img" style="background-image:url(assets/photos/austin_exterior.jpg)"></div><div class="hal" style="background-image:url(assets/photos/austin_exterior.jpg)"></div></div>
+      <div class="plate" id="pB"><div class="img" style="background-image:url(assets/photos/hill_country_ranch.jpg)"></div><div class="hal" style="background-image:url(assets/photos/hill_country_ranch.jpg)"></div></div>
+      <div class="plate" id="pC"><div class="img" style="background-image:url(assets/photos/austin_interior.jpg)"></div><div class="hal" style="background-image:url(assets/photos/austin_interior.jpg)"></div></div>
+    </div>
+    <div id="grade" class="full"></div><div id="grade2" class="full"></div>
+
+    <!-- S4: slot-machine match + split-flap pipeline -->
+    <div id="reelScene" class="full">
+      <div id="reelLbl">MILA MATCHED 3 HOMES · MARCUS HALE</div>
+      <div id="reelWin"><div id="reel"></div><div id="reelShade"></div></div>
+      <div id="match">98% MATCH</div>
+      <div class="flapLbl" style="left:190px;top:712px">Pipeline</div>
+      <div class="flaps" id="pipeFlaps" style="left:190px;top:740px"></div>
+    </div>
+
+    <div id="dash" class="full"><svg id="dashSvg" width="1080" height="1080"></svg></div>
+
+    <!-- S12: title card -->
+    <div id="titleCard" class="full" style="background:var(--clay)"></div>
+
+    <div id="keytag"></div>
+
+    <!-- phone -->
+    <div id="rig">
+      <div id="phGlow"></div>
+      <div id="phone">
+        <div id="screen">
+          <canvas id="stars" width="780" height="1688"></canvas>
+          <div id="island"></div>
+          <div id="status"><span class="time" id="sbTime">6:42</span><span class="icons" id="sbIcons"></span></div>
+
+          <div class="scr" id="sLock">
+            <div id="lkDate">Monday, September 7</div>
+            <div id="lkTime" class="serif">6:42</div>
+            <div id="notif" class="glass"><div class="hd"><span class="ic"></span><span class="caps" style="color:rgba(255,255,255,.75)">Mila · now</span></div>
+              <div class="t">New lead: Marcus Hale</div><div class="d">$650K · 3 bed · Austin. Logged it for you. Want matches?</div></div>
+          </div>
+
+          <div class="scr" id="sVoice">
+            <div class="h1 serif">New lead</div><div class="h1sub">From your voice note · 6:42 AM</div>
+            <div id="vWave"></div>
+            <div id="contact" class="glass">
+              <div class="caps">Contact · Buyer</div>
+              <div style="display:flex;align-items:center;gap:12px;margin-top:14px"><span class="avatar">MH</span><div class="nm serif" style="margin:0">Marcus Hale</div></div>
+              <div class="chips2"><span class="chip on">$650K</span><span class="chip">3 bed</span><span class="chip">Austin · 78704</span></div>
+              <div class="rows"><div class="row"><span class="chk"></span>Pre-approved</div><div class="row"><span class="chk"></span>Wants a yard, near Zilker</div><div class="row"><span class="chk"></span>3 matches found</div></div>
+            </div>
+          </div>
+
+          <div class="scr" id="sEvent">
+            <div class="h1 serif">Thursday</div><div class="h1sub">October 8 · 2 events</div>
+            <div id="evCard"><div class="photo" style="background-image:url(assets/photos/austin_interior.jpg)"></div><div class="ov"></div>
+              <div class="tx"><div class="caps" style="color:var(--peach)">Thu · Oct 8</div><div class="ttl serif">Showing</div><div class="tm">4:30 PM · 4812 Bluebonnet Ln</div></div></div>
+            <div class="listrow glass" style="top:410px"><span class="avatar">MH</span><div><div class="t">Marcus Hale</div><div class="d">Buyer · pre-approved</div></div><span class="r">4:30</span></div>
+            <div class="listrow glass" style="top:488px"><div class="avatar" style="background:rgba(255,255,255,.12);color:#fff">✓</div><div><div class="t">Showing sheet ready</div><div class="d">QR sign-in at the door</div></div></div>
+          </div>
+
+          <div class="scr" id="sSheet">
+            <div class="h1 serif">Showing sheet</div><div class="h1sub">4812 Bluebonnet Ln · Thu 4:30 PM</div>
+            <div class="listrow glass sg" style="top:160px"><span class="avatar">MH</span><div><div class="t">Marcus Hale</div><div class="d">Buyer · signed in</div></div><span class="r">4:31 PM</span></div>
+            <div class="listrow glass sg" style="top:238px"><span class="avatar">DH</span><div><div class="t">Dana Hale</div><div class="d">Guest · signed in</div></div><span class="r">4:31 PM</span></div>
+            <div class="listrow glass sg" style="top:316px"><span class="avatar">CO</span><div><div class="t">Chris Ortiz</div><div class="d">Neighbor · signed in</div></div><span class="r">4:36 PM</span></div>
+          </div>
+
+          <div class="scr" id="sText">
+            <div class="h1 serif">Marcus Hale</div><div class="h1sub">Text · buyer</div>
+            <div class="listrow glass" style="top:160px"><div class="photo" style="width:44px;height:44px;border-radius:12px;background-image:url(assets/photos/austin_exterior.jpg)"></div><div><div class="t">4812 Bluebonnet Ln</div><div class="d">3 bd · 2 ba · $649,000</div></div></div>
+            <div id="bubble">Thu 4:30 at 4812 Bluebonnet Ln. Gate code 2217. See you there!</div>
+            <div id="deliv">Delivered</div>
+            <span class="btn primary" id="sendBtn" style="position:absolute;left:14px;right:14px;top:660px;height:54px;border-radius:27px;font-size:16px">Text details to Marcus</span>
+          </div>
+
+          <div class="scr" id="sFollow">
+            <div class="h1 serif">Follow-up</div><div class="h1sub">Draft · Marcus Hale</div>
+            <div id="fuBox" class="glass"><div class="caps">Text draft</div><div id="fuText"></div></div>
+          </div>
+
+          <div class="scr" id="sPost">
+            <div class="h1 serif">New post</div><div class="h1sub">Price improvement · draft</div>
+            <div id="post"><div class="photo" style="background-image:url(assets/photos/hill_country_ranch.jpg)"></div>
+              <div class="ban"><span class="k">PRICE IMPROVED</span><div class="p">$1,149,000<s>$1,195,000</s></div><div class="ad">9031 Hill Country Rd · Dripping Springs, TX</div></div></div>
+          </div>
+
+          <div class="scr" id="sForget">
+            <div class="h1 serif" style="font-size:32px">What am I forgetting?</div>
+            <div id="fgCard" class="glass"><div class="caps">For Marcus · today</div>
+              <div class="rows"><div class="rw"><span class="chk"></span>Send seller’s disclosure</div><div class="rw"><span class="chk"></span>Book inspector for Monday</div><div class="rw"><span class="chk"></span>Pre-approval letter on file</div></div></div>
+          </div>
+
+          <div class="scr" id="sOffer">
+            <div class="h1 serif">Offer</div><div class="h1sub">4812 Bluebonnet Ln · Marcus Hale</div>
+            <div id="ofCard" class="glass"><div class="caps" id="ofLbl">Offer sent</div><div id="ofAmt">$640,000</div><div id="ofState"></div></div>
+          </div>
+
+          <div class="scr" id="sCheck">
+            <div class="h1 serif">Transaction</div><div class="h1sub">Closing Nov 7 · 4812 Bluebonnet Ln</div>
+            <div id="tcCard" class="glass"><div class="caps">Under contract · $645,000</div><div class="ttl serif">Marcus Hale</div><div id="tcBar"><i></i></div>
+              <div class="rows"><div class="rw"><span class="chk"></span>Inspection<span class="r">Sep 14</span></div><div class="rw"><span class="chk"></span>Appraisal<span class="r">Sep 21</span></div><div class="rw"><span class="chk"></span>Financing<span class="r">Oct 2</span></div><div class="rw"><span class="chk"></span>Title<span class="r">Oct 30</span></div></div></div>
+          </div>
+
+          <div class="scr" id="sSold">
+            <div class="h1 serif">Ready for approval</div><div class="h1sub">1 post · closing day</div>
+            <div id="soldPost"><div class="photo" style="background-image:url(assets/photos/austin_exterior.jpg)"></div><div class="gr"></div><div class="js">JUST<br>SOLD</div><div class="ad">4812 Bluebonnet Ln · Austin, TX</div></div>
+            <div id="approveRow" class="glass"><div><div class="t">“Just sold” post</div><div class="d">Instagram · now</div></div><span class="btn" id="apBtn"><span class="lbl">Approve</span></span></div>
+            <div id="touch"></div>
+          </div>
+
+          <div id="tabbar" class="glass"><div id="tabPill"><span id="pillIcon"></span><span id="pillLabel">Home</span></div>
+            <div class="tab" data-i="home"></div><div class="tab" data-i="users"></div><div class="tab" data-i="house"></div><div class="tab" data-i="spark"></div><div class="tab" data-i="cal"></div><div class="tab" data-i="dots"></div></div>
+          <div id="homeInd"></div>
+          <div id="glare"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="slams" class="full"></div>
+    <div id="dropFlaps" class="full"><div class="flapLbl" style="left:620px;top:396px">Closing in</div><div class="flaps" id="dayFlaps" style="left:620px;top:424px"></div><div class="flapLbl" style="left:620px;top:556px">Days</div></div>
+    <div id="stamps" class="full"></div>
+    <div id="black" class="full" style="background:#000"></div>
+  </div>
+
+  <div id="labels" class="full"><div id="lblTL"><i></i><span id="lblTLt"></span></div><div id="lblBR"></div></div>
+  <div id="flare" class="full"></div>
+  <div id="burn" class="full"></div>
+  <canvas id="dust" width="1080" height="1080"></canvas>
+  <div id="flash" class="full" style="background:#fff"></div>
+  <div id="endcard" class="full"><div id="endGrad"></div>
+    <div id="endTx"><div id="wordmark">Mila</div>
+      <div id="tagline"><div class="ln"><span>Your AI operations manager for real estate.</span></div></div>
+      <div id="cta"><div class="ln"><span>Comment <span class="q">“Mila”</span></span></div><div class="ln"><span>for a 7-day free trial.</span></div></div></div></div>
+  <div id="vignette" class="full"></div>
+  <canvas id="grain" width="540" height="540"></canvas>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <filter id="heat" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence id="heatTurb" type="fractalNoise" baseFrequency="0.004 0.03" numOctaves="2" seed="1"/><feDisplacementMap id="heatDisp" in="SourceGraphic" scale="0"/></filter>
+  <filter id="mb" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur id="mbBlur" stdDeviation="0 0"/></filter>
+  <filter id="ink"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -9 6.2" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in"/></filter>
+</svg>
+<div id="player"><button id="pp">Play</button><input id="scrub" type="range" min="0" max="21.18" step="0.001" value="0"><span id="tc">0.00s</span></div>
+<audio id="aud" src="audio/mix.wav" preload="auto"></audio>
+<script src="scene.js"></script>
+</body>
+</html>
