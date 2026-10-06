@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mila Launch Film</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <div class="layer" id="bgSky"></div>
+  <div class="layer" id="bgPhoto"></div>
+  <div class="layer" id="bgGrad"></div>
+  <div class="layer" id="bgWhite"></div>
+  <div class="layer" id="leaks"><div class="leak" id="leakA"></div><div class="leak" id="leakB"></div></div>
+
+  <div id="stage">
+    <div id="cam">
+      <!-- expansion: grid of Malibu photos (built in JS) -->
+      <div id="tiles" class="center"></div>
+
+      <!-- the phone -->
+      <div id="rig">
+        <div id="phone">
+          <div id="screen">
+            <canvas id="stars" width="780" height="1688"></canvas>
+            <div id="island"></div>
+            <div id="status"><span class="time">6:41</span><span class="icons" id="sbIcons"></span></div>
+
+            <!-- HOME -->
+            <div class="scr" id="sHome">
+              <div id="moon"></div>
+              <div class="date caps">Tuesday, October 6</div>
+              <div class="greet serif">Good evening,<br>Sarah.</div>
+              <div id="composer" class="glass">
+                <div class="txt"><span id="typed"></span><span id="caret"></span><span class="ph" id="ph">What do you need to get done?</span></div>
+                <div class="plus" data-i="plus"></div>
+                <div class="mic" data-i="mic"></div>
+                <div id="send" data-i="arrow"></div>
+                <div class="shine"></div>
+              </div>
+              <div id="composerGlow"></div>
+              <div class="chips">
+                <span class="chip">Get me ready to list</span><span class="chip">Set up an open house</span><span class="chip">Who should I follow up with?</span><span class="chip">What am I missing?</span>
+              </div>
+              <div class="sect serif">Ready for approval</div>
+              <div class="apcard glass" style="top:464px"><div class="icon-tile" data-i="msg"></div><div class="t">Follow-up to Marcus Chen</div><div class="d">Re: Broad Beach showing</div><span class="btn">Approve</span></div>
+              <div class="apcard glass" style="top:552px"><div class="icon-tile" data-i="tag"></div><div class="t">Price update post</div><div class="d">6420 Zumirez Dr · $2,850,000</div><span class="btn">Approve</span></div>
+              <div class="apcard glass" style="top:640px"><div class="icon-tile" data-i="cal"></div><div class="t">Showing confirmation</div><div class="d">31244 Broad Beach Rd · Thu 2 PM</div><span class="btn">Approve</span></div>
+            </div>
+
+            <!-- CHAT / LISTING BRIEF -->
+            <div class="scr" id="sChat">
+              <div class="back" data-i="back"></div>
+              <div class="navtitle serif">Mila</div>
+              <div id="userBubble">Set me up for my open house at 26110 Pacific Coast Hwy, Malibu.</div>
+              <div id="milaLbl" class="caps"><i class="dot"></i>Mila</div>
+              <div id="brief" class="glass">
+                <div class="caps">Get me ready</div>
+                <div id="ring"><svg viewBox="0 0 46 46" width="46" height="46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="3.5"/><circle id="ringArc" cx="23" cy="23" r="19" fill="none" stroke="url(#ringGrad)" stroke-width="3.5" stroke-linecap="round" transform="rotate(-90 23 23)"/><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb4ff"/><stop offset=".55" stop-color="#a68cff"/><stop offset="1" stop-color="#ffc9a8"/></linearGradient></defs></svg><div id="ringPct">0%</div></div>
+                <div class="title serif">26110 Pacific Coast Hwy</div>
+                <div class="sub">Malibu, CA 90265 · $4,950,000</div>
+                <div id="briefPhoto"><div class="kb photo" style="background-image:url(assets/photos/hero.jpg)"></div></div>
+                <div class="rows">
+                  <div class="row brow"><span class="chk"></span>Photos pulled · 24 shots</div>
+                  <div class="row brow"><span class="chk"></span>Description drafted</div>
+                  <div class="row brow"><span class="chk"></span>Missing: HOA docs, disclosures</div>
+                  <div class="row brow"><span class="chk"></span>Next: staging Fri, photos Sat</div>
+                </div>
+                <div class="btns"><span class="btn">Open</span><span class="btn">See tasks</span><span class="btn primary">Start listing</span></div>
+                <div class="shine"></div>
+              </div>
+            </div>
+
+            <!-- CONTENT -->
+            <div class="scr" id="sContent">
+              <div class="h1 serif">Content</div>
+              <div class="h1sub">26110 Pacific Coast Hwy · 3 drafts</div>
+              <div class="chips"><span class="chip on">Instagram</span><span class="chip">Email</span><span class="chip">Texts</span><span class="chip">Flyers</span></div>
+              <div id="contentSlot" class="glass"></div>
+            </div>
+
+            <!-- EMAIL -->
+            <div class="scr" id="sEmail">
+              <div id="emailCard" class="glass">
+                <div class="caps" style="margin:2px 2px 12px">Email draft · Open house</div>
+                <div class="banner photo" id="emailBanner" style="background-image:url(assets/photos/firepit.jpg)"></div>
+                <div class="field"><span class="k">To</span><span class="v">Malibu buyers · 12</span></div>
+                <div class="field"><span class="k">Subject</span><span class="v subj">Open House Sunday 1-4 PM, 26110 Pacific Coast Hwy</span></div>
+                <div id="emailBody"></div>
+                <div id="sig"><div class="n serif">Sarah Bennett</div><div class="r">Coastline Realty Group · (310) 555-0142</div></div>
+                <div class="shine"></div>
+              </div>
+              <span id="openMail" class="btn primary"><span data-i="mail"></span>Open in email app</span>
+            </div>
+
+            <!-- TEXT FOLLOW-UPS -->
+            <div class="scr" id="sTexts">
+              <div class="h1 serif">Follow-ups</div>
+              <div class="h1sub">3 texts · send Sunday 9:00 AM</div>
+              <div class="tcard glass" style="top:150px"><div class="hd"><span class="avatar">DR</span><div><div class="nm">Daniela Reyes</div><div class="tm">Touring · $3.2M</div></div><span class="q"><span data-i="clock"></span>Queued</span></div>
+                <div class="bubble">Hi Daniela! Open house Sunday 1–4 at 26110 PCH. Want a private look at 12:30 first?</div></div>
+              <div class="tcard glass" style="top:302px"><div class="hd"><span class="avatar">MC</span><div><div class="nm">Marcus Chen</div><div class="tm">New lead · Broad Beach</div></div><span class="q"><span data-i="clock"></span>Queued</span></div>
+                <div class="bubble">Marcus, the oceanfront you asked about is live. Does Sunday 1–4 work?</div></div>
+              <div class="tcard glass" style="top:454px"><div class="hd"><span class="avatar">TH</span><div><div class="nm">The Hollands</div><div class="tm">Offer · Winding Way</div></div><span class="q"><span data-i="clock"></span>Queued</span></div>
+                <div class="bubble">Saving you a spot Sunday! Photos from 28450 Winding Way are in too.<div class="att photo" style="background-image:url(assets/photos/hillside.jpg)"></div></div></div>
+            </div>
+
+            <!-- APPROVALS -->
+            <div class="scr" id="sApprove">
+              <div class="h1 serif" style="font-size:36px">Ready for approval</div>
+              <div id="apCount">4</div>
+              <div class="h1sub">Nothing goes out until you say so.</div>
+              <div class="acard glass"><div class="thumb photo" style="background-image:url(assets/photos/hero.jpg)"></div><div class="t">Instagram carousel</div><div class="d">3 slides · 26110 PCH</div><span class="btn ab">Approve</span></div>
+              <div class="acard glass"><div class="icon-tile" data-i="mail"></div><div class="t">Open house email</div><div class="d">Malibu buyers · 12</div><span class="btn ab">Approve</span></div>
+              <div class="acard glass"><div class="icon-tile" data-i="msg"></div><div class="t">3 follow-up texts</div><div class="d">Daniela, Marcus, Hollands</div><span class="btn ab">Approve</span></div>
+              <div class="acard glass"><div class="icon-tile" data-i="cal"></div><div class="t">Open house invite</div><div class="d">Sunday 1–4 PM · RSVP</div><span class="btn ab">Approve</span></div>
+              <div id="touchRing"></div><div id="touch"></div>
+            </div>
+
+            <!-- CALENDAR -->
+            <div class="scr" id="sCal">
+              <div class="h1 serif">October <span>2026</span></div>
+              <div class="stats"><span class="stat"><b id="cShow">0</b> showings</span><span class="stat"><b id="cTask">0</b> tasks</span><span class="stat"><b id="cOH">0</b> open house</span></div>
+              <div id="week"></div>
+              <div id="ohCard" class="glass"><div class="photo" style="background-image:url(assets/photos/hero.jpg)"></div><div class="ov"></div>
+                <div class="tx"><div class="caps" style="color:var(--peach)">Sun · Oct 11</div><div class="serif" style="font-size:30px;margin-top:8px">Open house</div><div style="font:500 13px/1.3 var(--sans);color:rgba(255,255,255,.75);margin-top:5px">1–4 PM · 26110 Pacific Coast Hwy</div></div></div>
+              <div class="ag glass" style="top:388px"><div class="tm">Wed<br>10:00</div><div class="th photo" style="background-image:url(assets/photos/pool.jpg)"></div><div><div class="tt">Showing · 6420 Zumirez Dr</div><div class="ts">Daniela Reyes</div></div></div>
+              <div class="ag glass" style="top:454px"><div class="tm">Thu<br>2:00</div><div class="th photo" style="background-image:url(assets/photos/firepit.jpg)"></div><div><div class="tt">Showing · 31244 Broad Beach</div><div class="ts">Marcus Chen</div></div></div>
+              <div class="ag glass" style="top:520px"><div class="tm">Fri<br>9:00</div><div class="th icon-tile" data-i="cam" style="width:40px;height:40px;border-radius:11px"></div><div><div class="tt">Listing photos · 26110 PCH</div><div class="ts">Photographer confirmed</div></div></div>
+              <div class="ag glass" style="top:586px"><div class="tm">Sat<br>11:00</div><div class="th photo" style="background-image:url(assets/photos/hillside.jpg)"></div><div><div class="tt">Showing · 28450 Winding Way</div><div class="ts">The Hollands</div></div></div>
+            </div>
+
+            <!-- CONTACTS / PIPELINE -->
+            <div class="scr" id="sContacts">
+              <div class="h1 serif">Pipeline</div>
+              <div class="h1sub">24 contacts · 9 active</div>
+              <div class="chips"><span class="chip on">All 24</span><span class="chip">New 6</span><span class="chip" id="chipTour">Touring 5</span><span class="chip">Offer 2</span></div>
+              <div id="strip"></div>
+              <div id="answer" class="glass">
+                <div class="caps">Who should I follow up with?</div>
+                <div class="a1 serif">Daniela and Marcus.</div>
+                <div class="a2">Both viewed 26110 PCH twice this week. Neither has heard from you in 6 days.</div>
+                <div class="btns"><span class="btn primary">Message them</span><span class="btn">Open</span></div>
+                <div class="shine"></div>
+              </div>
+            </div>
+
+            <!-- PREP / FORGETTING -->
+            <div class="scr" id="sPrep">
+              <div class="pcard" id="prepA" style="top:72px"><div class="bg photo" style="background-image:url(assets/photos/pool.jpg)"></div><div class="ov"></div>
+                <div class="in"><div class="caps" style="color:rgba(255,255,255,.75)">Meeting prep · 3:30 PM</div><div class="tt serif">The Hollands</div><div class="st">28450 Winding Way · offer review</div>
+                  <div class="rows"><div class="rw"><span class="chk"></span>Comps pulled · 6 nearby sales</div><div class="rw"><span class="chk"></span>Pre-approval on file</div><div class="rw"><span class="chk"></span>Talking points drafted</div></div></div></div>
+              <div class="pcard" id="prepB" style="top:390px"><div class="bg photo" style="background-image:url(assets/photos/hillside.jpg)"></div><div class="ov"></div>
+                <div class="in"><div class="caps" style="color:rgba(255,255,255,.75)">What am I forgetting today?</div><div class="tt serif">3 things before 5 PM</div><div class="st">Mila checked your week</div>
+                  <div class="rows"><div class="rw"><span class="chk"></span>Send disclosures to Marcus</div><div class="rw"><span class="chk"></span>Confirm Friday photographer</div><div class="rw"><span class="chk"></span>Lockbox code · Zumirez Dr</div></div></div></div>
+            </div>
+
+            <!-- persistent tab bar -->
+            <div id="tabbar" class="glass">
+              <div id="tabPill"><span data-i="home" id="pillIcon"></span><span id="pillLabel">Home</span><span id="tabBadge">3</span></div>
+              <div class="tabs">
+                <div class="tab" data-tab="0" data-i="home"></div><div class="tab" data-tab="1" data-i="users"></div><div class="tab" data-tab="2" data-i="house"></div>
+                <div class="tab" data-tab="3" data-i="spark"></div><div class="tab" data-tab="4" data-i="cal"></div><div class="tab" data-tab="5" data-i="dots"></div>
+              </div>
+            </div>
+            <div id="homeInd"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- carousel slides (world space) -->
+      <div id="fan" class="center">
+        <div class="slide" id="sl0"><div class="photo" style="background-image:url(assets/photos/hero.jpg)"></div><div class="gr"></div><span class="pg">1/3</span>
+          <div class="tx"><div class="k">Just listed</div><div class="a">26110 Pacific Coast Hwy</div><div class="c">Malibu, CA 90265</div></div></div>
+        <div class="slide" id="sl1"><div class="photo" style="background-image:url(assets/photos/pool.jpg)"></div><div class="dim"></div><span class="pg">2/3</span>
+          <div class="k" style="position:absolute;left:26px;top:30px;font:600 11px/1 var(--sans);letter-spacing:.22em">OFFERED AT</div>
+          <div class="price">$4,950,000</div>
+          <div class="grid"><div class="cell"><b>4</b><span>Beds</span></div><div class="cell"><b>5</b><span>Baths</span></div><div class="cell"><b>4,820</b><span>Sq ft</span></div><div class="cell"><b>0.6</b><span>Acres</span></div></div></div>
+        <div class="slide" id="sl2"><div class="photo" style="background-image:url(assets/photos/firepit.jpg)"></div>
+          <span class="pg">3/3</span>
+          <div class="cta"><div class="k">Open house</div><div class="big">Sunday</div><div class="tm">1–4 PM · 26110 PCH</div><span class="pill">Save your spot</span></div></div>
+        <div id="dots"><i></i><i></i><i></i></div>
+      </div>
+
+      <div id="particles" class="center"></div>
+    </div>
+
+    <!-- kinetic type -->
+    <div id="words"></div>
+
+    <!-- end card -->
+    <div id="endcard">
+      <div id="wordmark">Mila</div>
+      <div id="tagline"><div class="ln"><span>Your AI operations manager for real estate.</span></div></div>
+      <div id="cta"><div class="ln"><span>Comment <span class="q">“Mila”</span></span></div><div class="ln"><span>for a 7-day free trial.</span></div></div>
+    </div>
+  </div>
+
+  <div class="layer" id="leaks2"><div class="leak" id="leakC"></div></div>
+  <div class="layer" id="vignette"></div>
+  <canvas id="grain" width="540" height="540"></canvas>
+  <div class="layer" id="flash"></div>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <filter id="mbRig" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur id="mbRigBlur" stdDeviation="0 0"/></filter>
+  <filter id="mbFan" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur id="mbFanBlur" stdDeviation="0 0"/></filter>
+</svg>
+
+<div id="player"><button id="pp">Play</button><input id="scrub" type="range" min="0" max="20.29" step="0.001" value="0"><span id="tc">0.00s</span></div>
+<audio id="aud" src="audio/mix.wav" preload="auto"></audio>
+<script src="scene.js"></script>
+</body>
+</html>
