@@ -2,7 +2,7 @@
 
 20.6 s, 60 fps Instagram video in three sizes: **1080×1350** (feed, the main version), 1080×1920 (Reels/Stories) and 1080×1080.
 
-It features the new CCM sticks and the new Bauer and CCM skates. It's built the same way as the Mila films: every frame is a pure function of time, captured at 120 fps and averaged to 60 fps for a real motion-blur shutter.
+It features the new CCM sticks (Unleashed Pro, JetSpeed) and the new skates (Bauer FlyLite LE, CCM Vizion). It's built the same way as the Mila films: every frame is a pure function of time, captured at 120 fps and averaged to 60 fps for a real motion-blur shutter.
 
 The **music is original**, composed in `compose.py` for this edit. No licensed audio is used, so it won't get muted or flagged.
 
@@ -37,9 +37,9 @@ python3 -I cutout.py SRC.jpg assets/img/NAME.png SCALE [white-tolerance] [edge-e
 | 20–21.5 | 8.57 | **AND / NEW / SKATES / LANDED.** |
 | 22 | 9.43 | Bauer blade macro |
 | 23.5 | 10.07 | **Hockey-stop spray white-out** (the signature transition) |
-| **24** | **10.29** | **Drop B + goal horn:** the Bauer skate lands on the ice. **BAUER**, **JUST IN** |
-| 28 | 12.00 | CCM skate on navy. **CCM**. **JUST LANDED** on split-flaps |
-| 32 | 13.71 | Both skates: **NEW SKATES / IN STORE NOW** |
+| **24** | **10.29** | **Drop B + goal horn:** the **Bauer FlyLite LE** lands on the ice. Tag **FLYLITE LE**, **JUST IN** |
+| 28 | 12.00 | **CCM Vizion** on navy. Tag **VIZION**. **JUST LANDED** on split-flaps |
+| 32 | 13.71 | Both skates: **NEW SKATES**, labelled **BAUER FLYLITE LE** and **CCM VIZION**, then **IN STORE NOW** |
 | 36–39 | 15.43 | **HOCKEY. / FIGURE / SKATING. / EVERYTHING ON ICE.** with a figure-8 tracing drawn on the ice |
 | **40** | **17.14** | Logo slam with the goal horn and ice spray, then **NEW GEAR / IN STORE NOW** |
 | 45.5–48 | 19.5–20.6 | Hold, ring-out |
@@ -47,4 +47,4 @@ python3 -I cutout.py SRC.jpg assets/img/NAME.png SCALE [white-tolerance] [edge-e
 ## Notes
 - **Cut-outs:** made with `cutout.py`, which flood-fills white from the border, keeps the main object and trims the fringe.
 - **Skate image quality:** the skate photos are only 225×225 px, so they're upscaled 3.2× and are the softest part of the video. Larger product shots would make the skates much sharper.
-- **Product names on screen** use only what's printed on the gear: "UNLEASHED PRO", "JETSPEED", "BAUER", "CCM". No specs or prices are claimed.
+- **Product names on screen** use the model names: "UNLEASHED PRO", "JETSPEED", "FLYLITE LE", "VIZION". No specs or prices are claimed.

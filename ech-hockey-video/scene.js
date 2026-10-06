@@ -83,6 +83,7 @@
   const S_sk = [slam([['AND']], 20, 21.9, 540, 300, 190, WHITE, { center: true }), slam([['NEW']], 20.5, 21.9, 540, 455, 190, WHITE, { center: true }),
     slam([['SKATES']], 21, 21.9, 540, 610, 190, WHITE, { center: true }), slam([['LANDED.']], 21.5, 21.9, 540, 765, 190, RED, { center: true })];
   const S_both = slam([['NEW SKATES']], 32, 36, 540, 165, 120, NAVY, { center: true });
+  const S_bothL = [slam([['BAUER FLYLITE LE']], 32.5, 36, 330, 800, 40, NAVY, { center: true, maxW: 380 }), slam([['CCM VIZION']], 32.75, 36, 755, 800, 40, NAVY, { center: true, maxW: 360 })];
   const S_fig = [slam([['HOCKEY.']], 36, 40, 540, 330, 180, WHITE, { center: true }), slam([['FIGURE']], 37, 40, 540, 500, 180, ICEB, { center: true }),
     slam([['SKATING.']], 38, 40, 540, 670, 180, WHITE, { center: true }), slam([['EVERYTHING ON ICE.']], 39, 40, 540, 850, 74, RED, { center: true })];
   const S_cta = [slam([['NEW GEAR']], 42, 99, 540, 800, 92, NAVY, { center: true }), slam([['IN STORE NOW']], 42.5, 99, 540, 895, 92, RED, { center: true })];
@@ -92,7 +93,7 @@
   // tags
   function tag(k, nm, bg) { const el = document.createElement('div'); el.className = 'tagc'; el.innerHTML = `<div class="k">${k}</div><div class="n">${nm}</div>`; if (bg) el.style.background = bg; $('#callouts').appendChild(el); return el; }
   function pill(t, bg) { const el = document.createElement('div'); el.className = 'pill'; el.textContent = t; if (bg) el.style.background = bg; $('#callouts').appendChild(el); return el; }
-  const TAG = { su: tag('New · CCM', 'UNLEASHED PRO'), sb: tag('New skates', 'BAUER'), sc: tag('New skates', 'CCM', '#e1202f') };
+  const TAG = { su: tag('New · CCM', 'UNLEASHED PRO'), sb: tag('New · Bauer', 'FLYLITE LE'), sc: tag('New · CCM', 'VIZION', '#e1202f') };
   const PILL = { new1: pill('NEW'), stock1: pill('IN STOCK', NAVY), justin: pill('JUST IN'), store: pill('IN STORE NOW') };
   // stamps
   function stamp(t, sub, fs, rot, c) { const el = document.createElement('div'); el.className = 'stamp'; el.innerHTML = `<div class="box">${t}<div class="sub">${sub}</div></div>`; set(el, { fontSize: fs + 'px', color: c }); $('#stamps').appendChild(el); return { el, rot }; }
@@ -263,10 +264,10 @@
     pop(TAG.su, inR(b, 9, 12), 9, 96, 780);
     pop(PILL.new1, inR(b, 9.5, 12), 9.5, 760, 190, -4);
     pop(PILL.stock1, inR(b, 10, 12), 10, 760, 262, -4);
-    pop(TAG.sb, inR(b, 25, 28), 25, 700, 700);
+    pop(TAG.sb, inR(b, 25, 28), 25, 610, 700);
     pop(PILL.justin, inR(b, 26, 28), 26, 760, 190, -4);
-    pop(TAG.sc, inR(b, 29, 32), 29, 700, 720);
-    pop(PILL.store, inR(b, 33, 36), 33, 540 - 130, 880, -2);
+    pop(TAG.sc, inR(b, 29, 32), 29, 700, 610);
+    pop(PILL.store, inR(b, 33, 36), 33, 540 - 130, 885, -2);
 
     /* ---------- type slams (hard in on the beat, hard out) ---------- */
     for (const o of T) {
