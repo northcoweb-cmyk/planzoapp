@@ -35,7 +35,7 @@ timeline = {
     "prompt": PROMPT, "keyUnits": typing(PROMPT, TYPE0, TYPE1, 21),
     "emailType": [47.4, 49.6],
     "sfx": [
-        [0.0, "buzz"], [2.0, "buzz"], [1.0, "ding"], [3.0, "ding"],
+        [0.5, "buzz"], [2.0, "buzz"], [1.0, "ding"], [3.0, "ding"],
         *[[u, "win"] for u in range(4, 24)],
         *[[u + 0.5, "win"] for u in range(18, 24)],
         [9.0, "ding"], [12.0, "ding"], [14.0, "ding"], [15.0, "ding"], [17.0, "ding"],

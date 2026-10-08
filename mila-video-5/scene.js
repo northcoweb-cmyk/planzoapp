@@ -168,8 +168,8 @@
 
   /* ---------------------------------------------------------------- the hook composition; h = hook-local time (0 = the loop frame) */
   function hookPose(h, live) {
-    // phone: buzz on u0 and u2
-    let wig = 0; if (live) for (const T of [0, 2]) if (h >= T) wig += Math.sin((h - T) * 70) * 3.2 * Math.exp(-(h - T) * 5);
+    // phone: buzz on u0.5 and u2 (never on frame 0, so the loop frame stays still)
+    let wig = 0; if (live) for (const T of [0.5, 2]) if (h >= T) wig += Math.sin((h - T) * 70) * 3.2 * Math.exp(-(h - T) * 5);
     set(R.hPhone, { transform: `translate(112px,${388}px) rotate(${-4 + wig}deg)` });
     set(R.laptop, { transform: 'translate(400px,430px)' });
     set(R.hCal, { transform: 'translate(36px,782px) rotate(3deg)' });
