@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Close Every Tab</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <div class="fill" id="bgGlow"><div class="glowb" id="gA"></div><div class="glowb" id="gB"></div><div class="glowb" id="gC"></div></div>
+  <div class="fill" id="greyBg"></div>
+
+  <div id="stage">
+    <div id="cam">
+      <!-- the app switcher: generic, invented apps -->
+      <div id="switcher" class="abs" style="width:1080px;height:1080px"></div>
+      <div id="appsOpen">12 apps open</div>
+
+      <!-- the Mila phone -->
+      <div id="rig">
+        <div id="phone"><div id="screen">
+          <canvas id="stars" width="780" height="1688"></canvas>
+          <div id="island"></div>
+          <div id="status"><span class="time">9:41</span><span class="icons" id="sbIcons"></span></div>
+
+          <div class="scr" id="sLeads">
+            <div class="h1 serif">Leads</div><div class="h1sub">3 new today</div>
+            <div class="lead glass" style="top:150px"><div class="hd"><span class="avatar">JE</span>Jordan Ellis<span class="chip">Reply drafted</span></div><div class="m">Is 48 Coral Palm Way still available?</div></div>
+            <div class="lead glass" style="top:272px"><div class="hd"><span class="avatar">PS</span>Priya Shah<span class="chip">Reply drafted</span></div><div class="m">Can we see the Sarasota home Saturday?</div></div>
+            <div class="lead glass" style="top:394px"><div class="hd"><span class="avatar">ML</span>Marcus Lee<span class="chip">Reply drafted</span></div><div class="m">What's the HOA on Mangrove Bay?</div></div>
+          </div>
+
+          <div class="scr" id="sCal">
+            <div class="h1 serif">Saturday</div><div class="h1sub">Showings, set</div>
+            <div class="evc glass" style="top:150px"><div class="photo" style="background-image:url(assets/photos/sarasota_bridgepool.jpg)"></div><div class="tx"><div class="k">Showing · 10 AM</div><div class="a">1207 Sea Grape Ln</div><div class="c">Sarasota · Priya Shah</div></div><span class="chk"></span></div>
+            <div class="evc glass" style="top:284px"><div class="photo" style="background-image:url(assets/photos/tampa_rockpool.jpg)"></div><div class="tx"><div class="k">Showing · 1 PM</div><div class="a">915 Mangrove Bay Dr</div><div class="c">Tampa · Marcus Lee</div></div><span class="chk"></span></div>
+            <div class="evc glass" style="top:418px"><div class="photo" style="background-image:url(assets/photos/hero_waterfront.jpg)"></div><div class="tx"><div class="k">Open house · 3–5 PM</div><div class="a">48 Coral Palm Way</div><div class="c">Naples · sign-in sheet ready</div></div><span class="chk"></span></div>
+          </div>
+
+          <div class="scr" id="sEmail">
+            <div id="emailCard" class="glass">
+              <div class="caps" style="margin:2px 2px 10px">Email draft · Just listed</div>
+              <div class="field"><span class="k">To</span><span>Naples buyers · 31</span></div>
+              <div class="field"><span class="k">Subject</span><span style="font-weight:600">Just listed: 48 Coral Palm Way, Naples</span></div>
+              <div id="emailBody"></div>
+              <div id="sig" style="padding-top:6px"><div class="serif" style="font-size:22px">Sarah Bennett</div><div style="font:400 12px/1.4 var(--sans);color:rgba(255,255,255,.5)">Coastline Realty Group</div></div>
+            </div>
+          </div>
+
+          <div class="scr" id="sTexts">
+            <div class="h1 serif">Follow-ups</div><div class="h1sub">Everyone from Sunday · 3 queued</div>
+            <div class="tc glass" style="top:150px"><div class="hd"><span class="avatar">DO</span>Dana Ortiz<span class="q">Queued</span></div><div class="bub">Thanks for stopping by Sunday! Want to see it again this week?</div></div>
+            <div class="tc glass" style="top:300px"><div class="hd"><span class="avatar">KW</span>Kim Walsh<span class="q">Queued</span></div><div class="bub">Hi Kim! Sending the disclosures for 48 Coral Palm Way now.</div></div>
+            <div class="tc glass" style="top:450px"><div class="hd"><span class="avatar">RB</span>Ray Brooks<span class="q">Queued</span></div><div class="bub">Great meeting you! A similar home in Tampa just came up.</div></div>
+          </div>
+
+          <div class="scr" id="sContent">
+            <div class="h1 serif">Content</div><div class="h1sub">Instagram · 3 slides</div>
+            <div id="cTrack" class="photo" style="background-image:url(assets/photos/hero_waterfront.jpg)"></div>
+          </div>
+
+          <div class="scr" id="sApprove">
+            <div class="h1 serif">For you</div><div class="h1sub">Ready for approval</div>
+            <div class="apr glass" style="top:150px"><div class="ti" style="background-image:url(assets/photos/hero_waterfront.jpg)"></div><div>3 lead replies<span>Jordan, Priya, Marcus</span></div><div class="bt"><b class="lbl">Approve</b></div></div>
+            <div class="apr glass" style="top:246px"><div class="ti" id="aiCal"></div><div>Saturday showings<span>Sarasota · Tampa · Naples</span></div><div class="bt"><b class="lbl">Approve</b></div></div>
+            <div class="apr glass" style="top:342px"><div class="ti" id="aiMail"></div><div>Just listed email<span>31 buyers · ready to send</span></div><div class="bt"><b class="lbl">Approve</b></div></div>
+          </div>
+
+          <div id="homeInd"></div>
+        </div></div>
+      </div>
+      <div id="fan" class="abs"></div>
+      <div id="flys" class="abs"></div>
+      <div id="milaIcon"><i></i><span>M</span></div>
+
+      <div id="words" class="abs"></div>
+
+      <div id="endc" class="abs" style="width:1080px;height:1080px">
+        <div id="wordmark">Mila</div>
+        <div id="tagline"><div class="ln"><span>Your AI operations manager for real estate.</span></div></div>
+        <div id="cta"><div class="ln"><span>Comment <span class="q">“Mila”</span></span></div><div class="ln"><span>for a 7-day free trial.</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fill" id="redTint"></div>
+  <div class="fill" id="flash"></div>
+  <div class="fill" id="vignette"></div>
+  <canvas id="grain" width="540" height="540"></canvas>
+</div>
+<div id="player"><button id="pp">Play</button><input id="scrub" type="range" min="0" max="18.5" step="0.001" value="0"><span id="tc">0.00s</span></div>
+<audio id="aud" src="audio/mix.wav" preload="auto"></audio>
+<script src="scene.js"></script>
+</body>
+</html>
