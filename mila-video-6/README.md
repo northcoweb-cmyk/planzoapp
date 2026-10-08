@@ -6,6 +6,7 @@
 - `out/mila_film6_1080x1350_60fps.mp4` (4:5 feed)
 - `out/mila_film6_1080x1920_60fps.mp4` (9:16 Reels)
 - `out/mila_film6_1080x1080_60fps.mp4` (1:1)
+- Covers: `out/cover_{square,feed,portrait}.png` ("Out of office." over the sunset)
 - 4:5 hook variants: `out/mila_film6_1080x1350_60fps_hook2.mp4` ("My calendar this week.") and `out/mila_film6_1080x1350_60fps_hook3.mp4` ("When's your next day off?")
 - The main hook is "Agents don't get vacations."
 

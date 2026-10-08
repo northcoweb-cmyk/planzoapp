@@ -79,7 +79,7 @@
   /* ---------------------------------------------------------------- type */
   const WORDS = [
     { l: [HOOK], at: [-9], out: 5.7, x: 540, y: 128, fs: 86, w: 960, center: true },
-    { l: ['Out of office.'], at: [12.2], out: 13.7, x: 540, y: 330, fs: 160, w: 900, center: true },
+    { l: ['Out of office.'], at: [12.2], out: 13.3, x: 540, y: 330, fs: 160, w: 900, center: true },
     { l: ['Leads.'], at: [14.1], out: 15.3, x: 540, y: 880, fs: 120, w: 800, center: true },
     { l: ['Showings.'], at: [15.6], out: 16.8, x: 540, y: 880, fs: 120, w: 800, center: true },
     { l: ['Follow-ups.'], at: [17.1], out: 18.3, x: 540, y: 880, fs: 120, w: 800, center: true },
@@ -213,7 +213,7 @@
     /* ---------- out of office toggle ---------- */
     const tgOn = b >= 12.6 && b < 21.6; vis(R.toggle, tgOn);
     if (tgOn) {
-      const a = E.spring(P(b, 12.6, 13.3)), up = E.inOut(P(b, 13.7, 14.2)), out = E.inCubic(P(b, 21.2, 21.6));
+      const a = E.spring(P(b, 12.6, 13.3)), up = E.inOut(P(b, 13.55, 13.95)), out = E.inCubic(P(b, 21.2, 21.6));
       const y = lerp(470, 140, up) - out * 60, s = lerp(1, 0.78, up);
       set(R.toggle, { transform: `translate(${-TGW / 2}px,${y - 46 + (1 - a) * 40}px) scale(${s * (0.9 + 0.1 * a)})`, transformOrigin: '50% 50%', opacity: clamp(a * 2) * (1 - out) });
       const on = E.outBack(P(b, 13.25, 13.55));
@@ -222,9 +222,9 @@
     }
 
     /* ---------- approvals (land b14-18.5, approve all on b20) ---------- */
-    const stackOn = b >= 13.8 && b < 21.6; vis(R.stack, stackOn);
+    const stackOn = b >= 13.95 && b < 21.6; vis(R.stack, stackOn);
     if (stackOn) {
-      const tp = E.outExpo(P(b, 13.8, 14.4)), headOut = E.inCubic(P(b, 21.1, 21.5));
+      const tp = E.outExpo(P(b, 13.95, 14.5)), headOut = E.inCubic(P(b, 21.1, 21.5));
       set(R.title, { transform: `translate(0,${238 + (1 - tp) * 30}px)`, opacity: tp * (1 - headOut) });
       R.count.textContent = LAND_T.filter(x => b >= x).length - APPROVE_T.filter(x => b >= x).length;
       const bump = Math.max(0, ...[...LAND_T, ...APPROVE_T].map(x => (b >= x && b < x + 0.3) ? Math.sin(P(b, x, x + 0.3) * Math.PI) : 0));
