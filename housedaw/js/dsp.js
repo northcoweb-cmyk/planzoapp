@@ -117,7 +117,11 @@
       }
       L[i] = x;
     }
-    if (p.drive) D.sat(L, 1 + p.drive * 7);
+    if (p.drive) {
+      D.sat(L, 1 + p.drive * 7);
+      // saturation flattens the peak and lifts the quiet tail; re-apply the decay after it so a short kick stays short
+      const gate = Math.max(p.dec, p.subDec || 0) * 1.25; for (let i = 0; i < n; i++) L[i] *= exp(-(i / sr) / gate);
+    }
     D.filt(L, 'lp', p.tone || 14000, 0.7, 0, sr);
     D.filt(L, 'hp', 24, 0.7, 0, sr);
     D.fadeOut(L, Math.floor(sr * 0.008));
@@ -184,6 +188,7 @@
 
   K.crash = (p, sr, r) => {
     const n = lenSamples(sr, p.len), L = D.noise(n, r), R = D.noise(n, r);
+    for (let i = 0; i < n; i++) R[i] = L[i] * 0.55 + R[i] * 0.45; // partly correlated: wide but mono-safe
     const ts = p.ts || 1, ph = [], inc = [];
     for (let k = 0; k < 8; k++) { ph.push(r()); inc.push((300 * ts * [1, 1.47, 1.93, 2.43, 2.97, 3.52, 4.1, 4.7][k]) / sr); }
     const m = p.metal == null ? 0.35 : p.metal;

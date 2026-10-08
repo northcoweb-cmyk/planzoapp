@@ -100,11 +100,17 @@
     const p = Right.aip; p.innerHTML = '';
     Right.chat = el('div', { class: 'chat' });
     Right.input = el('input', { class: 'inp', placeholder: 'Ask: “make the drums punchier”, “create a 16-bar intro”…' });
-    const send = () => { const t = Right.input.value.trim(); if (!t) return; Right.input.value = ''; Right.say('user', t); setTimeout(() => { const r = HD.AI.respond(t); if (r) Right.say(r.ok ? 'ai' : 'ai warn', r.reply); }, 30); };
+    let busy = false;
+    const send = async () => {
+      const t = Right.input.value.trim(); if (!t || busy) return; Right.input.value = ''; Right.say('user', t); busy = true;
+      const wait = Right.say('ai', '…thinking');
+      try { const r = await HD.AI.respond(t, (m) => { wait.firstChild.textContent = m; }); wait.remove(); if (r) Right.say(r.ok ? 'ai' : 'ai warn', r.reply); } catch (e) { console.error(e); wait.remove(); Right.say('ai warn', 'Something went wrong, nothing was changed. (' + e.message + ')'); }
+      busy = false;
+    };
     Right.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); e.stopPropagation(); });
     p.append(el('div', { class: 'ai-note', html: '<b>✦ AI Producer</b> reads your project and edits it directly. It’s a built-in <b>rule-based</b> assistant — fully offline, no cloud — and it only reports changes it actually made.' }),
       Right.chat, el('div', { class: 'chips ai-chips' }, HD.AI.examples.map((x) => el('button', { class: 'chip', text: x, onclick: () => { Right.input.value = x; send(); } }))), el('div', { class: 'ai-in' }, Right.input, el('button', { class: 'btn primary', text: 'Send', onclick: send })));
     Right.say('ai', 'Hi! Tell me what to change in plain English — for example “make this darker”, “add a riser before the drop” or “give me a deeper bass”. Type “help” to see everything I can do.');
   };
-  Right.say = (who, text) => { Right.chat.append(el('div', { class: 'msg ' + who }, text.split('\n').map((l) => el('div', { text: l })))); Right.chat.scrollTop = 1e6; };
+  Right.say = (who, text) => { const m = el('div', { class: 'msg ' + who }, text.split('\n').map((l) => el('div', { text: l }))); Right.chat.append(m); Right.chat.scrollTop = 1e6; return m; };
 })();

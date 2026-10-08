@@ -71,6 +71,10 @@
       if (pan) { const pn = ctx.createStereoPanner(); pn.pan.value = pan; g.connect(pn); pn.connect(mix); } else g.connect(mix);
       o.start(t); stops.push(o);
     };
+    if (p.sampler) { // sample-based voice (vocal chops): repitch by playbackRate
+      const buf = HD.Lib.buffer(p.sampler.snd);
+      if (buf) { const src = ctx.createBufferSource(); src.buffer = buf; src.playbackRate.value = Math.pow(2, (midi - p.sampler.root) / 12); src.connect(mix); src.start(t); stops.push(src); }
+    }
     let first = true;
     for (const L of p.osc) {
       const uni = Math.max(1, L.uni || 1), f = HD.mtof(midi + (L.oct || 0) * 12);

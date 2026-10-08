@@ -44,7 +44,9 @@
       m.dry = G(c); m.comp = c.createDynamicsCompressor(); m.comp.threshold.value = -24; m.comp.ratio.value = 6; m.comp.attack.value = 0.025; m.comp.release.value = 0.14; m.comp.knee.value = 6;
       m.wet = G(c, 0); m.sum = G(c); m.wid = HD.makeWidener(c, this.live); m.loud = G(c); m.lim = c.createDynamicsCompressor(); m.lim.threshold.value = -1; m.lim.knee.value = 0; m.lim.ratio.value = 20; m.lim.attack.value = 0.001; m.lim.release.value = 0.08;
       m.out = G(c); m.pre = G(c); // m.pre receives master-fx output
-      m.pre.connect(m.bass); m.bass.connect(m.treble); m.treble.connect(m.dry); m.dry.connect(m.sum); m.treble.connect(m.comp); m.comp.connect(m.wet); m.wet.connect(m.sum);
+      m.hpf = c.createBiquadFilter(); m.hpf.type = 'highpass'; m.hpf.frequency.value = 28; m.hpf.Q.value = 0.7; // remove inaudible rumble
+      m.pre.connect(m.hpf); m.hpf.connect(m.bass); m.bass.connect(m.treble); m.dd = c.createDelay(0.05); m.dd.delayTime.value = Math.floor(0.006 * c.sampleRate) / c.sampleRate; // = DynamicsCompressor look-ahead, keeps the parallel 'punch' path in phase
+      m.treble.connect(m.dd); m.dd.connect(m.dry); m.dry.connect(m.sum); m.treble.connect(m.comp); m.comp.connect(m.wet); m.wet.connect(m.sum);
       m.sum.connect(m.wid.input); m.wid.output.connect(m.loud); m.loud.connect(m.lim); m.lim.connect(m.out);
       // master fx chain sits between masterIn and mast.pre; mast.input is the chain head
       m.input = G(c); m.input.connect(m.pre);
@@ -60,6 +62,25 @@
       this.tracks.forEach((n) => n.fxObjs.forEach((f) => f.setBpm(b)));
     }
     hasAuto(t, key) { return this.playing && t.auto && t.auto[key] && t.auto[key].length > 0; }
+    // ---- plugin delay compensation: Web Audio compressors (6 ms) and oversampled shapers add latency; line every track up ----
+    chainDelay(t) {
+      const sr = this.ctx.sampleRate; let d = 0;
+      if (t.type === 'inst' && t.inst) { d += Math.floor(0.006 * sr) / sr; if ((t.inst.preset.drive || 0) > 0.001) d += 128 / sr; }
+      for (const f of t.fx) if (!f.bypass) { if (f.type === 'comp' || f.type === 'limiter') d += Math.floor(0.006 * sr) / sr; else if (f.type === 'sat' || f.type === 'dist') d += 192 / sr; }
+      return d;
+    }
+    totalDelay(t, depth = 0) { const bus = t.out && t.out !== 'master' && depth < 6 ? this.project.tracks.find((x) => x.id === t.out) : null; return this.chainDelay(t) + (bus ? this.totalDelay(bus, depth + 1) : 0); }
+    masterDelay() {
+      const sr = this.ctx.sampleRate, comp = Math.floor(0.006 * sr) / sr; let d = comp * 2; // mastering stage: parallel-punch dry delay + final limiter
+      for (const f of this.project.master.fx) if (!f.bypass) { if (f.type === 'comp' || f.type === 'limiter') d += comp; else if (f.type === 'sat' || f.type === 'dist') d += 192 / sr; }
+      return d;
+    }
+    updateLatency() {
+      const p = this.project; if (!p || !p.tracks.length) { this.maxLatency = 0; return; }
+      const tot = new Map(p.tracks.map((t) => [t.id, this.totalDelay(t)])), mx = Math.max(...tot.values());
+      this.maxLatency = mx;
+      for (const t of p.tracks) { const n = this.tracks.get(t.id); if (n) n.pdc.delayTime.value = Math.max(0, mx - tot.get(t.id)); }
+    }
     soloActive() { return this.project.tracks.some((t) => t.solo); }
     chainSolo(t) { // is this track (or something it feeds / is fed by) soloed
       const tr = this.project.tracks; let cur = t, guard = 0;
@@ -70,8 +91,8 @@
     audible(t) { if (t.mute) return false; return this.soloActive() ? this.chainSolo(t) : true; }
 
     createTrack(t) {
-      const c = this.ctx, n = { id: t.id, type: t.type, input: G(c), fader: G(c), pan: c.createStereoPanner(), mute: G(c), out: G(c), sendA: G(c, 0), sendB: G(c, 0), dest: G(c), fxObjs: new Map(), chain: '', target: null, openHat: null };
-      n.input.connect(n.fader); n.fader.connect(n.pan); n.pan.connect(n.mute); n.mute.connect(n.out);
+      const c = this.ctx, n = { id: t.id, type: t.type, input: G(c), fader: G(c), pan: c.createStereoPanner(), mute: G(c), out: G(c), sendA: G(c, 0), sendB: G(c, 0), dest: G(c), pdc: c.createDelay(0.25), fxObjs: new Map(), chain: '', target: null, openHat: null };
+      n.input.connect(n.fader); n.fader.connect(n.pan); n.pan.connect(n.mute); n.mute.connect(n.pdc); n.pdc.connect(n.out);
       n.out.connect(n.dest); n.out.connect(n.sendA); n.out.connect(n.sendB); n.sendA.connect(this.sends.a.in); n.sendB.connect(this.sends.b.in);
       if (t.type === 'inst') { n.bus = HD.Inst.makeBus(c, this.live); n.bus.output.connect(n.input); n.src = n.bus.input; } else n.src = n.input;
       if (this.live) n.meter = this.makeMeter(n.out);
@@ -147,6 +168,7 @@
         for (const kk in s.fx.p) if (bus.fx.p[kk] !== s.fx.p[kk]) bus.fx.set(kk, s.fx.p[kk]);
         this.set(bus.ret.gain, s.ret);
       }
+      this.updateLatency();
     }
     syncMastering(ms) {
       const m = this.mast, on = ms.on !== false;
@@ -347,9 +369,11 @@
   HD.renderProject = async (project, o = {}) => {
     const sr = o.sr || HD.Lib.sr, spb = 60 / project.bpm;
     const start = o.start || 0, end = o.end != null ? o.end : S.endBeat(), tail = o.tail == null ? 2 : o.tail;
-    const total = Math.max(0.1, (end - start) * spb + tail), ctx = new OfflineAudioContext(2, Math.ceil(total * sr), sr);
+    const eng0 = { lat: 0 };
+    // total processing latency (tracks + master) — events are scheduled this much later and the lead-in is trimmed afterwards
+    const probe = new Engine(new OfflineAudioContext(2, 128, sr), false); probe.project = project; probe.sync(); eng0.lat = probe.maxLatency + probe.masterDelay();
+    const total = Math.max(0.1, (end - start) * spb + tail + eng0.lat), ctx = new OfflineAudioContext(2, Math.ceil(total * sr), sr);
     const eng = new Engine(ctx, false); eng.project = project; eng.sync();
-    // pre-render all samples (can take a moment) while allowing UI to paint
     if (o.onProgress) o.onProgress(0.05, 'Rendering sounds…');
     const ids = new Set(); for (const c of project.clips) { if (c.type === 'audio') ids.add(c.snd); if (c.type === 'drum') (c.rows || []).forEach((r) => ids.add(r.snd)); }
     let i = 0; for (const id of ids) { HD.Lib.buffer(id); if (++i % 4 === 0) await new Promise((r) => setTimeout(r)); }
@@ -363,7 +387,9 @@
       const b1 = Math.min(end, b0 + CH), tt = Math.floor(tOf(b0) * sr / 128) * 128 / sr;
       jobs.push(ctx.suspend(tt).then(() => { run(b0, b1, false); if (o.onProgress) o.onProgress(0.2 + 0.75 * ((b0 - start) / Math.max(1, end - start)), 'Mixing…'); return ctx.resume(); }));
     }
-    const buf = await ctx.startRendering(); await Promise.all(jobs);
+    const raw = await ctx.startRendering(); await Promise.all(jobs);
+    const skip = Math.min(raw.length - 1, Math.round(eng0.lat * sr)), outLen = raw.length - skip, buf = new AudioBuffer({ length: outLen, numberOfChannels: 2, sampleRate: sr });
+    for (let c = 0; c < 2; c++) buf.copyToChannel(raw.getChannelData(c).subarray(skip), c);
     if (o.onProgress) o.onProgress(1, 'Done');
     return buf;
   };

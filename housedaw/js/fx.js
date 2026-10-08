@@ -115,7 +115,8 @@
         const upd = () => { const d = fx.p.drive, g = 1 + d * (isD ? 24 : 6); pre.gain.value = g; post.gain.value = (isD ? 0.9 : 0.9) / Math.pow(g, isD ? 0.55 : 0.45); };
         ws.curve = isD ? atanCurve(2.5) : HD.tanhCurve(2);
         upd();
-        input.connect(dry); dry.connect(output); input.connect(pre); pre.connect(ws); ws.connect(post); post.connect(tone); tone.connect(wet); wet.connect(output);
+        const dd = ctx.createDelay(0.05); dd.delayTime.value = 192 / ctx.sampleRate; // match the 4x-oversampled wet path (no comb filtering when mixed)
+        input.connect(dd); dd.connect(dry); dry.connect(output); input.connect(pre); pre.connect(ws); ws.connect(post); post.connect(tone); tone.connect(wet); wet.connect(output);
         fx.ap = { mix: [[wet.gain], [dry.gain, (v) => 1 - v]] };
         custom = (k) => { if (k === 'drive') upd(); };
         Object.assign(fx, { input, output }); break;

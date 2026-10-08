@@ -25,6 +25,11 @@
     Lib.pin(S.usedSounds()); if (big) App.idle();
   };
 
+  App.prepareFor = async (P) => {
+    const ids = new Set(); for (const c of P.clips) { if (c.type === 'audio') ids.add(c.snd); if (c.type === 'drum') (c.rows || []).forEach((r) => ids.add(r.snd)); }
+    let i = 0; for (const id of ids) { Lib.buffer(id); if (++i % 3 === 0) await tick(); } Lib.pin([...ids]);
+  };
+
   // ---------- projects ----------
   App.save = async (quiet) => {
     if (!S.project) return; clearTimeout(App.saveTimer); App.status('Saving…');
@@ -42,9 +47,11 @@
     App.busy(opts.mode === 'song' ? 'Building your arrangement…' : 'Generating groove…'); await tick(); await tick();
     try {
       T.stop(); const P = HD.Compose.build({ ...opts, seed: Math.floor(Math.random() * 99999) });
+      App.busy('Balancing the mix against the reference profile…'); await tick();
+      try { S.project = S.project || P; await App.prepareFor(P); const am = await HD.Mix.autoMix(P, { onProgress: (f, m) => { const e = document.querySelector('.busy-msg'); if (e) e.textContent = m; } }); P.mixInfo = { distance: +am.distance.toFixed(1), log: am.log }; } catch (e) { console.warn('auto-mix skipped', e); }
       if (replace && S.project && S.project.tracks.length) {
         const snap = S.begin(), cur = S.project;
-        for (const k of ['bpm', 'key', 'genre', 'loop', 'tracks', 'clips', 'markers', 'sends']) cur[k] = P[k];
+        for (const k of ['bpm', 'key', 'genre', 'vibe', 'loop', 'tracks', 'clips', 'markers', 'sends']) cur[k] = P[k];
         S.sel = { clips: [], track: cur.tracks[0] ? cur.tracks[0].id : null }; await App.prepare(); S.end(snap, 'Song Builder', 'structure'); HD.engine.sync(); App.refreshTop(); setTimeout(() => HD.Timeline.fit(), 30); T.pos = 0;
         HD.toast('Arrangement built: ' + P.markers.map((m) => m.name).join(' → ') + ' — Ctrl+Z undoes it');
       } else { await App.loadNewProject(P); HD.toast(opts.mode === 'song' ? 'Song built — press SPACE to play' : 'Groove ready — press SPACE to play, then edit anything', 3800); }

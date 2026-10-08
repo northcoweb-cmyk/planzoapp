@@ -29,16 +29,16 @@
     const p = ranged(r, { att: 0.001, body: 1, ...rg });
     p.len = R4(clamp(Math.max(p.dec, p.subDec || 0) * 4.2 + 0.04, 0.14, 1.7)); return { kind: 'kick', p };
   });
-  kick('deep', 'Deep House', 7, { f0: [125, 165], f1: [43, 50], pt: [0.035, 0.055], dec: [0.26, 0.4], subDec: [0.3, 0.5], click: [0.1, 0.25], ckF: [2200, 3200], sub: [0.8, 1], drive: [0.05, 0.3], tone: [8000, 12000] });
-  kick('punch', 'Punchy House', 7, { f0: [190, 260], f1: [50, 58], pt: [0.018, 0.03], dec: [0.17, 0.25], subDec: [0.2, 0.3], click: [0.55, 0.9], ckF: [3200, 4800], sub: [0.7, 0.9], drive: [0.3, 0.5] });
-  kick('tight', 'Tight House', 6, { f0: [180, 240], f1: [54, 62], pt: [0.015, 0.025], dec: [0.09, 0.15], subDec: [0.1, 0.16], click: [0.4, 0.7], ckF: [3000, 4500], sub: [0.6, 0.8], drive: [0.2, 0.4] });
-  kick('sub', 'Sub-Heavy', 6, { f0: [105, 150], f1: [37, 44], pt: [0.045, 0.07], dec: [0.4, 0.65], subDec: [0.55, 0.8], click: [0.05, 0.15], sub: [1.1, 1.4], body: 0.8, drive: [0, 0.15], tone: [5000, 8000] });
-  kick('club', 'Club', 6, { f0: [165, 215], f1: [47, 54], pt: [0.025, 0.04], dec: [0.3, 0.4], subDec: [0.35, 0.5], click: [0.35, 0.55], sub: [0.85, 1.05], drive: [0.35, 0.6] });
-  kick('short', 'Short', 5, { f0: [170, 230], f1: [52, 60], pt: [0.015, 0.025], dec: [0.06, 0.09], subDec: [0.07, 0.1], click: [0.3, 0.6], sub: [0.5, 0.7], drive: [0.2, 0.5] });
-  kick('long', 'Long', 5, { f0: [130, 170], f1: [42, 48], pt: [0.04, 0.06], dec: [0.5, 0.8], subDec: [0.7, 1.0], click: [0.1, 0.3], sub: [1, 1.2], drive: [0.05, 0.2] });
-  kick('soft', 'Soft', 5, { f0: [85, 125], f1: [45, 52], pt: [0.03, 0.05], dec: [0.2, 0.32], subDec: [0.25, 0.38], click: [0.03, 0.12], sub: 0.8, drive: 0, tone: [3000, 5000], att: [0.004, 0.008] });
-  kick('hard', 'Hard', 6, { f0: [250, 340], f1: [50, 60], pt: [0.012, 0.022], dec: [0.14, 0.22], subDec: [0.16, 0.25], click: [0.95, 1.3], ckF: [4500, 6500], sub: [0.6, 0.8], drive: [0.65, 0.9] });
-  kick('sat', 'Saturated', 7, { f0: [140, 200], f1: [46, 54], pt: [0.03, 0.05], dec: [0.3, 0.45], subDec: [0.35, 0.5], click: [0.2, 0.4], sub: [0.7, 0.9], drive: [0.8, 1], tone: [6000, 10000] });
+  kick('deep', 'Deep House', 7, { f0: [105, 145], f1: [43, 50], pt: [0.018, 0.03], dec: [0.13, 0.19], subDec: [0.16, 0.24], click: [0.12, 0.28], ckF: [2200, 3200], sub: [0.8, 1], drive: [0.05, 0.3], tone: [8000, 12000] });
+  kick('punch', 'Punchy House', 7, { f0: [150, 200], f1: [50, 58], pt: [0.012, 0.02], dec: [0.09, 0.13], subDec: [0.11, 0.16], click: [0.6, 0.95], ckF: [3200, 4800], sub: [0.7, 0.9], drive: [0.3, 0.5] });
+  kick('tight', 'Tight House', 6, { f0: [140, 185], f1: [54, 62], pt: [0.01, 0.016], dec: [0.06, 0.09], subDec: [0.07, 0.1], click: [0.5, 0.8], ckF: [3000, 4500], sub: [0.6, 0.8], drive: [0.2, 0.4] });
+  kick('sub', 'Sub-Heavy', 6, { f0: [90, 125], f1: [37, 44], pt: [0.02, 0.035], dec: [0.2, 0.3], subDec: [0.26, 0.36], click: [0.08, 0.2], sub: [1.1, 1.4], body: 0.8, drive: [0, 0.15], tone: [5000, 8000] });
+  kick('club', 'Club', 6, { f0: [130, 170], f1: [47, 54], pt: [0.015, 0.025], dec: [0.12, 0.17], subDec: [0.14, 0.2], click: [0.4, 0.6], sub: [0.85, 1.05], drive: [0.35, 0.6] });
+  kick('short', 'Short', 5, { f0: [140, 185], f1: [52, 60], pt: [0.01, 0.016], dec: [0.05, 0.07], subDec: [0.05, 0.08], click: [0.4, 0.7], sub: [0.5, 0.7], drive: [0.2, 0.5] });
+  kick('long', 'Long', 5, { f0: [100, 135], f1: [42, 48], pt: [0.02, 0.035], dec: [0.3, 0.45], subDec: [0.4, 0.55], click: [0.1, 0.3], sub: [1, 1.2], drive: [0.05, 0.2] });
+  kick('soft', 'Soft', 5, { f0: [80, 110], f1: [45, 52], pt: [0.02, 0.035], dec: [0.1, 0.16], subDec: [0.12, 0.18], click: [0.08, 0.18], sub: 0.8, drive: 0, tone: [3000, 5000], att: [0.004, 0.008] });
+  kick('hard', 'Hard', 6, { f0: [190, 250], f1: [50, 60], pt: [0.01, 0.018], dec: [0.07, 0.11], subDec: [0.08, 0.12], click: [0.95, 1.3], ckF: [4500, 6500], sub: [0.6, 0.8], drive: [0.65, 0.9] });
+  kick('sat', 'Saturated', 7, { f0: [120, 160], f1: [46, 54], pt: [0.015, 0.028], dec: [0.13, 0.19], subDec: [0.15, 0.22], click: [0.25, 0.45], sub: [0.7, 0.9], drive: [0.8, 1], tone: [6000, 10000] });
 
   // ---------- CLAPS (28) ----------
   const clap = (key, label, n, rg) => fam('c_' + key, label + ' Clap', n, 'DRUMS', 'Clap', (r) => ({ kind: 'clap', p: ranged(r, rg) }));
@@ -62,18 +62,18 @@
 
   // ---------- HATS (34 closed + 28 open) ----------
   const chat = (key, label, n, rg) => fam('hc_' + key, label + ' Closed Hat', n, 'DRUMS', 'Closed Hat', (r) => ({ kind: 'hat', p: ranged(r, rg) }));
-  chat('tight', 'Tight', 7, { dec: [0.012, 0.02], ts: [0.9, 1.1], metal: 0.7, noise: 0.3, hp: [7500, 9000], st: [0.3, 0.6] });
-  chat('metal', 'Classic', 7, { dec: [0.025, 0.04], ts: [0.95, 1.05], metal: 0.85, noise: 0.25, hp: [6500, 7500], st: [0.4, 0.7] });
-  chat('tech', 'Tech Noise', 7, { dec: [0.02, 0.035], ts: 1, metal: 0.1, noise: 0.9, hp: [6000, 8000], st: [0.5, 0.9] });
-  chat('bright', 'Bright', 5, { dec: [0.02, 0.03], ts: [1.05, 1.2], metal: 0.6, noise: 0.5, hp: [8500, 10000], bright: [4, 7], st: 0.6 });
-  chat('soft', 'Soft', 4, { dec: [0.03, 0.045], ts: [0.85, 0.95], metal: 0.5, noise: 0.5, hp: [5500, 6500], st: 0.4 });
-  chat('dirty', 'Dirty', 4, { dec: [0.025, 0.04], ts: [1.2, 1.4], metal: 1, noise: 0.6, hp: [6000, 7500], st: 0.7 });
+  chat('tight', 'Tight', 7, { dec: [0.012, 0.02], ts: [0.9, 1.1], metal: 0.7, noise: 0.3, hp: [7500, 9000], st: [0.15, 0.3] });
+  chat('metal', 'Classic', 7, { dec: [0.025, 0.04], ts: [0.95, 1.05], metal: 0.85, noise: 0.25, hp: [6500, 7500], st: [0.15, 0.3] });
+  chat('tech', 'Tech Noise', 7, { dec: [0.02, 0.035], ts: 1, metal: 0.1, noise: 0.9, hp: [6000, 8000], st: [0.15, 0.3] });
+  chat('bright', 'Bright', 5, { dec: [0.02, 0.03], ts: [1.05, 1.2], metal: 0.6, noise: 0.5, hp: [8500, 10000], bright: [4, 7], st: [0.15, 0.3] });
+  chat('soft', 'Soft', 4, { dec: [0.03, 0.045], ts: [0.85, 0.95], metal: 0.5, noise: 0.5, hp: [5500, 6500], st: [0.15, 0.3] });
+  chat('dirty', 'Dirty', 4, { dec: [0.025, 0.04], ts: [1.2, 1.4], metal: 1, noise: 0.6, hp: [6000, 7500], st: [0.15, 0.3] });
   const ohat = (key, label, n, rg) => fam('ho_' + key, label + ' Open Hat', n, 'DRUMS', 'Open Hat', (r) => ({ kind: 'hat', p: ranged(r, rg) }));
-  ohat('classic', 'Classic', 7, { dec: [0.12, 0.2], ts: [0.95, 1.05], metal: 0.8, noise: 0.35, hp: [6500, 7500], st: [0.5, 0.8] });
-  ohat('long', 'Long', 6, { dec: [0.25, 0.4], ts: [0.95, 1.05], metal: 0.7, noise: 0.45, hp: [6500, 7500], st: 0.8 });
-  ohat('tech', 'Tech', 5, { dec: [0.15, 0.25], ts: 1, metal: 0.15, noise: 0.9, hp: [6000, 7500], st: [0.6, 1] });
-  ohat('bright', 'Bright', 5, { dec: [0.14, 0.22], ts: [1.05, 1.2], metal: 0.6, noise: 0.5, hp: [8000, 9500], bright: [4, 6], st: 0.7 });
-  ohat('dark', 'Dark', 5, { dec: [0.2, 0.3], ts: [0.82, 0.9], metal: 0.6, noise: 0.5, hp: [5000, 6000], st: 0.6 });
+  ohat('classic', 'Classic', 7, { dec: [0.12, 0.2], ts: [0.95, 1.05], metal: 0.8, noise: 0.35, hp: [6500, 7500], st: [0.2, 0.35] });
+  ohat('long', 'Long', 6, { dec: [0.25, 0.4], ts: [0.95, 1.05], metal: 0.7, noise: 0.45, hp: [6500, 7500], st: [0.2, 0.35] });
+  ohat('tech', 'Tech', 5, { dec: [0.15, 0.25], ts: 1, metal: 0.15, noise: 0.9, hp: [6000, 7500], st: [0.2, 0.35] });
+  ohat('bright', 'Bright', 5, { dec: [0.14, 0.22], ts: [1.05, 1.2], metal: 0.6, noise: 0.5, hp: [8000, 9500], bright: [4, 6], st: [0.2, 0.35] });
+  ohat('dark', 'Dark', 5, { dec: [0.2, 0.3], ts: [0.82, 0.9], metal: 0.6, noise: 0.5, hp: [5000, 6000], st: [0.2, 0.35] });
 
   // ---------- PERCUSSION (60) ----------
   const perc = (key, label, n, rg, spp) => fam('p_' + key, label, n, 'DRUMS', 'Percussion', (r, i) => {

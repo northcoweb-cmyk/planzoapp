@@ -28,21 +28,34 @@
   const O = (w, o = {}) => ({ w, ...o });
 
   // ---------- BASS ----------
-  const B = (id, name, sub, o) => P(id, name, 'BASS', sub, { pv: 36, prev: [0], ...o });
-  B('b_deep', 'Deep House Bass', 'Deep', { osc: [O('triangle', { lvl: 0.8 }), O('sawtooth', { det: 6, lvl: 0.35 })], sub: 0.6, filt: { f: 420, q: 1.5, env: 700, d: 0.22, key: 0.3 }, amp: { a: 0.004, d: 0.35, s: 0.65, r: 0.14 }, drive: 0.15, comp: 0.4, width: 0.3, lvl: 0.8 });
-  B('b_sub', 'Sub Bass', 'Sub', { osc: [O('sine', { lvl: 1 })], filt: { f: 1200, q: 0.7 }, amp: { a: 0.01, d: 0.2, s: 1, r: 0.12 }, drive: 0.1, comp: 0.3, width: 0, lvl: 0.9 });
-  B('b_roll', 'Rolling Bass', 'Rolling', { osc: [O('sawtooth', { lvl: 0.8 }), O('square', { lvl: 0.3, oct: -1 })], sub: 0.5, filt: { f: 350, q: 3, env: 1100, d: 0.1, key: 0.25 }, amp: { a: 0.002, d: 0.13, s: 0.35, r: 0.05 }, drive: 0.25, comp: 0.5, width: 0.2, lvl: 0.8 });
-  B('b_bounce', 'Bouncy Bass', 'Bouncy', { osc: [O('square', { lvl: 0.7 }), O('sawtooth', { det: 8, lvl: 0.4 })], sub: 0.4, filt: { f: 500, q: 5, env: 1800, d: 0.14, s: 0.1, key: 0.3 }, amp: { a: 0.002, d: 0.2, s: 0.3, r: 0.08 }, drive: 0.3, comp: 0.5, width: 0.2, lvl: 0.75 });
-  B('b_funk', 'Funky Bass', 'Funky', { osc: [O('sawtooth', { lvl: 0.7 }), O('pulse', { lvl: 0.5, det: -5 })], sub: 0.3, filt: { f: 650, q: 7, env: 2200, d: 0.11, key: 0.5 }, amp: { a: 0.002, d: 0.25, s: 0.3, r: 0.07 }, drive: 0.35, comp: 0.5, width: 0.2, lvl: 0.75 });
-  B('b_min', 'Minimal Bass', 'Minimal', { osc: [O('sine', { lvl: 0.9 }), O('triangle', { lvl: 0.35, oct: 1 })], filt: { f: 700, q: 1, env: 600, d: 0.08 }, amp: { a: 0.002, d: 0.2, s: 0.2, r: 0.06 }, drive: 0.1, comp: 0.4, width: 0, lvl: 0.85 });
-  B('b_dark', 'Dark Bass', 'Dark', { osc: [O('sawtooth', { det: -8, lvl: 0.6 }), O('sawtooth', { det: 8, lvl: 0.6 })], sub: 0.7, filt: { f: 260, q: 2.5, env: 400, d: 0.3, s: 0.2, key: 0.2 }, amp: { a: 0.005, d: 0.3, s: 0.8, r: 0.15 }, drive: 0.4, comp: 0.5, width: 0.3, lvl: 0.7 });
-  B('b_acid', 'Acid Bass', 'Acid', { osc: [O('sawtooth', { lvl: 0.9 })], filt: { f: 300, q: 14, env: 3800, d: 0.16, key: 0.2 }, amp: { a: 0.002, d: 0.22, s: 0.5, r: 0.06 }, drive: 0.5, comp: 0.4, width: 0, lvl: 0.65 });
-  B('b_pluck', 'Pluck Bass', 'Pluck', { osc: [O('sawtooth', { lvl: 0.8 })], sub: 0.4, filt: { f: 600, q: 2, env: 3600, d: 0.09 }, amp: { a: 0.002, d: 0.16, s: 0, r: 0.06 }, drive: 0.2, comp: 0.4, width: 0, lvl: 0.8 });
-  B('b_reese', 'Reese Bass', 'Reese', { osc: [O('sawtooth', { uni: 3, sp: 28, lvl: 0.8 })], sub: 0.5, filt: { f: 650, q: 1.2, env: 150, d: 0.3, s: 0.8 }, amp: { a: 0.01, d: 0.3, s: 0.9, r: 0.2 }, drive: 0.35, comp: 0.5, width: 1.2, lvl: 0.6 });
-  B('b_garage', 'Garage Bass', 'Deep', { osc: [O('sine', { lvl: 0.8 }), O('sawtooth', { lvl: 0.35 })], filt: { f: 450, q: 2, env: 900, d: 0.2 }, amp: { a: 0.003, d: 0.3, s: 0.5, r: 0.1 }, drive: 0.2, comp: 0.4, width: 0.2, lvl: 0.8 });
-  B('b_jackin', 'Jackin Bass', 'Funky', { osc: [O('square', { lvl: 0.6 }), O('sawtooth', { lvl: 0.5, det: 7 })], sub: 0.3, filt: { f: 420, q: 4, env: 1400, d: 0.09, s: 0.1, key: 0.3 }, amp: { a: 0.002, d: 0.12, s: 0.45, r: 0.05 }, drive: 0.3, comp: 0.5, width: 0.2, lvl: 0.75 });
-  B('b_warm', 'Warm Sub', 'Sub', { osc: [O('sine', { lvl: 0.9 }), O('triangle', { lvl: 0.3 })], filt: { f: 600, q: 0.7 }, amp: { a: 0.01, d: 0.4, s: 0.9, r: 0.2 }, drive: 0.05, comp: 0.3, width: 0, lvl: 0.9 });
-  B('b_moog', 'Moog-ish House Bass', 'Rolling', { osc: [O('sawtooth', { lvl: 0.7 }), O('sawtooth', { lvl: 0.5, oct: -1, det: 4 })], filt: { f: 380, q: 6, env: 1500, d: 0.2, s: 0.2, key: 0.4 }, amp: { a: 0.003, d: 0.25, s: 0.6, r: 0.1 }, drive: 0.3, comp: 0.5, width: 0.2, lvl: 0.7 });
+  // Voiced after measuring reference house tracks: between kicks most bass energy sits at 120–300 Hz with real harmonics
+  // up to ~1 kHz, so these are filter-enveloped saw/square bodies with a modest (not dominant) sub layer.
+  const B = (id, name, sub, o) => P(id, name, 'BASS', sub, { pv: 43, prev: [0], ...o });
+  B('b_deep', 'Deep House Bass', 'Deep', { osc: [O('sawtooth', { lvl: 0.7 }), O('triangle', { lvl: 0.6, oct: 0 })], sub: 0.3, filt: { f: 650, q: 1.6, env: 1700, d: 0.2, s: 0.25, key: 0.4 }, amp: { a: 0.004, d: 0.3, s: 0.6, r: 0.1 }, drive: 0.25, comp: 0.4, width: 0.1, lvl: 0.85 });
+  B('b_sub', 'Sub Bass', 'Sub', { osc: [O('sine', { lvl: 1 }), O('triangle', { lvl: 0.3, oct: 1 })], filt: { f: 1500, q: 0.7 }, amp: { a: 0.008, d: 0.2, s: 1, r: 0.1 }, drive: 0.15, comp: 0.3, width: 0, lvl: 0.95 });
+  B('b_roll', 'Rolling Bass', 'Rolling', { osc: [O('sawtooth', { lvl: 0.8 }), O('square', { lvl: 0.35, det: 5 })], sub: 0.25, filt: { f: 800, q: 3, env: 2600, d: 0.09, s: 0.05, key: 0.35 }, amp: { a: 0.002, d: 0.12, s: 0.3, r: 0.05 }, drive: 0.3, comp: 0.5, width: 0.1, lvl: 0.85 });
+  B('b_bounce', 'Bouncy Bass', 'Bouncy', { osc: [O('square', { lvl: 0.7 }), O('sawtooth', { det: 7, lvl: 0.55 })], sub: 0.25, filt: { f: 900, q: 4.5, env: 3200, d: 0.12, s: 0.05, key: 0.4 }, amp: { a: 0.002, d: 0.17, s: 0.25, r: 0.06 }, drive: 0.35, comp: 0.5, width: 0.1, lvl: 0.8 });
+  B('b_funk', 'Funky Bass', 'Funky', { osc: [O('sawtooth', { lvl: 0.7 }), O('pulse', { lvl: 0.55, det: -5 })], sub: 0.2, filt: { f: 1000, q: 6, env: 3400, d: 0.1, key: 0.55 }, amp: { a: 0.002, d: 0.22, s: 0.25, r: 0.06 }, drive: 0.4, comp: 0.5, width: 0.1, lvl: 0.8 });
+  B('b_min', 'Minimal Bass', 'Minimal', { osc: [O('sine', { lvl: 0.8 }), O('sawtooth', { lvl: 0.4 })], sub: 0.2, filt: { f: 900, q: 1.5, env: 1800, d: 0.08, key: 0.3 }, amp: { a: 0.002, d: 0.18, s: 0.2, r: 0.05 }, drive: 0.2, comp: 0.4, width: 0, lvl: 0.9 });
+  B('b_dark', 'Dark Bass', 'Dark', { osc: [O('sawtooth', { det: -8, lvl: 0.65 }), O('sawtooth', { det: 8, lvl: 0.65 })], sub: 0.35, filt: { f: 520, q: 2.6, env: 1500, d: 0.26, s: 0.2, key: 0.3 }, amp: { a: 0.005, d: 0.28, s: 0.7, r: 0.12 }, drive: 0.45, comp: 0.5, width: 0.15, lvl: 0.8 });
+  B('b_acid', 'Acid Bass', 'Acid', { osc: [O('sawtooth', { lvl: 0.9 })], sub: 0.1, filt: { f: 650, q: 12, env: 4800, d: 0.15, key: 0.3 }, amp: { a: 0.002, d: 0.2, s: 0.5, r: 0.05 }, drive: 0.55, comp: 0.4, width: 0, lvl: 0.7 });
+  B('b_pluck', 'Pluck Bass', 'Pluck', { osc: [O('sawtooth', { lvl: 0.85 }), O('square', { lvl: 0.3, oct: -1 })], sub: 0.2, filt: { f: 900, q: 2.5, env: 5200, d: 0.08 }, amp: { a: 0.002, d: 0.15, s: 0, r: 0.05 }, drive: 0.3, comp: 0.4, width: 0, lvl: 0.85 });
+  B('b_reese', 'Reese Bass', 'Reese', { osc: [O('sawtooth', { uni: 3, sp: 26, lvl: 0.9 })], sub: 0.3, filt: { f: 850, q: 1.4, env: 500, d: 0.3, s: 0.8 }, amp: { a: 0.01, d: 0.3, s: 0.9, r: 0.18 }, drive: 0.4, comp: 0.5, width: 0.35, lvl: 0.7 });
+  B('b_garage', 'Garage Bass', 'Deep', { osc: [O('sine', { lvl: 0.7 }), O('sawtooth', { lvl: 0.55 })], sub: 0.2, filt: { f: 750, q: 2, env: 2000, d: 0.18, key: 0.35 }, amp: { a: 0.003, d: 0.26, s: 0.45, r: 0.08 }, drive: 0.25, comp: 0.4, width: 0.1, lvl: 0.85 });
+  B('b_jackin', 'Jackin Bass', 'Funky', { osc: [O('square', { lvl: 0.65 }), O('sawtooth', { lvl: 0.55, det: 7 })], sub: 0.2, filt: { f: 850, q: 4, env: 2800, d: 0.09, s: 0.1, key: 0.4 }, amp: { a: 0.002, d: 0.12, s: 0.4, r: 0.05 }, drive: 0.35, comp: 0.5, width: 0.1, lvl: 0.8 });
+  B('b_warm', 'Warm Sub', 'Sub', { osc: [O('sine', { lvl: 0.9 }), O('triangle', { lvl: 0.45, oct: 1 })], sub: 0.15, filt: { f: 1100, q: 0.8, env: 600, d: 0.2 }, amp: { a: 0.01, d: 0.35, s: 0.85, r: 0.15 }, drive: 0.12, comp: 0.3, width: 0, lvl: 0.9 });
+  B('b_moog', 'Moog-ish House Bass', 'Rolling', { osc: [O('sawtooth', { lvl: 0.75 }), O('sawtooth', { lvl: 0.5, oct: -1, det: 4 })], filt: { f: 700, q: 6, env: 2800, d: 0.18, s: 0.2, key: 0.45 }, amp: { a: 0.003, d: 0.22, s: 0.55, r: 0.08 }, drive: 0.35, comp: 0.5, width: 0.1, lvl: 0.75 });
+  B('b_tech', 'Tech Pluck Bass', 'Pluck', { osc: [O('sawtooth', { lvl: 0.8 }), O('square', { lvl: 0.5, det: -6 })], sub: 0.2, filt: { f: 1100, q: 3.5, env: 4600, d: 0.085, s: 0.05, key: 0.4 }, amp: { a: 0.002, d: 0.14, s: 0.12, r: 0.045 }, drive: 0.4, comp: 0.55, width: 0.1, lvl: 0.85 });
+  B('b_bounce2', 'Bounce Stab Bass', 'Bouncy', { osc: [O('pulse', { lvl: 0.8 }), O('sawtooth', { lvl: 0.5, det: 9 })], sub: 0.2, filt: { f: 1300, q: 5, env: 3800, d: 0.11, s: 0.1, key: 0.5 }, amp: { a: 0.002, d: 0.16, s: 0.3, r: 0.05 }, drive: 0.4, comp: 0.55, width: 0.15, lvl: 0.8 });
+  B('b_wob', 'Mid Growl Bass', 'Dark', { osc: [O('sawtooth', { lvl: 0.7 }), O('sawtooth', { lvl: 0.6, det: 14 })], sub: 0.25, lfo: { rate: 2.1, depth: 650 }, filt: { f: 780, q: 5, env: 1400, d: 0.2, s: 0.4, key: 0.3 }, amp: { a: 0.004, d: 0.25, s: 0.65, r: 0.1 }, drive: 0.5, comp: 0.5, width: 0.15, lvl: 0.7 });
+
+  // measured on the references: ~45% of the whole mix sits at 60–150 Hz, i.e. the bass FUNDAMENTAL carries the track.
+  // Make sure every bass has a solid fundamental under its bright layers and doesn't smear it into harmonics with heavy drive.
+  Presets.list.filter((x) => x.cat === 'BASS').forEach((b) => {
+    if (!b.osc.some((l) => l.w === 'sine' && !l.oct)) b.osc.push({ w: 'sine', oct: 0, det: 0, lvl: 0.95, uni: 1, sp: 0 });
+    b.drive = Math.min(b.drive, 0.22); b.sub = Math.min(b.sub || 0, 0.18);
+    b.osc.forEach((l) => { if (l.w !== 'sine') l.lvl *= 0.75; });
+  });
 
   // ---------- SYNTHS ----------
   const S = (id, name, sub, o) => P(id, name, 'SYNTHS', sub, o);
@@ -95,6 +108,12 @@
   S('s_at_wash', 'Noise Wash', 'Atmosphere', { osc: [O('sine', { lvl: 0.3 })], noise: 0.9, filt: { type: 'bandpass', f: 1200, q: 1.5 }, lfo: { rate: 0.12, depth: 800 }, amp: { a: 1.5, d: 1, s: 1, r: 3 }, width: 1.6, lvl: 0.35, prev: [0] });
   S('s_at_shim', 'Shimmer', 'Atmosphere', { osc: [O('glass', { oct: 1, uni: 4, sp: 40, lvl: 0.5 })], filt: { f: 5000, q: 0.6 }, lfo: { rate: 0.2, depth: 1200 }, amp: { a: 1.2, d: 1, s: 0.9, r: 3 }, width: 1.7, lvl: 0.3, prev: [0, 7, 12] });
   S('s_at_dark', 'Dark Atmosphere', 'Atmosphere', { osc: [O('sawtooth', { uni: 2, sp: 20, oct: -1 })], noise: 0.15, filt: { f: 300, q: 1.5 }, lfo: { rate: 0.06, depth: 200 }, amp: { a: 2.5, d: 1, s: 1, r: 3.5 }, width: 1.5, lvl: 0.35, prev: [0, 3, 7] });
+
+  // ---------- playable vocal chops (sampler instruments built on the procedural vocal library) ----------
+  const V = (id, name, snd, root, o = {}) => P(id, name, 'SYNTHS', 'Vocal Chop', { osc: [], sampler: { snd, root }, filt: { type: 'lowpass', f: 9000, q: 0.7, env: 0, key: 0, a: 0.003, d: 0.2, s: 0 }, amp: { a: 0.002, d: 0.16, s: 0.6, r: 0.08 }, lvl: 0.75, width: 1.1, comp: 0.3, pv: 60, prev: [0], ...o });
+  V('v_ah', 'Vox Chop Ah', 'vx_chop_02', 60); V('v_oh', 'Vox Chop Oh', 'vx_chop_03', 62); V('v_eh', 'Vox Chop Eh', 'vx_chop_04', 64);
+  V('v_ee', 'Vox Chop Ee', 'vx_chop_06', 69, { amp: { a: 0.002, d: 0.12, s: 0.5, r: 0.06 } }); V('v_uu', 'Vox Chop Uu', 'vx_chop_08', 60); V('v_hey', 'Vox Shout Hey', 'vx_shout_01', 57, { amp: { a: 0.002, d: 0.3, s: 0.7, r: 0.1 }, lvl: 0.8 });
+  V('v_ah2', 'Vox Chop Ah (low)', 'vx_chop_05', 55); V('v_oo2', 'Vox Chop Oh (low)', 'vx_chop_07', 53);
 
   // resolve a preset (project-embedded copy with overrides applied already)
   Presets.get = (id) => Presets.byId[id] || (HD.Lib.byId[id] && HD.Lib.byId[id].preset) || null;

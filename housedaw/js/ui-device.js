@@ -103,7 +103,49 @@
     const fx = el('div', { class: 'ms-box wide' }, el('div', { class: 'dv-label', text: 'MASTER CHANNEL  (EQ → compression → saturation → limiter)' }), Dv.addBar(m, { master: true }), Dv.rack(m, { master: true }));
     Ms.cv = el('canvas', { class: 'spec', width: 520, height: 150 }); Ms.read = el('div', { class: 'ms-read', text: '' });
     const spec = el('div', { class: 'ms-box spec-box' }, el('div', { class: 'dv-label', text: 'MASTER SPECTRUM' }), Ms.cv, Ms.read);
-    root.append(el('div', { class: 'ms-wrap' }, fx, mast, spec));
+    root.append(el('div', { class: 'ms-wrap' }, fx, mast, spec, Ms.refBox()));
+  };
+
+  // ---------- Reference A/B: load a track you like, compare balance, match your mix to it ----------
+  Ms.last = null;
+  Ms.refBox = () => {
+    const R = HD.Ref, An = HD.Analyze, box = el('div', { class: 'ms-box ref-box' }), cv = el('canvas', { class: 'refcv', width: 560, height: 190 }), info = el('div', { class: 'ms-read', style: { whiteSpace: 'pre-line' } });
+    const T = () => (R.current ? R.current.profile : An.TARGETS.house), Tname = () => (R.current ? '“' + R.current.name + '”' : 'built-in house profile');
+    const draw = () => {
+      const g = cv.getContext('2d'), W = cv.width, H = cv.height, bands = An.BANDS, bw = (W - 50) / bands.length; g.clearRect(0, 0, W, H);
+      const y = (db) => 14 + (1 - HD.clamp((db + 30) / 30, 0, 1)) * (H - 52);
+      g.strokeStyle = 'rgba(255,255,255,.08)'; g.fillStyle = '#7a7f90'; g.font = '10px sans-serif'; [0, -10, -20, -30].forEach((db) => { g.beginPath(); g.moveTo(40, y(db)); g.lineTo(W, y(db)); g.stroke(); g.fillText(db + ' dB', 4, y(db) + 3); });
+      bands.forEach(([k], i) => {
+        const x = 46 + i * bw, tv = T()[k]; g.fillStyle = '#ffb066'; g.fillRect(x + 4, y(tv), bw * 0.36, H - 38 - y(tv));
+        if (Ms.last) { g.fillStyle = '#8a7bff'; g.fillRect(x + 8 + bw * 0.36, y(Ms.last.bands[k]), bw * 0.36, H - 38 - y(Ms.last.bands[k])); }
+        g.fillStyle = '#9aa0b4'; g.fillText(An.LABEL[k].split(' ')[0], x + 6, H - 24); g.fillText(An.LABEL[k].split(' ').slice(1).join(' '), x + 6, H - 12);
+      });
+      g.fillStyle = '#ffb066'; g.fillRect(W - 190, 4, 10, 10); g.fillStyle = '#c9cde0'; g.fillText(R.current ? 'Reference' : 'House profile', W - 175, 13); g.fillStyle = '#8a7bff'; g.fillRect(W - 90, 4, 10, 10); g.fillStyle = '#c9cde0'; g.fillText('Your mix', W - 75, 13);
+    };
+    const text = () => {
+      const lines = []; if (R.current) lines.push(`Reference: ${R.current.name} · ~${R.current.tempo} BPM · crest ${R.current.crest.toFixed(1)} dB · side/mid in highs ${R.current.side.himid.toFixed(1)} dB`);
+      if (Ms.last) { const t = T(); lines.push('Your mix vs ' + Tname() + ': ' + An.BANDS.map(([k]) => `${k} ${(Ms.last.bands[k] - t[k] > 0 ? '+' : '') + (Ms.last.bands[k] - t[k]).toFixed(1)}`).join('  ') + `  → average error ${An.distance(Ms.last, t).toFixed(1)} dB`); }
+      else lines.push('Press “Measure my mix” to compare.'); info.textContent = lines.join('\n');
+    };
+    const measure = async () => { HD.App.busy('Measuring your mix…'); try { Ms.last = await HD.Mix.measure(S.project); } catch (e) { console.error(e); } HD.App.idle(); draw(); text(); };
+    const file = () => {
+      const i = document.createElement('input'); i.type = 'file'; i.accept = 'audio/*,.wav,.mp3,.aif,.aiff,.ogg,.m4a,.flac';
+      i.onchange = async () => { const f = i.files[0]; if (!f) return; HD.App.busy('Analysing reference…'); try { const ab = await f.arrayBuffer(), buf = await HD.Import.decode(ab, f.name); await new Promise((r) => setTimeout(r, 30)); R.set(f.name.replace(/\.[^.]+$/, ''), buf); Ms.last = Ms.last || (await HD.Mix.measure(S.project)); HD.toast('Reference loaded — nothing is uploaded or stored; only its measured balance is used'); } catch (e) { HD.toast('Could not read that file: ' + e.message, 4500); } HD.App.idle(); draw(); text(); };
+      i.click();
+    };
+    const balance = async () => {
+      HD.App.busy('Balancing your mix to ' + Tname() + '…'); await new Promise((r) => setTimeout(r, 30));
+      try { const snap = S.begin(), before = Ms.last || (await HD.Mix.measure(S.project)), d0 = An.distance(before, T()); const res = await HD.Mix.autoMix(S.project, { target: T(), iterations: 3, onProgress: (f, m) => { const e = document.querySelector('.busy-msg'); if (e) e.textContent = m; } }); Ms.last = res.analysis; S.end(snap, 'Balance to reference', 'mixer'); HD.toast(`Balanced to ${Tname()}: error ${d0.toFixed(1)} → ${res.distance.toFixed(1)} dB` + (res.log.length ? ' (' + res.log.join(', ') + ')' : ' — already close'), 5000); } catch (e) { console.error(e); HD.toast('Balance failed: ' + e.message, 4000); }
+      HD.App.idle(); draw(); text();
+    };
+    let playing = false;
+    box.append(el('div', { class: 'dv-label', text: 'REFERENCE A/B — match your mix to a track you like' }),
+      el('div', { class: 'ms-presets' }, el('button', { class: 'btn small primary', text: '⬆ Load reference track…', onclick: file }), el('button', { class: 'btn small', text: 'Measure my mix', onclick: measure }), el('button', { class: 'btn small primary', text: '⚖ Balance my mix to it', onclick: balance }),
+        el('button', { class: 'btn small', text: '▶ Play reference', onclick: (e) => { if (!R.current) { HD.toast('Load a reference track first'); return; } if (playing) { HD.engine.stopPreview(); playing = false; e.target.textContent = '▶ Play reference'; } else { HD.engine.ctx.resume(); HD.engine.previewBuffer(R.current.buf, () => { playing = false; e.target.textContent = '▶ Play reference'; }); playing = true; e.target.textContent = '■ Stop'; } } }),
+        el('button', { class: 'btn small', text: 'Use its tempo', onclick: () => { if (!R.current) { HD.toast('Load a reference track first'); return; } HD.Actions.setBpm(R.current.tempo); HD.toast('Tempo → ~' + R.current.tempo + ' BPM (estimate from the reference)'); } }),
+        R.current ? el('button', { class: 'btn small', text: 'Back to house profile', onclick: () => { R.current = null; draw(); text(); } }) : null),
+      cv, info, el('div', { class: 'hint', text: 'Analysis only — the reference audio is never uploaded, saved or copied; the app just measures its frequency balance (the orange bars) and nudges your track levels toward it. It won’t copy a song, but it makes your mix sit like the one you love.' }));
+    setTimeout(() => { draw(); text(); }, 0); return box;
   };
   Ms.frame = () => {
     const e = HD.engine, cv = Ms.cv; if (!e || !e.master || !cv || !cv.isConnected) return;

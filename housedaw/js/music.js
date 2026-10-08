@@ -35,6 +35,8 @@
     stab: [[0.5, 0.3], [1.5, 0.3], [2.5, 0.3], [3.5, 0.3]], offbeat: [[0.5, 0.75], [2.5, 0.75]],
     pianoHouse: [[0, 0.5], [0.75, 0.5], [1.5, 0.5], [2, 0.5], [2.75, 0.5], [3.5, 0.5]],
     soulful: [[0, 1.4], [1.5, 0.9], [2.75, 1.2]],
+    // pickup rhythms: short hits on the 16th *before* the beat — the bounce heard in tech/bass house
+    techstab: [[0.75, 0.22], [1.5, 0.2], [2.75, 0.22], [3.5, 0.2]], pickup: [[0.75, 0.3], [1.75, 0.3], [2.75, 0.3], [3.75, 0.3]], dubchord: [[0.75, 1.4], [2.75, 1.1]],
     euphoric: [[0, 0.45], [0.5, 0.45], [1, 0.45], [1.5, 0.45], [2, 0.45], [2.5, 0.45], [3, 0.45], [3.5, 0.45]],
   };
   M.RHYTHMS = Object.keys(RH).concat(['arp16', 'arp8']);
@@ -110,27 +112,33 @@
   M.FLAVORS = FL;
   M.ROWNAMES = { kick: 'Kick', clap: 'Clap', snare: 'Snare', chat: 'Closed Hat', ohat: 'Open Hat', rim: 'Rim', shaker: 'Shaker', conga: 'Conga', bongo: 'Bongo', tom: 'Tom', perc: 'Perc', crash: 'Crash' };
   const DP = (id, name, flavor, swing, rows, extra = {}) => ({ id, name, flavor, swing, rows, ...extra });
+  // hat strings: X accent, x normal, o light, g ghost. The references play continuous 16ths with the off-beat 8ths accented.
   M.DRUMPATS = [
-    DP('dp_classic', 'Classic 4x4', 'house', 0, { kick: 'X...X...X...X...', clap: '....X.......X...', ohat: '..X...X...X...X.', chat: 'x.o.x.o.x.o.x.o.' }),
-    DP('dp_deep', 'Deep House Groove', 'deep', 0.15, { kick: 'X...X...X...X...', clap: '....x.......x...', chat: 'o.x.o.x.o.x.o.x.', shaker: 'o.xxo.xxo.xxo.xx', conga: '..x....x..x.....', ohat: '..o...o...o...o.' }),
-    DP('dp_funky', 'Funky House', 'house', 0.2, { kick: 'X...X...X..xX...', clap: '....X.......X...', chat: 'x.xox.xox.xox.xo', ohat: '..X...X...X...X.', conga: 'x..x..x...x..x..', rim: '...x..x...x..x.x' }),
-    DP('dp_minimal', 'Minimal House', 'minimal', 0.05, { kick: 'X...X...X...X...', clap: '....o.......x...', chat: '..o...x...o...x.', perc: 'x.....x..x......', rim: '....x..x....x...' }),
-    DP('dp_tech', 'Tech House', 'tech', 0, { kick: 'X...X...X...X...', clap: '....x.......x...', chat: 'xxoxxxoxxxoxxxox', ohat: '..x...x...x...x.', rim: 'x..x..x...x..x..' }),
-    DP('dp_jackin', 'Jackin House', 'jackin', 0.18, { kick: 'X...X...X...X...', snare: '....X.......X...', chat: 'x.xxx.xxx.xxx.xx', ohat: '..X...X...X...X.', clap: '....o..o....o...' }),
-    DP('dp_roll', 'Rolling Groove', 'tech', 0.1, { kick: 'X...X...X...X...', clap: '....X.......X...', chat: 'XoxoXoxoXoxoXoxo', ohat: '.o..o..o..o..o..', shaker: 'xxxxxxxxxxxxxxxx' }),
-    DP('dp_drive', 'Driving Groove', 'house', 0, { kick: 'X...X...X...X...', clap: '....X.......X...', chat: 'x.x.x.x.x.x.x.x.', ohat: '..X...X...X...X.', tom: 'x.....x...x.....' }),
-    DP('dp_perc', 'Percussion-Heavy Groove', 'deep', 0.12, { kick: 'X...X...X...X...', clap: '....x.......x...', chat: 'x.o.x.o.x.o.x.o.', conga: 'x..x..x.x..x..x.', shaker: 'xoxoxoxoxoxoxoxo', rim: '.....x.....x...x', tom: '.......x.....x..', perc: 'x.....x..x......' }),
-    DP('dp_broken', 'Broken Beat House', 'tech', 0.1, { kick: 'X..x..X...x.X...', clap: '....X.......X..x', chat: 'x.x.x.x.x.xxx.x.', ohat: '..X.......X.....', rim: '.x..x.....x..x..' }),
-    DP('dp_dub', 'Dub Minimal Groove', 'minimal', 0.1, { kick: 'X...X...X...X...', rim: '.......x.......x', chat: 'o...o...o...o...', ohat: '..o...........o.', perc: 'x.......x..x....' }),
-    DP('dp_soul', 'Soulful Groove', 'deep', 0.2, { kick: 'X...X...X...X...', clap: '....x.......x...', shaker: 'x.oxx.oxx.oxx.ox', ohat: '..o...o...o...o.', chat: 'x.x.x.x.x.x.x.x.' }),
-    DP('dp_afro', 'Afro House Groove', 'deep', 0.15, { kick: 'X...X...X...X...', clap: '....x.......x...', conga: 'x..x..x.x..x..x.', bongo: '.x..x...x.x..x..', shaker: 'xoxoxoxoxoxoxoxo', tom: 'x.......x.......' }),
-    DP('dp_garage', 'Garage Shuffle', 'house', 0.3, { kick: 'X...X...X...X...', clap: '....X.......X...', chat: 'x.xx.xx.xx.xx.xx', ohat: '..X...X...X...X.', shaker: '.o.o.o.o.o.o.o.o' }),
-    DP('dp_disco', 'Disco House', 'house', 0.12, { kick: 'X...X...X...X...', clap: '....X.......X...', ohat: '..X...X...X...X.', chat: 'x.x.x.x.x.x.x.x.', shaker: 'o.o.o.o.o.o.o.o.' }),
+    DP('dp_classic', 'Classic 4x4', 'house', 0.04, { kick: 'X...X...X...X...', clap: '....X.......X...', ohat: '..X...X...X...X.', chat: 'ogxgogxgogxgogxg', shaker: 'g.g.g.g.g.g.g.g.' }),
+    DP('dp_deep', 'Deep House Groove', 'deep', 0.12, { kick: 'X...X...X...X...', clap: '....x.......x...', chat: 'ogXgogXgogXgogXg', shaker: 'o.xgo.xgo.xgo.xg', conga: '..x....x..x.....', ohat: '..o...o...o...o.' }),
+    DP('dp_funky', 'Funky House', 'house', 0.12, { kick: 'X...X...X..gX...', clap: '....X.......X..g', chat: 'xgXgxgXgxgXgxgXg', ohat: '..X...X...X...X.', conga: 'x..x..x...x..x..', rim: '...x..x...gx..x.' }),
+    DP('dp_minimal', 'Minimal House', 'minimal', 0.05, { kick: 'X...X...X...X...', clap: '....o.......x...', chat: 'ogxgogxgogxgogxg', perc: 'x.....x..x......', rim: '...x...x...x..x.' }),
+    DP('dp_tech', 'Tech House', 'tech', 0.05, { kick: 'X...X...X...X...', clap: '....x.......x...', chat: 'xgXxxgXgxgXxxgXg', ohat: '..x...x...x...x.', rim: '...x..x..gx..x.x', shaker: 'gxgxgxgxgxgxgxgx' }),
+    DP('dp_jackin', 'Jackin House', 'jackin', 0.14, { kick: 'X...X...X...X...', snare: '....X.......X...', chat: 'xgXgxgXgxgXgxgXg', ohat: '..X...X...X...X.', clap: '....o..o....o..g' }),
+    DP('dp_roll', 'Rolling Groove', 'tech', 0.06, { kick: 'X...X...X...X...', clap: '....X.......X...', chat: 'xoXoxoXoxoXoxoXo', ohat: '.g..g..g..g..g..', shaker: 'xgxgxgxgxgxgxgxg', rim: '...x..x...gx..xg' }),
+    DP('dp_drive', 'Driving Groove', 'house', 0.04, { kick: 'X...X...X...X...', clap: '....X.......X...', chat: 'ogXgogXgogXgogXg', ohat: '..X...X...X...X.', tom: 'x.....x...x.....' }),
+    DP('dp_perc', 'Percussion-Heavy Groove', 'deep', 0.1, { kick: 'X...X...X...X...', clap: '....x.......x...', chat: 'ogxgogxgogxgogxg', conga: 'x..x..x.x..x..x.', shaker: 'xgogxgogxgogxgog', rim: '...x..x...gx..xg', tom: '.......x.....x..', perc: 'x.....x..x......' }),
+    DP('dp_broken', 'Broken Beat House', 'tech', 0.08, { kick: 'X..x..X...x.X...', clap: '....X.......X..x', chat: 'xgxgxgxgxgxxxgxg', ohat: '..X.......X.....', rim: '.x..x.....x..x..' }),
+    DP('dp_dub', 'Dub Minimal Groove', 'minimal', 0.08, { kick: 'X...X...X...X...', rim: '.......x.......x', chat: 'ogxgogxgogxgogxg', ohat: '..o...........o.', perc: 'x.......x..x....' }),
+    DP('dp_soul', 'Soulful Groove', 'deep', 0.16, { kick: 'X...X...X...X...', clap: '....x.......x...', shaker: 'x.gxx.gxx.gxx.gx', ohat: '..o...o...o...o.', chat: 'ogxgogxgogxgogxg' }),
+    DP('dp_afro', 'Afro House Groove', 'deep', 0.12, { kick: 'X...X...X...X...', clap: '....x.......x...', conga: 'x..x..x.x..x..x.', bongo: '.x..x...x.x..x..', shaker: 'xgogxgogxgogxgog', tom: 'x.......x.......' }),
+    DP('dp_garage', 'Garage Shuffle', 'house', 0.24, { kick: 'X...X...X...X...', clap: '....X.......X...', chat: 'xgxxgxxgxxgxxgxx', ohat: '..X...X...X...X.', shaker: '.o.o.o.o.o.o.o.o' }),
+    DP('dp_disco', 'Disco House', 'house', 0.1, { kick: 'X...X...X...X...', clap: '....X.......X...', ohat: '..X...X...X...X.', chat: 'xgxgxgxgxgxgxgxg', shaker: 'o.o.o.o.o.o.o.o.' }),
     DP('dp_start', 'Kick + Clap (Starter)', 'house', 0, { kick: 'X...X...X...X...', clap: '....X.......X...' }),
     DP('dp_fill1', 'Fill: Snare Roll', 'house', 0, { snare: '....o.o.o.xxXXXX', kick: 'X...X...X...X...' }, { fill: true }),
     DP('dp_fill2', 'Fill: Tom Fill', 'tech', 0, { tom: '..x.x.x.x.x.xxXX', kick: 'X...X...X.......', crash: 'X...............' }, { fill: true }),
+    // vibe patterns
+    DP('dp_bounce', 'Bouncy Tech', 'tech', 0.07, { kick: 'X...X...X...X...', clap: '....X.......X...', chat: 'ogXxogXgogXxogXg', ohat: '..x...x...x...x.', rim: '...x..x...gx..x.', shaker: 'gxgogxgogxgogxgo', perc: '.....g.....x...g' }),
+    DP('dp_miami', 'Miami Bounce', 'jackin', 0.05, { kick: 'X...X...X...X...', clap: '....X.......X..x', chat: 'xgXgxgXgxgXgxgXg', ohat: '..X...X...X...X.', conga: '...x..x...gx..x.', rim: 'g..x..g..x..g.x.', tom: '.........x.x....' }),
+    DP('dp_dusty', 'Dusty Deep Tech', 'deep', 0.16, { kick: 'X...X...X...X...', clap: '....x.......x...', chat: 'ogxgogxgogxgogxg', ohat: '..o...o...o...o.', rim: '..gx..g...gx..g.', shaker: 'xgogxgogxgogxgog', conga: '.x..x...x..x....' }),
+    DP('dp_ware', 'Warehouse Drive', 'tech', 0.03, { kick: 'X...X...X...X...', clap: '....X.......X...', chat: 'xoXoxoXoxoXoxoXo', ohat: '.o..o..o..o..o..', tom: 'x..x..x...x..x..', perc: '.x..x..x..x..x..', shaker: 'xgxgxgxgxgxgxgxg' }),
   ];
-  const CHV = { X: 1, x: 0.82, o: 0.45 };
+  const CHV = { X: 1, x: 0.82, o: 0.5, g: 0.3 };
   M.rowsFromPattern = (pat, flavor) => {
     const fl = FL[flavor || pat.flavor], rows = [];
     for (const name in pat.rows) {
@@ -144,6 +152,12 @@
 
   // ---------- bass patterns: [step16, semitoneOffset, lenSteps, vel] ----------
   M.BASSPATS = [
+    // pickup patterns: notes on the 16th just before each beat (steps 3,7,11,15) — the bounce measured in the references
+    { id: 'bp_pick1', name: 'Pickup Bounce', n: [[3, 0, 2, 1], [7, 0, 2, 0.95], [11, 0, 2, 1], [15, 7, 1, 0.8]] },
+    { id: 'bp_pick2', name: 'Rolling Pickups', n: [[2, 0, 1, 0.8], [3, 0, 1, 1], [6, 0, 1, 0.8], [7, 0, 1, 1], [10, 0, 1, 0.8], [11, 0, 1, 1], [14, 0, 1, 0.8], [15, 7, 1, 0.85]] },
+    { id: 'bp_pick3', name: 'Tech Bounce', n: [[3, 0, 2, 1], [6, 0, 1, 0.75], [7, 0, 1, 0.95], [11, 0, 2, 1], [14, 0, 1, 0.75], [15, 7, 1, 0.8]] },
+    { id: 'bp_pick4', name: 'Dusty Walk', n: [[3, 0, 3, 1], [7, 0, 2, 0.9], [10, 3, 1, 0.75], [11, 0, 3, 1], [15, 5, 1, 0.85]] },
+    { id: 'bp_pick5', name: 'Miami Stabs', n: [[3, 0, 2, 1], [5, 0, 1, 0.8], [7, 0, 2, 1], [10, 0, 1, 0.8], [11, 7, 2, 0.9], [13, 12, 1, 0.6], [15, 0, 1, 1]] },
     { id: 'bp_off', name: 'Offbeat Bass', n: [[2, 0, 2, 1], [6, 0, 2, 0.9], [10, 0, 2, 1], [14, 0, 2, 0.9]] },
     { id: 'bp_roll', name: 'Rolling 16ths', n: [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15].map((s, i) => [s, i % 5 === 3 ? 12 : 0, 1, i % 3 === 0 ? 1 : 0.8]) },
     { id: 'bp_walk', name: 'Deep Walking Bass', n: [[0, 0, 3, 1], [4, 0, 2, 0.85], [6, 7, 2, 0.9], [8, 0, 3, 1], [12, 3, 2, 0.85], [14, 5, 2, 0.9]] },
@@ -158,7 +172,7 @@
     { id: 'bp_gar', name: 'Garage Skip', n: [[0, 0, 2, 1], [3, 0, 2, 0.85], [6, 0, 1, 0.8], [8, 7, 2, 0.95], [11, 5, 2, 0.85], [14, 0, 2, 0.9]] },
   ];
   // rootMidi: absolute midi of the bass root for this chord; bars: list of root semitone offsets per bar
-  M.bassNotes = (pat, rootsPerBar, keyRoot, baseMidi = 36) => {
+  M.bassNotes = (pat, rootsPerBar, keyRoot, baseMidi = 40) => {
     const out = [];
     rootsPerBar.forEach((semi, bar) => {
       const pc = (keyRoot + semi) % 12; let root = baseMidi - 6 + ((pc - (baseMidi - 6)) % 12 + 12) % 12;
@@ -188,6 +202,17 @@
   };
   [['Simple Hook', 11, 0.45], ['Busy Hook', 12, 0.8], ['Sparse Hook', 13, 0.25], ['Euphoric Hook', 14, 0.65], ['Dark Hook', 15, 0.4], ['Playful Hook', 16, 0.7]].forEach(([name, seed, den], i) =>
     HD.Lib.add({ id: 'mel_' + i, name: 'Melody – ' + name, cat: 'PATTERNS', sub: 'Melody', type: 'melody', mel: { seed, den, bars: 4 }, tags: ['melody', 'lead', 'hook'] }));
+
+  // rhythmic chop / stab riff on the pickup positions; returns one 2-bar phrase (loop it)
+  M.chopRiff = (seed, key, bars = 2, center = 60) => {
+    const r = HD.rng(seed), sc = M.SCALES[key.scale] || M.SCALES.minor, notes = [], deg = [0, 2, 4, 3, 5, 7];
+    const toMidi = (d) => key.root + sc[((d % sc.length) + sc.length) % sc.length] + 12 * Math.floor(d / sc.length) + 12 * Math.floor((center - key.root) / 12);
+    const slots = [3, 6, 7, 10, 11, 14, 15], first = []; for (let b = 0; b < bars; b++) {
+      const pick = b % 2 ? first.map((x) => x) : slots.filter(() => r() < 0.5).slice(0, 4); if (!pick.length) pick.push(3, 11); if (b === 0) first.push(...pick);
+      pick.forEach((st, i) => { const d = (b % 2 ? deg[(i + 2) % deg.length] : deg[i % deg.length]) + (r() < 0.25 ? 2 : 0); notes.push({ p: toMidi(d), s: b * 4 + st * 0.25, l: 0.2 + r() * 0.12, v: 0.7 + r() * 0.3 }); });
+    }
+    return notes;
+  };
 
   // helpers: scale-snapped chord-assist
   M.stack = (root, quality) => (M.CHORDS[quality] || M.CHORDS.m).map((i) => root + i);

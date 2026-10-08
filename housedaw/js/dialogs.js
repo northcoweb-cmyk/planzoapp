@@ -8,10 +8,16 @@
   // ---------- option form shared by the wizard and the song builder ----------
   const optionsForm = (o, withLength) => {
     const bpmVal = el('span', { class: 'val big', text: o.bpm + ' BPM' });
+    const vibeOf = () => C.VIBES[o.vibe || C.VIBE_BY_GENRE[o.genre]];
+    const setBpm = (v) => { o.bpm = v; bpm.value = v; bpmVal.textContent = v + ' BPM'; };
     const bpm = UI.slider(100, 140, o.bpm, 1, (v) => { o.bpm = v; o.userBpm = true; bpmVal.textContent = v + ' BPM'; });
-    const genre = UI.chips(GEN_OPTS, o.genre, (v) => { o.genre = v; if (!o.userBpm) { o.bpm = C.GENRES[v].bpm; bpm.value = o.bpm; bpmVal.textContent = o.bpm + ' BPM'; } });
+    const vdesc = el('div', { class: 'hint vdesc' }), showV = () => { const V = vibeOf(); vdesc.textContent = (o.vibe || C.VIBE_BY_GENRE[o.genre]) + ' — ' + V.desc; };
+    const genre = UI.chips(GEN_OPTS, o.genre, (v) => { o.genre = v; if (!o.userBpm) setBpm(vibeOf().bpm); showV(); });
+    const vibe = UI.chips(['Auto', ...Object.keys(C.VIBES)], o.vibe || 'Auto', (v) => { o.vibe = v === 'Auto' ? null : v; if (!o.userBpm) setBpm(vibeOf().bpm); showV(); });
+    showV();
     const f = el('div', { class: 'wiz' },
       el('div', { class: 'wiz-sec' }, el('div', { class: 'wiz-lab', text: 'Style' }), genre),
+      el('div', { class: 'wiz-sec' }, el('div', { class: 'wiz-lab', text: 'Vibe  (the groove’s personality — bass, hats, hook, feel)' }), vibe, vdesc),
       el('div', { class: 'wiz-sec' }, el('div', { class: 'wiz-lab', text: 'Mood' }), UI.chips(MOODS, o.mood, (v) => (o.mood = v))),
       el('div', { class: 'wiz-sec' }, el('div', { class: 'wiz-lab', text: 'Energy' }), UI.chips(ENERGY, o.energy, (v) => (o.energy = v))),
       el('div', { class: 'wiz-sec' }, el('div', { class: 'wiz-lab', text: 'Tempo' }), el('div', { class: 'wiz-bpm' }, bpm, bpmVal)));
@@ -20,13 +26,13 @@
   };
 
   Dg.wizard = () => {
-    const o = { genre: 'House', mood: 'Groovy', energy: 'Medium', bpm: 124 };
+    const o = { genre: 'House', mood: 'Groovy', energy: 'Medium', bpm: C.VIBES[C.VIBE_BY_GENRE['House']].bpm, vibe: null };
     const m = UI.modal({ title: '✦ New House Track', width: 620, body: el('div', {}, el('p', { class: 'lead', text: 'Pick a vibe. In a couple of seconds you’ll get a complete, playable groove — kick, clap, hats, percussion, bass, chords, pad, lead and FX — using only sounds built into HouseDAW. Everything stays editable.' }), optionsForm(o)),
       buttons: [{ label: 'Cancel', onClick: (c) => c() }, { label: 'GENERATE GROOVE', cls: 'primary big', onClick: async (close) => { close(); await HD.App.generate({ ...o, mode: 'groove' }); } }] });
     return m;
   };
   Dg.songBuilder = () => {
-    const o = { genre: S.project && S.project.genre && C.GENRES[S.project.genre] ? S.project.genre : 'House', mood: 'Groovy', energy: 'Medium', bpm: S.project ? S.project.bpm : 124, minutes: 3, userBpm: true };
+    const g0 = S.project && S.project.genre && C.GENRES[S.project.genre] ? S.project.genre : 'House', o = { genre: g0, mood: 'Groovy', energy: 'Medium', bpm: S.project && S.project.tracks.length ? S.project.bpm : C.VIBES[C.VIBE_BY_GENRE[g0]].bpm, vibe: S.project && S.project.vibe && C.VIBES[S.project.vibe] ? S.project.vibe : null, minutes: 3, userBpm: !!(S.project && S.project.tracks.length) };
     UI.modal({ title: '🏗 Song Builder', width: 640, body: el('div', {}, el('p', { class: 'lead', text: 'Builds a full arrangement on the timeline: Intro → Build → Drop → Break → Build → Drop 2 → Outro, with fills, risers, impacts and section markers. Every clip is editable afterwards.' }), optionsForm(o, true)),
       buttons: [{ label: 'Cancel', onClick: (c) => c() }, { label: 'BUILD SONG', cls: 'primary big', onClick: async (close) => { close(); await HD.App.generate({ ...o, mode: 'song' }, true); } }] });
   };

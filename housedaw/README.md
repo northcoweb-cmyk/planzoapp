@@ -47,6 +47,31 @@ Sounds are *families of designed variations*, not random noise: e.g. a kick is a
 transient + saturation + DC filtering, with per-family ranges for pitch, decay, click and drive. Rendering is
 deterministic (same spec → same audio) and lazy, so the library costs a few kilobytes of code, not hundreds of megabytes.
 
+## Vibes, auto-mix and reference matching (v2)
+
+Generated tracks have a **Vibe** — a complete groove personality, not just a tempo:
+
+| Vibe | Feel |
+|---|---|
+| **Bouncy** | Tech-house bounce: bass on the pickup 16ths, short stabs, vocal-chop hook |
+| **Rolling** | Driving rolling bass, tight hats, minimal stabs |
+| **Dusty** | Laid-back swung deep house, warm keys, soft hats, vinyl crackle |
+| **Miami** | Bright bouncy bass house, claps, vocal chops |
+| **Warehouse** | Dark driving groove, acid/growl bass, toms |
+| **Sunset** | Melodic house with piano and a singing lead |
+
+The vibes were built from measurements of three real reference house tracks (tempo ~128–134, continuous 16th hats with accented
+off-beats, bass hits on the 16th *before* the beat, deep kick-ducking, a bass-heavy balance with a mono low end, 16–32 bar steady
+drops with drop-outs before the drop). Only generic *statistics* were used — no audio, melodies or samples are copied.
+
+* **Auto-mix** – after generating, the app renders a few bars, measures the frequency balance and nudges track levels toward the
+  house reference profile, then settles on a club-typical loudness (≈ −10.7 dB RMS, crest ≈ 9 dB, so it stays punchy).
+* **Reference A/B** (Master tab) – load any track you like; the app measures its balance (analysis only, nothing is stored or
+  uploaded), shows it next to your mix and can **balance your mix to it** and copy its tempo.
+* **Sample-accurate timing** – every track is delay-compensated (Web Audio compressors add 6 ms each) and exports are trimmed so the
+  first kick sits exactly on beat 1; parallel paths are phase-aligned so the bass doesn't comb-filter.
+* **Playable vocal chops** (sampler instruments) and a chop-riff generator for the hooks.
+
 ## Features
 
 * **Engine** – Web Audio graph rebuilt from the project; look-ahead scheduler; sample-accurate loop; the playhead follows
@@ -75,9 +100,13 @@ deterministic (same spec → same audio) and lazy, so the library costs a few ki
 
 It is a **local, rule-based assistant**, not a cloud LLM — that is what lets it work offline with no API. It parses plain-English
 requests ("make this darker", "add a riser before the drop", "give me a deeper bass", "create a 16-bar intro"…) and performs real
-edits to the project (filter cutoffs, swapped sounds, added effects, new clips, transposition, tempo…). Every reply is generated
-from the list of edits that were actually applied; if it can't do something, or nothing needed changing, it says so. All AI edits
-are one undo step. Type `help` in the panel for the full list.
+edits to the project. Every reply is generated from the list of edits that were actually applied; if it can't do something, or
+nothing needed changing, it says so.
+
+**It can't make your track worse without telling you.** Edits are small, bounded and idempotent (asking twice doesn't stack
+duplicates or runaway values). Around every edit it measures the mix before and after, re-balances levels against the reference
+profile (shifted on purpose for "darker"/"brighter"…), matches loudness so the change isn't just "louder", and **automatically undoes
+the edit** if the measured balance ends up clearly worse. All AI edits are one undo step. Type `help` in the panel for the list.
 
 ## Keyboard
 
@@ -93,7 +122,8 @@ js/dsp.js             sample synthesis     js/engine.js    mixer graph + event s
 js/lib.js             sound catalogue      js/transport.js look-ahead scheduler
 js/presets.js         instruments, FX defs js/fx.js        effects
 js/music.js           chords/patterns      js/instruments.js synth voices
-js/compose.js         House Mode & Song Builder   js/ai.js  AI Producer
+js/compose.js         House Mode, Vibes & Song Builder   js/ai.js  AI Producer
+js/analysis.js        band-balance / loudness / tempo analysis   js/mix.js  Auto-mix + Reference A/B
 js/actions.js         shared edit actions  js/import.js    audio import   js/gen.js  sound generator
 js/store.js           IndexedDB            js/export.js    WAV/MP3        js/packs.js optional licensed packs
 js/ui-*.js, dialogs.js, app.js   interface
