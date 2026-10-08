@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Out of Office</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <div class="fill" id="bgGlow"><div class="glowb" id="gA"></div><div class="glowb" id="gB"></div><div class="glowb" id="gC"></div></div>
+  <div class="fill" id="beach">
+    <div class="fill" id="sky"></div>
+    <div id="rays"></div>
+    <div id="sunGlow"></div>
+    <canvas id="sea"></canvas>
+  </div>
+
+  <div id="stage">
+    <div id="cam">
+      <div id="cal" class="lglass">
+        <div id="calHd">This week</div><div id="calSub">Oct 6 – 12 · Coastline Realty Group</div>
+        <div id="calCount">12 events</div>
+        <div id="days"><div>MON 6</div><div>TUE 7</div><div>WED 8</div><div>THU 9</div><div>FRI 10</div><div>SAT 11</div><div>SUN 12</div></div>
+        <div id="hours"></div>
+        <div id="grid"></div>
+      </div>
+
+      <div id="calm" class="abs" style="width:1080px;height:1080px">
+        <div id="askLbl">MILA</div>
+        <div id="composer" class="lglass">
+          <div id="sunCore"></div>
+          <div id="cTxt"><span id="typed"></span><span id="caret"></span><span id="cPh">What do you need to get done?</span></div>
+          <div id="cSend"></div>
+          <div id="cGlow"></div>
+        </div>
+      </div>
+
+      <div id="toggle" class="lglass"><div><div>Out of office</div><div class="st" id="tgSt" style="margin-top:7px">Mila is handling it</div></div><div class="sw"><b></b><i></i></div></div>
+
+      <div id="stack" class="abs" style="width:1080px;height:1080px">
+        <div id="stackTitle">Ready for approval</div><div id="stackCount">0</div>
+        <div id="cards"></div>
+        <div id="apAll"><b></b><span>Approve all</span></div>
+      </div>
+
+      <div id="pcs" class="abs"></div>
+      <div id="words" class="abs"></div>
+
+      <div id="endc" class="abs" style="width:1080px;height:1080px">
+        <div id="wordmark">Mila</div>
+        <div id="tagline"><div class="ln"><span>Your AI operations manager for real estate.</span></div></div>
+        <div id="cta"><div class="ln"><span>Comment <span class="q">“Mila”</span></span></div><div class="ln"><span>for a 7-day free trial.</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fill" id="redTint"></div>
+  <div class="fill" id="flash"></div>
+  <div class="fill" id="vignette"></div>
+  <canvas id="grain" width="540" height="540"></canvas>
+</div>
+<div id="player"><button id="pp">Play</button><input id="scrub" type="range" min="0" max="19.6" step="0.001" value="0"><span id="tc">0.00s</span></div>
+<audio id="aud" src="audio/mix.wav" preload="auto"></audio>
+<script src="scene.js"></script>
+</body>
+</html>
