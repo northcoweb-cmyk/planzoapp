@@ -1,0 +1,314 @@
+{
+ "beat": 0.4615,
+ "fps": 60,
+ "songStart": 22.166,
+ "totalBeats": 40,
+ "duration": 18.46,
+ "drop": 16,
+ "stuck": 15,
+ "notes": [
+  "+ Drafts replies to every new lead",
+  "+ Books showings on your calendar",
+  "+ Writes the listing copy",
+  "+ Builds the Instagram carousel",
+  "+ Emails your buyer list",
+  "+ Queues every follow-up",
+  "- Removed: 12 apps"
+ ],
+ "noteBeats": [
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11
+ ],
+ "nodes": [
+  "Calendar",
+  "Email",
+  "CRM",
+  "MLS",
+  "Social",
+  "Texts"
+ ],
+ "nodeBeats": [
+  16.5,
+  17,
+  17.5,
+  18,
+  18.5,
+  19
+ ],
+ "cards": [
+  [
+   18,
+   "Lead reply drafted",
+   "Jordan \u00b7 48 Coral Palm Way",
+   "msg"
+  ],
+  [
+   20,
+   "Showing booked",
+   "Sat 11 AM \u00b7 1207 Sea Grape Ln",
+   "cal"
+  ],
+  [
+   22,
+   "Listing copy written",
+   "48 Coral Palm Way \u00b7 Naples",
+   "doc"
+  ],
+  [
+   24,
+   "Carousel built",
+   "3 slides \u00b7 Just listed",
+   "photo"
+  ],
+  [
+   26,
+   "Buyer email ready",
+   "31 buyers \u00b7 Naples",
+   "mail"
+  ],
+  [
+   28,
+   "9 follow-ups queued",
+   "Everyone from Sunday",
+   "users"
+  ]
+ ],
+ "approve": 30,
+ "patched": 32,
+ "logo": 35,
+ "loopTail": [
+  39,
+  40
+ ],
+ "sfx": [
+  [
+   0.0,
+   "glitch"
+  ],
+  [
+   1.0,
+   "err"
+  ],
+  [
+   2.0,
+   "err"
+  ],
+  [
+   3.0,
+   "err"
+  ],
+  [
+   3.5,
+   "glitch"
+  ],
+  [
+   4.0,
+   "chime_lo"
+  ],
+  [
+   5,
+   "tick"
+  ],
+  [
+   6,
+   "tick"
+  ],
+  [
+   7,
+   "tick"
+  ],
+  [
+   8,
+   "tick"
+  ],
+  [
+   9,
+   "tick"
+  ],
+  [
+   10,
+   "tick"
+  ],
+  [
+   11,
+   "tick"
+  ],
+  [
+   12.0,
+   "data"
+  ],
+  [
+   12.25,
+   "data"
+  ],
+  [
+   12.5,
+   "data"
+  ],
+  [
+   12.75,
+   "data"
+  ],
+  [
+   13.0,
+   "data"
+  ],
+  [
+   13.25,
+   "data"
+  ],
+  [
+   13.5,
+   "data"
+  ],
+  [
+   13.75,
+   "data"
+  ],
+  [
+   14.0,
+   "data"
+  ],
+  [
+   14.25,
+   "data"
+  ],
+  [
+   14.5,
+   "data"
+  ],
+  [
+   14.75,
+   "data"
+  ],
+  [
+   14.0,
+   "glitch"
+  ],
+  [
+   14.5,
+   "glitch"
+  ],
+  [
+   15.0,
+   "freeze"
+  ],
+  [
+   16.0,
+   "boom"
+  ],
+  [
+   16.0,
+   "bloom"
+  ],
+  [
+   16.0,
+   "sparkle"
+  ],
+  [
+   16.5,
+   "node"
+  ],
+  [
+   17,
+   "node"
+  ],
+  [
+   17.5,
+   "node"
+  ],
+  [
+   18,
+   "node"
+  ],
+  [
+   18.5,
+   "node"
+  ],
+  [
+   19,
+   "node"
+  ],
+  [
+   18,
+   "card"
+  ],
+  [
+   20,
+   "card"
+  ],
+  [
+   22,
+   "card"
+  ],
+  [
+   24,
+   "card"
+  ],
+  [
+   26,
+   "card"
+  ],
+  [
+   28,
+   "card"
+  ],
+  [
+   18.5,
+   "chime"
+  ],
+  [
+   20.5,
+   "chime"
+  ],
+  [
+   22.5,
+   "chime"
+  ],
+  [
+   24.5,
+   "chime"
+  ],
+  [
+   26.5,
+   "chime"
+  ],
+  [
+   28.5,
+   "chime"
+  ],
+  [
+   30.0,
+   "tap"
+  ],
+  [
+   30.0,
+   "chime_hi"
+  ],
+  [
+   30.0,
+   "sparkle"
+  ],
+  [
+   32.0,
+   "through"
+  ],
+  [
+   35.0,
+   "boom"
+  ],
+  [
+   35.0,
+   "sparkle"
+  ],
+  [
+   36.0,
+   "chime"
+  ]
+ ]
+}
