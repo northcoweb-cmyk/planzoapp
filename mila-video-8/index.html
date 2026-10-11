@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speedrun</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <canvas id="px"></canvas>
+  <canvas id="bloom"></canvas>
+  <div class="fill" id="mask"></div>
+  <div class="fill" id="scan"></div>
+  <div class="fill" id="glass"></div>
+  <div class="fill" id="vig"></div>
+</div>
+<div id="player"><button id="pp">Play</button><input id="scrub" type="range" min="0" max="18.75" step="0.001" value="0"><span id="tc">0.00s</span></div>
+<audio id="aud" src="audio/mix.wav" preload="auto"></audio>
+<script src="scene.js"></script>
+</body>
+</html>

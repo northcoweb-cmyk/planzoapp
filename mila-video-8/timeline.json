@@ -1,0 +1,212 @@
+{
+ "beat": 0.46875,
+ "fps": 60,
+ "songStart": 26.439999999999998,
+ "totalBeats": 40,
+ "duration": 18.75,
+ "go": 12,
+ "splits": [
+  [
+   "LISTING COPY",
+   15
+  ],
+  [
+   "PHOTOS",
+   18
+  ],
+  [
+   "IG CAROUSEL",
+   21
+  ],
+  [
+   "BUYER EMAIL",
+   24
+  ],
+  [
+   "OPEN HOUSE",
+   27
+  ],
+  [
+   "FOLLOW-UPS",
+   30
+  ]
+ ],
+ "connectors": [
+  "CALENDAR",
+  "EMAIL",
+  "CRM",
+  "MLS",
+  "SOCIAL",
+  "TEXTS"
+ ],
+ "checkBeats": [
+  4.5,
+  5.0,
+  5.5,
+  6.0,
+  6.5,
+  7.0
+ ],
+ "record": 30,
+ "approve": 32,
+ "board": 33.5,
+ "logo": 36,
+ "loopTail": [
+  39.1,
+  40
+ ],
+ "sfx": [
+  [
+   2.0,
+   "blip"
+  ],
+  [
+   3.5,
+   "coin"
+  ],
+  [
+   4.0,
+   "select"
+  ],
+  [
+   4.5,
+   "check0"
+  ],
+  [
+   5.0,
+   "check1"
+  ],
+  [
+   5.5,
+   "check2"
+  ],
+  [
+   6.0,
+   "check3"
+  ],
+  [
+   6.5,
+   "check4"
+  ],
+  [
+   7.0,
+   "check5"
+  ],
+  [
+   7.5,
+   "allset"
+  ],
+  [
+   8.0,
+   "ready"
+  ],
+  [
+   9.0,
+   "beep"
+  ],
+  [
+   10.0,
+   "beep"
+  ],
+  [
+   11.0,
+   "beep"
+  ],
+  [
+   12.0,
+   "go"
+  ],
+  [
+   12.0,
+   "boom"
+  ],
+  [
+   15,
+   "split"
+  ],
+  [
+   18,
+   "split"
+  ],
+  [
+   21,
+   "split"
+  ],
+  [
+   24,
+   "split"
+  ],
+  [
+   27,
+   "split"
+  ],
+  [
+   30.0,
+   "record"
+  ],
+  [
+   30.0,
+   "boom"
+  ],
+  [
+   30.25,
+   "coin"
+  ],
+  [
+   30.375,
+   "coin"
+  ],
+  [
+   30.5,
+   "coin"
+  ],
+  [
+   30.625,
+   "coin"
+  ],
+  [
+   30.75,
+   "coin"
+  ],
+  [
+   30.875,
+   "coin"
+  ],
+  [
+   31.75,
+   "blip"
+  ],
+  [
+   32.0,
+   "approve"
+  ],
+  [
+   33.5,
+   "select"
+  ],
+  [
+   34.0,
+   "blip"
+  ],
+  [
+   34.5,
+   "blip"
+  ],
+  [
+   36.0,
+   "boom"
+  ],
+  [
+   36.0,
+   "coin"
+  ],
+  [
+   37.0,
+   "blip"
+  ],
+  [
+   37.5,
+   "blip"
+  ]
+ ]
+}

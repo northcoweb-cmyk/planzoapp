@@ -1,0 +1,15 @@
+@font-face { font-family: "PS2P"; src: url(assets/fonts/PressStart2P.woff2) format("woff2"); }
+@font-face { font-family: "Silk"; src: url(assets/fonts/Silkscreen-Regular.woff2) format("woff2"); }
+@font-face { font-family: "SilkB"; src: url(assets/fonts/Silkscreen-Bold.woff2) format("woff2"); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; background: #07070b; overflow: hidden; }
+#viewport { position: absolute; left: 0; top: 0; overflow: hidden; background: #07070b; }
+#px, #bloom { position: absolute; left: 0; image-rendering: pixelated; image-rendering: crisp-edges; }
+#bloom { image-rendering: auto; filter: blur(10px) brightness(1.5) saturate(1.3); mix-blend-mode: screen; opacity: .55; }
+.fill { position: absolute; inset: 0; pointer-events: none; }
+#scan { background: repeating-linear-gradient(180deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,.16) 3px, rgba(0,0,0,.16) 4px); }
+#mask { background: repeating-linear-gradient(90deg, rgba(255,60,60,.035) 0 1px, rgba(60,255,120,.035) 1px 2px, rgba(80,120,255,.035) 2px 3px); mix-blend-mode: screen; }
+#vig { background: radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, rgba(0,0,0,.42) 100%); }
+#glass { background: radial-gradient(ellipse at 30% 18%, rgba(255,255,255,.06), rgba(255,255,255,0) 40%); }
+#player { position: fixed; left: 12px; right: 12px; bottom: 12px; display: flex; gap: 10px; align-items: center; z-index: 999; font: 12px monospace; background: rgba(255,255,255,.85); padding: 8px 12px; border-radius: 12px; }
+#player input { flex: 1; } body.render #player { display: none; }
