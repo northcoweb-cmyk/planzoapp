@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Running Late</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <div class="fill" id="bgGlow"><div class="glowb" id="gA"></div><div class="glowb" id="gB"></div><div class="glowb" id="gC"></div></div>
+  <canvas id="stars" width="1080" height="1350"></canvas>
+
+  <div id="cam">
+    <!-- hook: the clock -->
+    <div id="hook" class="full">
+      <div id="clockWrap">
+        <svg id="ring" width="660" height="660" viewBox="0 0 660 660"><defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#ff5c7a"/><stop offset="1" stop-color="#ffc9a8"/></linearGradient></defs>
+          <circle cx="330" cy="330" r="310" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/><circle id="ringArc" cx="330" cy="330" r="310" fill="none" stroke="url(#rg)" stroke-width="10" stroke-linecap="round" transform="rotate(-90 330 330)"/></svg>
+        <div id="clockT"><span id="clockHM">1:52</span><small>PM</small></div>
+        <div id="showPill" class="dglass"><b id="minLeft">8 MIN</b>Showing · 2:00 PM · 1207 Sea Grape Ln</div>
+      </div>
+    </div>
+
+    <!-- voice mode -->
+    <div id="voice" class="full">
+      <canvas id="orb" width="720" height="720"></canvas>
+      <div id="listen" class="caps">Mila · listening</div>
+      <div id="ins1" class="ins chipB dglass"><span class="av" style="background:linear-gradient(140deg,#ff5c7a,#ffc9a8)">!</span><span id="ins1t">1:53 PM</span></div>
+      <div id="insHouse" class="ins"><div class="ph"></div><div class="gr"></div><div class="tx"><div class="a">1207 Sea Grape Ln</div><div class="c">Sarasota · Showing 2:00 PM</div></div></div>
+      <div id="insTime" class="ins chipB dglass"><span class="av">2</span>2:00 PM showing</div>
+      <div id="insCont" class="ins chipB dglass"><span class="av">DE</span>Dana &amp; Mark Ellis</div>
+      <div id="insLate" class="ins chipB dglass"><b>+5 MIN</b>Running behind</div>
+      <div id="insClose" class="ins dglass"><div class="k">CALENDAR · 12:30 PM</div><div class="t">Closing · Palm Ave</div><div class="bar"><i></i><u id="overrun"></u></div><div class="c">Ran 15 min long</div></div>
+      <div id="trans"><div id="tPrev"></div><div id="tCur"></div></div>
+    </div>
+    <div id="onit">On it, Rachel.</div>
+
+    <div id="cuts"></div>
+    <div id="words" class="abs"></div>
+
+    <div id="endc" class="full">
+      <div id="wordmark">Mila</div>
+      <div id="tagline"><div class="ln"><span>Your AI operations manager for real estate.</span></div></div>
+      <div id="cta"><div class="ln"><span>Comment <span class="q">“Mila”</span></span></div><div class="ln"><span>for a 7-day free trial.</span></div></div>
+    </div>
+  </div>
+
+  <div class="fill" id="flash"></div>
+  <div class="fill" id="vig"></div>
+  <canvas id="grain" width="540" height="675"></canvas>
+</div>
+<div id="player"><button id="pp">Play</button><input id="scrub" type="range" min="0" max="18.75" step="0.001" value="0"><span id="tc">0.00s</span></div>
+<audio id="aud" src="audio/mix.wav" preload="auto"></audio>
+<script src="scene.js"></script>
+</body>
+</html>
