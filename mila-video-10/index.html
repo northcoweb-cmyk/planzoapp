@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Departures</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <div class="fill" id="bgGlow"><div class="glowb" id="gA"></div><div class="glowb" id="gB"></div><div class="glowb" id="gC"></div></div>
+  <canvas id="bokeh" width="1080" height="1350"></canvas>
+
+  <div id="cam">
+    <div id="gate" class="dglass"><span class="g">D7</span><span>MIA → NAS</span><span id="gateSt" class="fc">BOARDING</span><span class="clock" id="clock">07:31</span></div>
+
+    <div id="board">
+      <canvas id="bcv" width="1020" height="500"></canvas>
+      <div class="cols" style="left:65px">TIME</div><div class="cols" style="left:215px">FLIGHT</div><div class="cols" style="left:365px">DESTINATION</div><div class="cols" style="left:765px">STATUS</div>
+      <div id="plane"></div>
+      <div id="boardGlow"></div>
+    </div>
+
+    <div id="notifs"></div>
+
+    <div id="comp" class="dglass">
+      <div id="compLbl">MILA</div>
+      <div id="cTxt"><span id="typed"></span><span id="caret"></span><span id="cPh">What do you need covered?</span></div>
+      <div id="cSend"></div>
+    </div>
+    <div id="apm" class="dglass"><div class="pi" id="apmIc"></div><div><div>Airplane mode</div><div id="apmSub" style="font:400 19px/1.3 var(--sans);color:rgba(255,255,255,.5);margin-top:6px">Mila keeps working</div></div><div class="sw"><b></b><i></i></div></div>
+
+    <svg id="takeoff" viewBox="0 0 1080 480"></svg>
+
+    <div id="seat">
+      <canvas id="mcv" width="1020" height="680"></canvas>
+      <div id="mTop">MIA → NAS · FLIGHT RB777 · RACHEL</div>
+      <div id="mbar"><div class="ms">ALTITUDE<b id="mAlt">0 FT</b></div><div class="ms">SPEED<b id="mSpd">0 MPH</b></div><div class="ms">TO NASSAU<b id="mEta">0:58</b></div><div class="ms" style="margin-left:auto">MILA<b id="mDone" style="color:var(--green)">0 / 6 DONE</b></div></div>
+    </div>
+
+    <div id="cards"></div>
+    <div id="apBar" class="dglass"></div>
+
+    <div id="words" class="abs"></div>
+
+    <div id="endc" class="abs" style="width:1080px;height:1350px">
+      <div id="wordmark">Mila</div>
+      <canvas id="ecv" width="1080" height="1350"></canvas>
+      <div id="tagline"><div class="ln"><span>Your AI operations manager for real estate.</span></div></div>
+    </div>
+  </div>
+
+  <div class="fill" id="flash"></div>
+  <div class="fill" id="vig"></div>
+  <canvas id="grain" width="540" height="675"></canvas>
+</div>
+<div id="player"><button id="pp">Play</button><input id="scrub" type="range" min="0" max="18.5" step="0.001" value="0"><span id="tc">0.00s</span></div>
+<audio id="aud" src="audio/mix.wav" preload="auto"></audio>
+<script src="scene.js"></script>
+</body>
+</html>
