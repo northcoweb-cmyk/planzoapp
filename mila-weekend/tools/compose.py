@@ -3,7 +3,7 @@ softens the foreground (business cards, flyers, printout addresses), then one wa
 import cv2, numpy as np
 from PIL import Image
 S = 2                                                         # up/ is 2x the original coordinates
-SCREENS = {'kitchen-setup': ('oh', [(140, 592), (381, 568), (456, 751), (186, 848)]),
+SCREENS = {'kitchen-setup': ('oh', [(124, 594), (381, 568), (456, 751), (170, 860)]),
            'dining-setup': ('oh', [(351, 651), (548, 680), (498, 823), (291, 777)]),
            'listing-laptop': ('sh', [(330, 726), (686, 730), (682, 951), (316, 953)])}
 DOF = {'kitchen-setup': (812, 940), 'dining-setup': (848, 905), 'listing-laptop': (975, 1035), 'living-room': None}   # foreground y0 -> y1 (full blur)

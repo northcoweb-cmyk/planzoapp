@@ -31,7 +31,7 @@
   function place(img, cx, cy, s, dx = 0) { set(img, { transform: `translate(${540 - cx * s + dx}px,${960 - cy * s}px) scale(${s})` }); }
 
   const SH = [];
-  const shot = (a, b, html, upd, o = {}) => { const el = document.createElement('div'); el.className = 'full'; el.innerHTML = html; $('#shots').appendChild(el); SH.push({ a, b, el, upd, ...o }); };
+  const shot = (a, b, html, upd, o = {}) => { const el = document.createElement('div'); el.className = 'full'; el.innerHTML = html; $('#shots').appendChild(el); const s = { a, b, el, upd, ...o }; SH.push(s); return s; };
   const PH = [[0, 2, 'kitchen-setup'], [2, 4, 'dining-setup'], [4, 6, 'listing-laptop'], [6, 12, 'living-room']];
   PH.forEach(([a, b, n], i) => shot(a, b, photo(n), (bb, s) => {
     const img = s.el.querySelector('.photo'), p = (bb - a) / (b - a);
@@ -60,7 +60,7 @@
 
   /* ---------------------------------------------------------------- headlines */
   const HEADS = [[0, 2, ['your weekend:'], false], [2, 4, ['2 open houses.'], false], [4, 6, ['3 showings.'], false], [6, 7, ['monday:'], false], [7, 7.5, ['monday:', 'all the follow-ups.'], false],
-    [12.25, 14, ['Mila sends them.'], true], [14, 16, ['Mila sends them.', '<span class="sub">so monday’s for clients.</span>'], true],
+    [12.5, 14, ['Mila sends them.'], true], [14, 16, ['Mila sends them.', '<span class="sub">so monday’s for clients.</span>'], true],
     [18, 99, ['Mila sends them.', '<span class="sub">so monday’s for clients.</span>'], true]];
   const head = $('#head'); let headKey = '';
 
@@ -69,7 +69,7 @@
   const CHIPS = $$('#chips .chip');
   const R = rng(7);
   $('#pile').innerHTML = TL.fu.map(([, txt]) => `<div class="fu"><div class="ic">!</div><div><div class="s">FOLLOW-UP DUE MONDAY</div><div class="t">${txt}</div></div></div>`).join('');
-  const FU = $$('#pile .fu').map((el, i) => ({ el, t: TL.fu[i][0], x: 130 + R() * 820, y: 560 + R() * 900, r: (R() - 0.5) * 16, d: R() }));
+  const FU = $$('#pile .fu').map((el, i) => ({ el, t: TL.fu[i][0], x: 470 + R() * 140, y: 560 + R() * 880, r: (R() - 0.5) * 16, d: R() }));
 
   /* ---------------------------------------------------------------- assets */
   await document.fonts.load('400 40px "Instrument Serif"'); await document.fonts.load('600 16px "Inter"'); await document.fonts.load('700 16px "DejaVu Sans Mono"'); await document.fonts.ready;
@@ -130,7 +130,7 @@
     let n = 0;
     if (pileOn) FU.forEach((f, i) => {
       if (b < f.t) { vis(f.el, false); return; } vis(f.el, true); n++;
-      const a = E.spring(P(b, f.t, f.t + 0.35)), sent = E.inOut(P(b, 12 + f.d * 0.35, 12.55 + f.d * 0.35));
+      const a = E.spring(P(b, f.t, f.t + 0.35)), sent = E.inOut(P(b, 12 + f.d * 0.15, 12.3 + f.d * 0.15));
       const x = lerp(f.x, 540, sent), y = lerp(f.y, 840, sent);
       set(f.el, { transform: `translate(${x - 410}px,${y - 66 - (1 - a) * 260}px) rotate(${f.r * (1 - sent)}deg) scale(${(1.1 - 0.1 * a) * (1 - 0.92 * sent)})`, opacity: clamp(a * 3) * (1 - P(sent, 0.85, 1)), zIndex: i });
       f.el.classList.toggle('sent', b >= 12);
