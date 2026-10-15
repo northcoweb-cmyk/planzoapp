@@ -1,0 +1,6 @@
+# originals and review crops contain private visitor info: never commit
+src/
+review/
+clean/
+frames/
+*.mp4
