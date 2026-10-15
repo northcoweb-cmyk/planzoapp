@@ -106,21 +106,45 @@
    "New listing you might like"
   ]
  ],
- "screens": [
+ "screens": [],
+ "flash": [
   [
-   16,
+   1.0,
+   "kitchen-setup"
+  ],
+  [
+   3.4,
+   "dining-setup"
+  ],
+  [
+   5.9,
+   "listing-laptop"
+  ],
+  [
+   6.6,
+   "living-room"
+  ]
+ ],
+ "run": [
+  [
+   16.0,
    "kitchen-setup",
-   "oh"
+   "Open house follow-ups"
   ],
   [
    16.5,
    "dining-setup",
-   "oh"
+   "Showing feedback"
   ],
   [
-   17,
+   17.0,
    "listing-laptop",
-   "sh"
+   "Second-look invites"
+  ],
+  [
+   17.5,
+   "living-room",
+   "Thank-you notes"
   ]
  ],
  "loopTail": [
@@ -265,7 +289,23 @@
    "chime"
   ],
   [
-   16,
+   1.0,
+   "whip"
+  ],
+  [
+   3.4,
+   "whip"
+  ],
+  [
+   5.9,
+   "whip"
+  ],
+  [
+   6.6,
+   "whip"
+  ],
+  [
+   16.0,
    "whip"
   ],
   [
@@ -273,12 +313,28 @@
    "whip"
   ],
   [
-   17,
+   17.0,
    "whip"
   ],
   [
-   18,
+   17.5,
    "whip"
+  ],
+  [
+   16.1,
+   "check"
+  ],
+  [
+   16.6,
+   "check"
+  ],
+  [
+   17.1,
+   "check"
+  ],
+  [
+   17.6,
+   "check"
   ],
   [
    18,

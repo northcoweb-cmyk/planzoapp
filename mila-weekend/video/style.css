@@ -45,3 +45,21 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; color: #ff
 #grain { position: absolute; left: 0; top: 0; width: 100%; height: 100%; mix-blend-mode: soft-light; pointer-events: none; }
 #player { position: fixed; left: 12px; right: 12px; bottom: 12px; display: flex; gap: 10px; align-items: center; z-index: 999; font: 12px monospace; background: rgba(255,255,255,.85); color: #000; padding: 8px 12px; border-radius: 12px; }
 #player input { flex: 1; } body.render #player { display: none; }
+
+/* v3: motion-graphics weekend */
+.night { position: absolute; inset: 0; background: radial-gradient(110% 80% at 50% 10%, #171b3d 0%, #0a0b17 55%, #05060c 100%); }
+.glow { position: absolute; width: 1400px; height: 1400px; border-radius: 50%; margin: -700px 0 0 -700px; }
+.g1 { left: 260px; top: 520px; background: radial-gradient(closest-side, rgba(143,180,255,.22), rgba(143,180,255,0)); }
+.g2 { left: 860px; top: 1300px; background: radial-gradient(closest-side, rgba(255,201,168,.16), rgba(255,201,168,0)); }
+.cal { position: absolute; left: 90px; top: 700px; width: 900px; height: 820px; border-radius: 44px; padding: 0; overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.2); box-shadow: 0 50px 100px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.18); }
+.calh { position: absolute; left: 0; right: 0; top: 0; height: 120px; display: flex; padding-left: 110px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.ch { flex: 1; display: flex; align-items: center; gap: 14px; padding-left: 24px; font: 700 20px/1 var(--mono); letter-spacing: .2em; color: rgba(255,255,255,.6); } .ch b { font: 400 64px/1 var(--serif); letter-spacing: 0; color: #fff; }
+.mon { position: absolute; left: 134px; top: -96px; display: flex; align-items: center; gap: 14px; font: 700 20px/1 var(--mono); letter-spacing: .2em; color: #ffb3c0; } .mon b { font: 400 64px/1 var(--serif); letter-spacing: 0; color: #fff; }
+.calg { position: absolute; left: 0; right: 0; top: 150px; bottom: 0; }
+.calg .hr { position: absolute; left: 0; right: 0; border-top: 1px solid rgba(255,255,255,.07); } .calg .hr span { position: absolute; left: 22px; top: 8px; font: 600 17px/1 var(--sans); color: rgba(255,255,255,.4); }
+.cal .ev { position: absolute; width: 365px; border-radius: 18px; padding: 14px 18px; display: flex; flex-direction: column; justify-content: center; gap: 6px; transform-origin: 50% 50%; }
+.cal .ev b { font: 700 26px/1 var(--sans); } .cal .ev span { font: 600 19px/1 var(--sans); opacity: .8; }
+.cal .ev.oh { background: linear-gradient(140deg, #ffc9a8, #f39a7a); color: #2a1206; } .cal .ev.sh { background: linear-gradient(140deg, #8fb4ff, #a68cff); color: #0b0b22; }
+.flashcard { position: absolute; left: 70px; width: 940px; border-radius: 40px; background-size: cover; background-position: center; border: 4px solid rgba(255,255,255,.9);
+  box-shadow: 0 60px 120px -30px rgba(0,0,0,.85); z-index: 6; }

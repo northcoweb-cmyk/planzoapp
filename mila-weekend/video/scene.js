@@ -32,14 +32,31 @@
 
   const SH = [];
   const shot = (a, b, html, upd, o = {}) => { const el = document.createElement('div'); el.className = 'full'; el.innerHTML = html; $('#shots').appendChild(el); const s = { a, b, el, upd, ...o }; SH.push(s); return s; };
-  const PH = [[0, 2, 'kitchen-setup'], [2, 4, 'dining-setup'], [4, 6, 'listing-laptop'], [6, 12, 'living-room']];
-  PH.forEach(([a, b, n], i) => shot(a, b, photo(n), (bb, s) => {
-    const img = s.el.querySelector('.photo'), p = (bb - a) / (b - a);
-    // slow drift + a punch-in that lands on each cut; the living room creeps in under the avalanche
-    const k = FILL * (1.0 + 0.03 * Math.exp(-(bb - a) * 7) + (n === 'living-room' ? 0.06 * E.inCubic(P(bb, 7, 11.75)) : 0.02 * p));
-    place(img, IW / 2, IH / 2, k, (i % 2 ? 1 : -1) * 14 * (p - 0.5));
-    const deS = n === 'living-room' ? P(bb, 8, 11.5) : 0; img.style.filter = `saturate(${1 - 0.4 * deS}) brightness(${1 - 0.25 * deS})${bb >= 11.5 && bb < 12 ? ` blur(${6 * E.inCubic(P(bb, 11.5, 12))}px)` : ''}`;
-  }, { hook: i === 0 }));
+  // THE WEEKEND (b0-12, also the loop frame): a glowing calendar that fills up on the beat
+  const EVTS = [[2.5, 'SAT', 13, 3, 'Open house', '1–4 PM', 'oh'], [3.0, 'SUN', 12, 3, 'Open house', '12–3 PM', 'oh'],
+    [4.5, 'SAT', 10, 1, 'Showing', '10:00 AM', 'sh'], [5.0, 'SAT', 16.5, 1, 'Showing', '4:30 PM', 'sh'], [5.5, 'SUN', 10.5, 1, 'Showing', '10:30 AM', 'sh']];
+  const ROW = 64, H0 = 9;
+  const CAL = shot(-9, 12, `<div class="night"></div><div class="glow g1"></div><div class="glow g2"></div>
+    <div class="cal" id="cal"><div class="calh" id="calh"><div class="ch" id="chA">SAT <b>14</b></div><div class="ch" id="chB">SUN <b>15</b></div></div>
+      <div class="calg">${Array.from({ length: 10 }, (_, i) => `<div class="hr" style="top:${i * ROW}px"><span>${((i + H0 - 1) % 12) + 1} ${i + H0 < 12 ? 'AM' : 'PM'}</span></div>`).join('')}
+      ${EVTS.map(([, d, st, du, t, tm, k]) => `<div class="ev ${k}" style="left:${d === 'SAT' ? 110 : 495}px;top:${(st - H0) * ROW + 3}px;height:${du * ROW - 6}px"><b>${t}</b><span>${tm}</span></div>`).join('')}
+      <div class="mon" id="mon">MON <b>16</b></div></div></div>
+    <div class="mono" id="calc" style="position:absolute;left:0;right:0;top:1600px;text-align:center;color:rgba(255,255,255,.7)"></div>`, (bb, s) => {
+    const cal = $('#cal'), c = E.outExpo(P(bb, 0, 0.01));
+    const toMon = E.inOut(P(bb, 6, 6.4)), dim = P(bb, 7.5, 9);
+    set(cal, { transform: `translateY(${-10 * Math.sin(bb * 0.5)}px) scale(${1 + 0.015 * pulseAt(bb % 1, 0, 6) * (bb >= 2 ? 1 : 0)})`, opacity: 1 - 0.55 * dim, filter: dim > 0 ? `blur(${3 * dim}px)` : 'none' });
+    $$('.ev', s.el).forEach((d, i) => { const T = EVTS[i][0], a = E.outBack(P(bb, T, T + 0.3)); vis(d, bb >= T && toMon < 0.5);
+      set(d, { transform: `scale(${clamp(a, 0, 1.25)})`, boxShadow: `0 0 ${60 * pulseAt(bb, T + 0.05, 4)}px rgba(166,140,255,.95), 0 16px 30px -12px rgba(0,0,0,.6)` }); });
+    // the weekend flips to monday
+    set($('#calh'), { opacity: 1 - toMon }); set($('#mon'), { opacity: toMon, transform: `translateY(${(1 - toMon) * 30}px)` });
+    const n = EVTS.filter(e => bb >= e[0]).length; $('#calc').innerHTML = bb < 6 && n ? `THIS WEEKEND: <b style="color:#ffc9a8">${n}</b> / 5 BOOKED` : '';
+  }, { hook: true });
+  // the open-house photos: ~0.3 s flash cards between the hits
+  const FL_AR = { 'kitchen-setup': 1080 / 1904, 'dining-setup': 1060 / 1784, 'listing-laptop': 1200 / 1904, 'living-room': 1960 / 1904 };
+  TL.flash.forEach(([a, n]) => shot(a, a + 0.64, `<div class="flashcard" style="height:${Math.round(940 * FL_AR[n])}px;top:${960 - Math.round(470 * FL_AR[n])}px;background-image:url(assets/photos/flash_${n}.jpg)"></div>`, (bb, s) => {
+    const k = E.outExpo(P(bb, a, a + 0.2)), o = 1 - E.inCubic(P(bb, a + 0.5, a + 0.64));
+    set(s.el.querySelector('.flashcard'), { transform: `scale(${1.18 - 0.18 * k}) rotate(${(1 - k) * -3}deg)`, opacity: o });
+  }, { flash: true }));
   // the aura (drop + end frame) — a canvas glow, breathing on the beat
   const AU = shot(12, 99, `<div class="aura"><canvas width="540" height="960" style="width:1080px;height:1920px"></canvas></div>`, () => {}, { aura: true });
   const auCv = AU.el.querySelector('canvas'), ax = auCv.getContext('2d');
@@ -50,12 +67,11 @@
     const g = ax.createRadialGradient(0, 0, 0, 0, 0, ry); for (const [p, c] of STOPS) g.addColorStop(p, c);
     ax.fillStyle = g; ax.fillRect(-ry * 2, -ry * 2, ry * 4, ry * 4);
   }
-  // laptop punch-ins: the screens now show Mila
-  TL.screens.forEach(([a, n, ui], i) => shot(a, i < 2 ? a + 0.5 : 18, `${photo(n)}<div class="tag"><b></b>${ui === 'oh' ? 'Open house follow-ups · drafted' : 'Showing feedback · sent'}</div>`, (bb, s) => {
-    const [cx, cy] = SCREEN_C[n], z = E.outExpo(P(bb, a, a + 0.35));
-    place(s.el.querySelector('.photo'), lerp(IW / 2, cx, z), lerp(IH / 2, cy, z), FILL * lerp(1.3, 1.85, z) * (1 + 0.02 * P(bb, a, a + 1)));
-    s.el.querySelector('.shade').style.opacity = 0.35;
-    const t = E.spring(P(bb, a + 0.1, a + 0.5)); set(s.el.querySelector('.tag'), { transform: `translateX(-50%) translateY(${(1 - t) * 60}px)`, opacity: clamp(t * 2) });
+  // AFTER THE DROP: a fast "all sent" run over the aura, one photo per half beat
+  TL.run.forEach(([a, n, lab], i) => shot(a, i < TL.run.length - 1 ? a + 0.5 : 18, `<div class="flashcard" style="height:${Math.round(940 * FL_AR[n])}px;top:${900 - Math.round(470 * FL_AR[n])}px;background-image:url(assets/photos/flash_${n}.jpg)"></div>
+    <div class="tag" style="top:${900 + Math.round(470 * FL_AR[n]) + 40}px"><b></b>${lab} · sent ✓</div>`, (bb, s) => {
+    const k = E.outExpo(P(bb, a, a + 0.18)); set(s.el.querySelector('.flashcard'), { transform: `translateY(${(1 - k) * 120}px) scale(${0.92 + 0.08 * k}) rotate(${(i % 2 ? 1 : -1) * 2 * (1 - k)}deg)`, opacity: clamp(k * 2) });
+    const t = E.spring(P(bb, a + 0.08, a + 0.4)); set(s.el.querySelector('.tag'), { transform: `translateX(-50%) translateY(${(1 - t) * 40}px)`, opacity: clamp(t * 2) });
   }));
 
   /* ---------------------------------------------------------------- headlines */
@@ -76,7 +92,7 @@
   await Promise.all($$('img').map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
   const grain = $('#grain'), gx = grain.getContext('2d'), NOISE = [];
   { const r = rng(99); for (let k = 0; k < 8; k++) { const c = document.createElement('canvas'); c.width = 540; c.height = 960; const x = c.getContext('2d'), id = x.createImageData(540, 960); for (let i = 0; i < id.data.length; i += 4) { const v = 128 + (r() - 0.5) * 100; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; } x.putImageData(id, 0, 0); NOISE.push(c); } }
-  const CUTS = [2, 4, 6, 12, 16, 16.5, 17, 18];
+  const CUTS = [2, 4, 6, 12, ...TL.flash.map(f => f[0]), ...TL.run.map(r => r[0]), 18];
 
   function render(t) {
     const raw = t / BEAT, tail = raw >= TL.loopTail[0], tailIn = E.inOut(P(raw, TL.loopTail[0], 23.9)), b = raw, bw = tail ? 0 : b;
@@ -90,12 +106,11 @@
 
     for (const s of SH) {
       let on;
-      if (s.hook) on = b < s.b || tail; else if (s.aura) on = b >= s.a && !(tail && tailIn >= 1); else on = b >= s.a && b < s.b && !tail;
+      if (s.hook) on = b < s.b || tail; else if (s.flash) on = b >= s.a && b < s.b && !tail; else if (s.aura) on = b >= s.a && !(tail && tailIn >= 1); else on = b >= s.a && b < s.b && !tail;
       vis(s.el, on); if (!on) continue;
       s.upd(s.hook ? bw : b, s);
       if (s.hook) { s.el.style.opacity = tail ? tailIn : 1; s.el.style.zIndex = tail ? 3 : ''; }
       if (s.aura) { s.el.style.opacity = tail ? 1 - tailIn : 1; drawAura(1 + 0.04 * Math.sin(TAU * (b - 12) / 4) + 0.03 * pulseAt(b % 1, 0, 6) * (b < 18 ? 1 : 0.4)); }
-      if (s.aura && b >= 16 && b < 18) vis(s.el, false);
     }
     const onAura = (b >= 12 && b < 16) || (b >= 18 && !tail) || (tail && tailIn < 0.5);
 
@@ -112,13 +127,13 @@
         const p = a0 < 0 ? 1 : E.outExpo(P(bw, a0, a0 + 0.3));
         set(ln, { opacity: p, transform: `scale(${1.12 - 0.12 * p})`, filter: p < 1 ? `blur(${(1 - p) * 10}px)` : 'none' });
       });
-      head.style.top = (hd[3] ? 960 * 0.88 : 960) + 'px';
+      head.style.top = (hd[3] ? 960 * 0.88 : 430) + 'px';
       if (tail) head.style.opacity = tailIn < 0.5 ? 1 - tailIn * 2 : (tailIn - 0.5) * 2; else head.style.opacity = bw >= 11.5 && bw < 12 ? 1 - P(bw, 11.5, 11.75) : 1;
       if (bw >= 7.5 && bw < 12 && !hd[3]) head.style.opacity = 0;
     }
 
     // weekend chips: stack up b2.5-6, swept away at the monday cut
-    vis($('#chips'), !tail && b >= 2.5 && b < 6.4);
+    vis($('#chips'), false);
     CHIPS.forEach((c, i) => {
       const T = TL.chips[i][0], a = E.spring(P(b, T, T + 0.45)); let slot = 0; TL.chips.forEach(([T2], j) => { if (j > i) slot += E.outCubic(P(b, T2, T2 + 0.25)); });
       const out = E.inCubic(P(b, 6, 6.35));
@@ -140,7 +155,7 @@
     if (cOn) {
       const due = Math.round(lerp(0, 47, E.inCubic(P(b, 7.5, 11.6)))), sentN = Math.round(47 * E.outCubic(P(b, 12, 12.9)));
       $('#count').innerHTML = b < 12 ? `Follow-ups due monday: <b>${due}</b>` : `<span style="color:#1a1a2e;text-shadow:none">Sent: <b style="color:#5b48d6">${sentN}</b> / 47 ✓</span>`;
-      $('#count').style.top = (b < 12 ? 330 : 1250) + 'px';
+      $('#count').style.top = (b < 12 ? 1640 : 1250) + 'px';
     }
     // wordmark: lavender on photos, deeper lavender on the aura
     $('#wm').style.color = onAura ? '#A99BEA' : '#EBE6FF';
