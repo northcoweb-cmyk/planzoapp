@@ -13,6 +13,13 @@ AREAS = {
     ],
     'dining-setup': [
         ('laptop screen (sign-in sheet)', [(336, 636), (562, 666), (510, 838), (278, 788)]),
+        ('business card by the glass jar', [(738, 864), (822, 864), (822, 906), (738, 906)]),
+    ],
+    'listing-laptop': [
+        ('screen: listing address + browser URL', [(356, 732), (512, 732), (512, 786), (356, 786)]),
+        ('stand printout: listing address', [(142, 638), (236, 638), (236, 664), (142, 664)]),
+        ('table printout: listing address', [(92, 898), (262, 894), (262, 924), (92, 932)]),
+        ('business cards, bottom left', [(8, 1036), (184, 1036), (184, 1170), (8, 1170)]),
     ],
 }
 for name, areas in AREAS.items():
