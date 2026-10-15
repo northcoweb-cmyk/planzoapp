@@ -1,0 +1,500 @@
+{
+ "beat": 0.46153846153846156,
+ "fps": 60,
+ "songStart": 111.7203076923077,
+ "totalBeats": 44,
+ "duration": 20.30769230769231,
+ "drop": 16,
+ "msgs": [
+  [
+   0,
+   "Jordan Ellis",
+   "Can we see 48 Coral Palm Saturday at 2?",
+   "SAT · 2:00 PM",
+   "Showing",
+   "hero_waterfront"
+  ],
+  [
+   3,
+   "Inspector · Gulf Home Co.",
+   "Inspection confirmed Tue 10:30 AM",
+   "TUE · 10:30 AM",
+   "Inspection",
+   "sarasota_bridgepool"
+  ],
+  [
+   4,
+   "Lender · Priya Shah",
+   "Appraisal booked Wednesday 1 PM",
+   "WED · 1:00 PM",
+   "Appraisal",
+   "tampa_rockpool"
+  ],
+  [
+   5,
+   "Title company",
+   "Closing moved to Friday 4:00",
+   "FRI · 4:00 PM",
+   "Closing",
+   "lauderdale_tiki"
+  ],
+  [
+   6,
+   "Marcus Lee",
+   "Open house Sunday 1–4 still on?",
+   "SUN · 1–4 PM",
+   "Open house",
+   "malibu_pool"
+  ],
+  [
+   7,
+   "Dana & Mark",
+   "Final walkthrough Thu 9 AM works!",
+   "THU · 9:00 AM",
+   "Walkthrough",
+   "cliff_pool"
+  ]
+ ],
+ "prompt": "Put all of these on my calendar.",
+ "keyBeats": [
+  9.1,
+  9.1409,
+  9.1857,
+  9.2284,
+  9.2722,
+  9.3274,
+  9.3782,
+  9.4156,
+  9.4656,
+  9.5035,
+  9.5423,
+  9.5823,
+  9.6259,
+  9.6795,
+  9.7187,
+  9.7739,
+  9.8347,
+  9.8719,
+  9.9482,
+  10.0041,
+  10.0552,
+  10.0938,
+  10.1378,
+  10.1876,
+  10.2379,
+  10.2741,
+  10.3132,
+  10.3507,
+  10.4058,
+  10.4462,
+  10.4891,
+  10.5395
+ ],
+ "send": 10.75,
+ "parse": 11,
+ "confirm": 13.5,
+ "tap": 15.0,
+ "hang": 15.0,
+ "logos": 16,
+ "events": [
+  [
+   17,
+   "SAT",
+   14.0,
+   1.0,
+   "Showing · 48 Coral Palm",
+   "g"
+  ],
+  [
+   18,
+   "TUE",
+   10.5,
+   1.5,
+   "Inspection · Sea Grape Ln",
+   "a"
+  ],
+  [
+   19,
+   "WED",
+   13.0,
+   1.0,
+   "Appraisal · Mangrove Bay",
+   "g"
+  ],
+  [
+   20,
+   "FRI",
+   16.0,
+   1.5,
+   "Closing · Banyan Isle",
+   "a"
+  ],
+  [
+   21,
+   "SUN",
+   13.0,
+   3.0,
+   "Open house · Coral Palm",
+   "g"
+  ],
+  [
+   22,
+   "THU",
+   9.0,
+   1.0,
+   "Walkthrough · Seabreeze Ct",
+   "a"
+  ]
+ ],
+ "notifs": 24,
+ "kicker": [
+  [
+   "Texted.",
+   28,
+   "hero_waterfront"
+  ],
+  [
+   "Scheduled.",
+   29,
+   "palm_estate"
+  ],
+  [
+   "Synced.",
+   30,
+   "malibu_sunset"
+  ],
+  [
+   "Reminded.",
+   31,
+   "nassau_living"
+  ]
+ ],
+ "say": 32,
+ "logo": 34,
+ "loopTail": [
+  42.5,
+  44
+ ],
+ "sfx": [
+  [
+   3,
+   "hit"
+  ],
+  [
+   4,
+   "hit"
+  ],
+  [
+   5,
+   "hit"
+  ],
+  [
+   6,
+   "hit"
+  ],
+  [
+   7,
+   "hit"
+  ],
+  [
+   3.02,
+   "notif"
+  ],
+  [
+   4.02,
+   "notif"
+  ],
+  [
+   5.02,
+   "notif"
+  ],
+  [
+   6.02,
+   "notif"
+  ],
+  [
+   7.02,
+   "notif"
+  ],
+  [
+   7.0,
+   "hit"
+  ],
+  [
+   7.0,
+   "stamp"
+  ],
+  [
+   8.0,
+   "whip"
+  ],
+  [
+   9.1,
+   "tick"
+  ],
+  [
+   9.1857,
+   "tick"
+  ],
+  [
+   9.2722,
+   "tick"
+  ],
+  [
+   9.3782,
+   "tick"
+  ],
+  [
+   9.4656,
+   "tick"
+  ],
+  [
+   9.5423,
+   "tick"
+  ],
+  [
+   9.6259,
+   "tick"
+  ],
+  [
+   9.7187,
+   "tick"
+  ],
+  [
+   9.8347,
+   "tick"
+  ],
+  [
+   9.9482,
+   "tick"
+  ],
+  [
+   10.0552,
+   "tick"
+  ],
+  [
+   10.1378,
+   "tick"
+  ],
+  [
+   10.2379,
+   "tick"
+  ],
+  [
+   10.3132,
+   "tick"
+  ],
+  [
+   10.4058,
+   "tick"
+  ],
+  [
+   10.4891,
+   "tick"
+  ],
+  [
+   10.75,
+   "send"
+  ],
+  [
+   11.0,
+   "pop"
+  ],
+  [
+   11.25,
+   "pop"
+  ],
+  [
+   11.5,
+   "pop"
+  ],
+  [
+   11.75,
+   "pop"
+  ],
+  [
+   12.0,
+   "pop"
+  ],
+  [
+   12.25,
+   "pop"
+  ],
+  [
+   12.5,
+   "riser"
+  ],
+  [
+   13.5,
+   "card"
+  ],
+  [
+   15.0,
+   "tap"
+  ],
+  [
+   15.0,
+   "chime_hi"
+  ],
+  [
+   15.25,
+   "air"
+  ],
+  [
+   16.0,
+   "boom"
+  ],
+  [
+   16.0,
+   "bloom"
+  ],
+  [
+   16.0,
+   "sparkle"
+  ],
+  [
+   17,
+   "whip"
+  ],
+  [
+   18,
+   "whip"
+  ],
+  [
+   19,
+   "whip"
+  ],
+  [
+   20,
+   "whip"
+  ],
+  [
+   21,
+   "whip"
+  ],
+  [
+   22,
+   "whip"
+  ],
+  [
+   17.25,
+   "check"
+  ],
+  [
+   18.25,
+   "check"
+  ],
+  [
+   19.25,
+   "check"
+  ],
+  [
+   20.25,
+   "check"
+  ],
+  [
+   21.25,
+   "check"
+  ],
+  [
+   22.25,
+   "check"
+  ],
+  [
+   17.25,
+   "pop"
+  ],
+  [
+   18.25,
+   "pop"
+  ],
+  [
+   19.25,
+   "pop"
+  ],
+  [
+   20.25,
+   "pop"
+  ],
+  [
+   21.25,
+   "pop"
+  ],
+  [
+   22.25,
+   "pop"
+  ],
+  [
+   24.0,
+   "whip"
+  ],
+  [
+   24.25,
+   "notif"
+  ],
+  [
+   24.75,
+   "notif"
+  ],
+  [
+   25.25,
+   "notif"
+  ],
+  [
+   25.75,
+   "notif"
+  ],
+  [
+   28,
+   "whip"
+  ],
+  [
+   29,
+   "whip"
+  ],
+  [
+   30,
+   "whip"
+  ],
+  [
+   31,
+   "whip"
+  ],
+  [
+   28,
+   "hit"
+  ],
+  [
+   29,
+   "hit"
+  ],
+  [
+   30,
+   "hit"
+  ],
+  [
+   31,
+   "hit"
+  ],
+  [
+   32.0,
+   "hit"
+  ],
+  [
+   33.0,
+   "boom"
+  ],
+  [
+   33.0,
+   "bloom"
+  ],
+  [
+   34.0,
+   "chime"
+  ],
+  [
+   35.5,
+   "chime"
+  ]
+ ]
+}
