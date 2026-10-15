@@ -1,0 +1,292 @@
+{
+ "beat": 0.46875,
+ "fps": 60,
+ "songStart": 90.9825,
+ "totalBeats": 24,
+ "duration": 11.25,
+ "drop": 12,
+ "chips": [
+  [
+   2.5,
+   "SAT \u00b7 1\u20134 PM",
+   "Open house"
+  ],
+  [
+   3.0,
+   "SUN \u00b7 12\u20133 PM",
+   "Open house"
+  ],
+  [
+   4.5,
+   "SAT \u00b7 10:00 AM",
+   "Showing"
+  ],
+  [
+   5.0,
+   "SAT \u00b7 4:30 PM",
+   "Showing"
+  ],
+  [
+   5.5,
+   "SUN \u00b7 11:00 AM",
+   "Showing"
+  ]
+ ],
+ "fu": [
+  [
+   7.5,
+   "Thanks for coming Saturday!"
+  ],
+  [
+   8.0,
+   "Hi Jordan, following up on the open house"
+  ],
+  [
+   8.5,
+   "Priya, want a second look?"
+  ],
+  [
+   9.0,
+   "Feedback request: Sat 10:00 showing"
+  ],
+  [
+   9.5,
+   "Marcus, the disclosures are ready"
+  ],
+  [
+   9.75,
+   "Did you like the kitchen?"
+  ],
+  [
+   10.0,
+   "Quick follow-up from Sunday"
+  ],
+  [
+   10.25,
+   "Here are the comps you asked for"
+  ],
+  [
+   10.5,
+   "Dana, still relocating in March?"
+  ],
+  [
+   10.75,
+   "Thanks for touring!"
+  ],
+  [
+   11.0,
+   "Following up on 412 Oak"
+  ],
+  [
+   11.0625,
+   "Can I send similar homes?"
+  ],
+  [
+   11.125,
+   "Re: open house questions"
+  ],
+  [
+   11.1875,
+   "HOA docs attached"
+  ],
+  [
+   11.25,
+   "Sunday showing feedback"
+  ],
+  [
+   11.3125,
+   "Checking in!"
+  ],
+  [
+   11.375,
+   "Second showing?"
+  ],
+  [
+   11.4375,
+   "New listing you might like"
+  ]
+ ],
+ "screens": [
+  [
+   16,
+   "kitchen-setup",
+   "oh"
+  ],
+  [
+   16.5,
+   "dining-setup",
+   "oh"
+  ],
+  [
+   17,
+   "listing-laptop",
+   "sh"
+  ]
+ ],
+ "loopTail": [
+  22.5,
+  24
+ ],
+ "sfx": [
+  [
+   2.5,
+   "pop"
+  ],
+  [
+   3.0,
+   "pop"
+  ],
+  [
+   4.5,
+   "pop"
+  ],
+  [
+   5.0,
+   "pop"
+  ],
+  [
+   5.5,
+   "pop"
+  ],
+  [
+   2,
+   "whip"
+  ],
+  [
+   4,
+   "whip"
+  ],
+  [
+   6,
+   "whip"
+  ],
+  [
+   6,
+   "hit"
+  ],
+  [
+   7,
+   "hit"
+  ],
+  [
+   7.5,
+   "notif"
+  ],
+  [
+   8.0,
+   "notif"
+  ],
+  [
+   8.5,
+   "notif"
+  ],
+  [
+   9.0,
+   "notif"
+  ],
+  [
+   9.5,
+   "notif"
+  ],
+  [
+   9.75,
+   "notif"
+  ],
+  [
+   10.0,
+   "notif"
+  ],
+  [
+   10.25,
+   "notif"
+  ],
+  [
+   10.5,
+   "notif"
+  ],
+  [
+   10.75,
+   "notif"
+  ],
+  [
+   11.0,
+   "notif"
+  ],
+  [
+   11.0625,
+   "notif"
+  ],
+  [
+   11.125,
+   "notif"
+  ],
+  [
+   11.1875,
+   "notif"
+  ],
+  [
+   11.25,
+   "notif"
+  ],
+  [
+   11.3125,
+   "notif"
+  ],
+  [
+   11.375,
+   "notif"
+  ],
+  [
+   11.4375,
+   "notif"
+  ],
+  [
+   9.5,
+   "riser"
+  ],
+  [
+   12,
+   "boom"
+  ],
+  [
+   12,
+   "bloom"
+  ],
+  [
+   12,
+   "sparkle"
+  ],
+  [
+   12.25,
+   "hit"
+  ],
+  [
+   14,
+   "chime"
+  ],
+  [
+   16,
+   "whip"
+  ],
+  [
+   16.5,
+   "whip"
+  ],
+  [
+   17,
+   "whip"
+  ],
+  [
+   18,
+   "whip"
+  ],
+  [
+   18,
+   "chime"
+  ],
+  [
+   19.5,
+   "chime"
+  ]
+ ]
+}

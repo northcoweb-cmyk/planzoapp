@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face { font-family: "IS"; src: url(InstrumentSerif-Regular.woff2); } @font-face { font-family: "Inter"; src: url(Inter-Variable.woff2); font-weight: 100 900; }
+@font-face { font-family: "Mono"; src: url(DejaVuSansMono-Bold.ttf); }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1440px; height: 900px; overflow: hidden; font-family: Inter; color: #fff; background: radial-gradient(90% 80% at 70% 0%, #1b1f45 0%, #0b0c18 60%, #07070f 100%); display: flex; }
+.side { width: 250px; padding: 36px 28px; border-right: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.02); }
+.logo { font: 400 54px/1 IS; display: flex; align-items: center; gap: 12px; }
+.orb { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0, #dbe6ff 12%, #a68cff 50%, #ffc9a8 100%); box-shadow: 0 0 24px rgba(166,140,255,.8); }
+.nav { margin-top: 48px; display: grid; gap: 8px; } .nav div { padding: 14px 16px; border-radius: 14px; font: 550 20px/1 Inter; color: rgba(255,255,255,.6); } .nav .on { background: rgba(166,140,255,.18); color: #fff; }
+.main { flex: 1; padding: 40px 48px; }
+.k { font: 700 15px/1 Mono; letter-spacing: .22em; color: #c3b4ff; text-transform: uppercase; }
+h1 { font: 400 66px/1.02 IS; margin-top: 12px; letter-spacing: -.01em; } h1 i { font-style: normal; background: linear-gradient(135deg,#8fb4ff,#a68cff 55%,#ffc9a8); -webkit-background-clip: text; color: transparent; }
+.stats { display: flex; gap: 18px; margin-top: 30px; } .st { flex: 1; padding: 22px 24px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); }
+.st b { display: block; font: 400 56px/1 IS; } .st span { font: 600 17px/1 Inter; color: rgba(255,255,255,.6); }
+.list { margin-top: 26px; display: grid; gap: 12px; }
+.r { display: flex; align-items: center; gap: 18px; padding: 16px 22px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); font: 600 22px/1 Inter; }
+.av { width: 44px; height: 44px; border-radius: 50%; flex: none; } .r small { display: block; font: 500 17px/1.3 Inter; color: rgba(255,255,255,.55); margin-top: 4px; }
+.ok { margin-left: auto; font: 700 14px/1 Mono; letter-spacing: .12em; color: #46d38a; padding: 10px 14px; border-radius: 12px; background: rgba(70,211,138,.12); }
+.btn { margin-top: 26px; height: 74px; border-radius: 37px; background: linear-gradient(135deg,#8fb4ff,#a68cff 55%,#ffc9a8); color: #0b0b12; font: 750 26px/74px Inter; text-align: center; width: 420px; }
+</style></head><body>
+<div class="side"><div class="logo"><div class="orb"></div>Mila</div><div class="nav"><div class="on" id="n1"></div><div>Inbox</div><div>Calendar</div><div>Listings</div><div>Follow-ups</div></div></div>
+<div class="main" id="main"></div>
+<script>
+const V = new URLSearchParams(location.search).get('v') || 'oh';
+const AV = i => `background:linear-gradient(140deg,hsl(${(i*53+200)%360} 70% 70%),hsl(${(i*53+250)%360} 60% 55%))`;
+const row = (i, n, s, tag) => `<div class="r"><div class="av" style="${AV(i)}"></div><div>${n}<small>${s}</small></div><span class="ok">${tag}</span></div>`;
+if (V === 'oh') {
+  document.getElementById('n1').textContent = 'Open houses';
+  main.innerHTML = `<div class="k">Open house · Saturday 1–4 PM</div><h1>14 sign-ins. <i>All followed up.</i></h1>
+  <div class="stats"><div class="st"><b>14</b><span>visitors</span></div><div class="st"><b>6</b><span>pre-approved</span></div><div class="st"><b>14</b><span>follow-ups drafted</span></div></div>
+  <div class="list">${row(0,'Jordan Ellis','Loved the kitchen · asked about HOA','DRAFTED ✓')}${row(1,'Priya Shah','Pre-approved · wants a second look','DRAFTED ✓')}${row(2,'Marcus Lee','Working with an agent','DRAFTED ✓')}${row(3,'Dana & Mark','Relocating in March','DRAFTED ✓')}</div>`;
+} else {
+  document.getElementById('n1').textContent = 'Showings';
+  main.innerHTML = `<div class="k">This weekend · showings</div><h1>3 showings. <i>Feedback in.</i></h1>
+  <div class="stats"><div class="st"><b>3</b><span>booked</span></div><div class="st"><b>3</b><span>feedback requests</span></div><div class="st"><b>2</b><span>second looks</span></div></div>
+  <div class="list">${row(4,'Sat · 10:00 AM · Sam Ortiz','Feedback: “Loved the light”','SENT ✓')}${row(5,'Sat · 2:00 PM · Kate Morgan','Wants to see it again Sunday','SENT ✓')}${row(6,'Sun · 11:30 AM · Alex Rivera','Asked for comps','SENT ✓')}</div>
+  <div class="btn">Approve Monday’s follow-ups</div>`;
+}
+document.fonts.ready.then(() => window.__ready = true);
+</script></body></html>
