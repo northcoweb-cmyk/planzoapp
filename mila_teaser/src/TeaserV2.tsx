@@ -9,6 +9,7 @@ import B from './beats_v2.json';
 
 const serif = 'Instrument Serif', inter = 'Inter';
 loadFont({ family: serif, url: staticFile('fonts/instrument-serif-400.woff2'), weight: '400' });
+loadFont({ family: serif, url: staticFile('fonts/instrument-serif-italic.woff2'), weight: '400', style: 'italic' });
 loadFont({ family: inter, url: staticFile('fonts/inter-300.woff2'), weight: '300' });
 loadFont({ family: inter, url: staticFile('fonts/inter-400.woff2'), weight: '400' });
 
@@ -17,6 +18,7 @@ const C = B.cues, BEAT = B.beat;
 const EVENTS = B.events as [number, string, number, number, string, string, string][];
 const NOTES = B.notes as [number, string, string][];
 const SENT = B.sent as [string, string][];
+const REPLIES = B.replies as [string, string][];
 const OUT = Easing.bezier(0.22, 1, 0.36, 1), IN = Easing.bezier(0.64, 0, 0.78, 0);
 const p = (t: number, a: number, b: number, e = OUT) => interpolate(t, [a, b], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: e });
 const decay = (t: number, T: number, k = 9) => (t >= T ? Math.exp(-(t - T) * k) : 0);
@@ -105,16 +107,33 @@ const Fg: React.FC = () => {
         </div>;
       })()}
       {/* 5 · sent: the follow-ups cascade out as finished rows */}
-      {t >= C.sent[0] - 0.05 && t < C.mila + 0.2 && SENT.map(([who, what], i) => {
-        const at = C.sent[i], a = p(t, at, at + 0.22), o = p(t, C.mila - 0.12, C.mila + 0.1, IN);
+      {t >= C.sent[0] - 0.05 && t < C.replies + 0.2 && SENT.map(([who, what], i) => {
+        const at = C.sent[i], a = p(t, at, at + 0.22), o = p(t, C.replies - 0.12, C.replies + 0.1, IN);
         return <div key={i} style={{ position: 'absolute', left: 80, top: 760 + i * 128, width: 760, height: 112, borderRadius: 14, background: NAVY, color: SOFT,
           display: 'flex', alignItems: 'center', gap: 22, padding: '0 28px', clipPath: `inset(0 ${(1 - a) * 100}% 0 0)`, opacity: 1 - o, transform: `translateX(${o * 80}px)` }}>
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={LAV} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
           <div><div style={{ fontFamily: inter, fontWeight: 400, fontSize: 20, letterSpacing: '0.12em', opacity: 0.6 }}>sent · {who}</div>
             <div style={{ fontFamily: inter, fontWeight: 300, fontSize: 32, marginTop: 4 }}>{what}</div></div></div>;
       })}
-      {t >= C.sent[0] - 0.05 && t < C.mila + 0.2 && <Wipe t={t} at={C.sent[0]} out={C.mila - 0.15} style={{ left: 80, top: 520, fontFamily: serif, fontSize: 130, color: NAVY, lineHeight: 1 }}>all sent.</Wipe>}
-      {/* 6 · the lockup */}
+      {t >= C.sent[0] - 0.05 && t < C.replies + 0.2 && <Wipe t={t} at={C.sent[0]} out={C.replies - 0.15} style={{ left: 80, top: 520, fontFamily: serif, fontSize: 130, color: NAVY, lineHeight: 1 }}>all sent.</Wipe>}
+      {/* 6 · the replies come back */}
+      {t >= C.replies - 0.05 && t < C.clients + 0.2 && (<>
+        <Wipe t={t} at={C.replies} out={C.clients - 0.15} style={{ left: 80, top: 520, fontFamily: serif, fontSize: 130, color: NAVY, lineHeight: 1 }}>replies.</Wipe>
+        {REPLIES.map(([who, what], i) => {
+          const at = C.replyRows[i], a = p(t, at, at + 0.22), o = p(t, C.clients - 0.12, C.clients + 0.1, IN);
+          return <div key={i} style={{ position: 'absolute', left: 240, top: 760 + i * 128, width: 760, height: 112, borderRadius: 14, background: SOFT, color: NAVY,
+            display: 'flex', alignItems: 'center', gap: 22, padding: '0 28px', clipPath: `inset(0 0 0 ${(1 - a) * 100}%)`, opacity: 1 - o, transform: `translateX(${-o * 80}px)` }}>
+            <div style={{ width: 12, height: 12, borderRadius: 6, background: i === 2 ? '#2e9e6a' : PERI, flex: 'none' }} />
+            <div><div style={{ fontFamily: inter, fontWeight: 400, fontSize: 20, letterSpacing: '0.12em', opacity: 0.55 }}>{who}</div>
+              <div style={{ fontFamily: inter, fontWeight: 400, fontSize: 32, marginTop: 4 }}>{what}</div></div></div>;
+        })}
+      </>)}
+      {/* 7 · the point */}
+      {t >= C.clients - 0.05 && t < C.mila + 0.2 && (<>
+        <Wipe t={t} at={C.clients} out={C.mila - 0.15} style={{ left: 80, top: 640, fontFamily: serif, fontSize: 150, color: NAVY, lineHeight: 1 }}>monday’s for</Wipe>
+        <Wipe t={t} at={C.clients2} out={C.mila - 0.15} style={{ left: 80, top: 800, fontFamily: serif, fontStyle: 'italic', fontSize: 150, color: NAVY, lineHeight: 1 }}>clients.</Wipe>
+      </>)}
+      {/* 8 · the lockup */}
       {t >= C.mila - 0.05 && (<>
         <Wipe t={t} at={C.mila} dur={0.4} style={{ left: 0, right: 0, top: 560, textAlign: 'center', fontFamily: serif, fontSize: 280, color: NAVY, lineHeight: 1 }}>Mila</Wipe>
         <div style={{ position: 'absolute', left: 540 - 200 * p(t, C.tagline - 0.1, C.tagline + 0.3), top: 900, height: 2, width: 400 * p(t, C.tagline - 0.1, C.tagline + 0.3), background: NAVY, opacity: 0.35 }} />

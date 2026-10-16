@@ -3,10 +3,11 @@ Window: start on a beat 11 beats before the drop (drop ~4.68 s in); 7.0 s is 16.
 natural release starting on the last beat inside the window."""
 import json, re, subprocess, numpy as np, soundfile as sf, librosa
 from scipy.signal import butter, sosfilt, sosfiltfilt
-SONG, FPS, DUR, SR = '../music/track_v2.mp3', 60, 7.0, 48000
+SONG, FPS, DUR, SR = '../music/track_v2.mp3', 60, 12.0, 48000
 BPM, DROP = 140.88, 19.698                      # the song's MAIN drop (0:19.7, out of the intro): local grid fit anchored on the drop hit
 B = 60 / BPM; START = DROP - 11 * B
-beats = [round(k * B, 4) for k in range(0, 17) if k * B <= DUR + 1e-6]
+beats = [round(k * B, 4) for k in range(0, 40) if k * B <= DUR + 1e-6]
+DRY_CUT_BEAT = 24            # the song plays dry to beat 24 (10.22 s, in a vocal gap), then the last bar rings out in a hall to 12 s
 down = [round(b, 4) for k, b in enumerate(beats) if (k - 11) % 4 == 0]
 # the real hits in the window (kick + clap/snare onsets), so every accent lands on something you can HEAR
 _y, _ = librosa.load(SONG, sr=44100, mono=True, offset=START, duration=DUR)
@@ -25,12 +26,14 @@ def bt(k):
     return round(min(near, key=lambda x: abs(x - g)) if near else g, 4)
 cues = {'grid': bt(0), 'weekend': bt(1), 'openHouses': bt(3), 'showings': bt(4), 'monday': bt(6), 'breath': bt(8),
         'typeStart': round(bt(8) + 0.08, 4), 'typeEnd': round(10.6 * B, 4), 'drop': round(11 * B, 4), 'sent': [bt(11.5), bt(12), bt(12.5)],
-        'mila': bt(13), 'tagline': bt(14), 'cta': bt(15)}
+        'replies': bt(14), 'replyRows': [bt(14.5), bt(15), bt(15.5)], 'clients': bt(17), 'clients2': bt(17.5),
+        'mila': bt(19), 'tagline': bt(20), 'cta': bt(21), 'dryCut': round(DRY_CUT_BEAT * B, 4)}
 EVENTS = [[bt(3), 'sat', 13, 3, 'open house', '1–4 pm', 'peri'], [bt(3.5), 'sun', 12, 3, 'open house', '12–3 pm', 'peri'],
           [bt(4), 'sat', 9.5, 1, 'showing', '9:30 am', 'lav'], [bt(4.5), 'sun', 16, 1, 'showing', '4:00 pm', 'lav'], [bt(5), 'sat', 17, 1, 'showing', '5:00 pm', 'lav']]
 NOTES = [[bt(6.5), 'follow up', '12 visitors from saturday'], [bt(7), 'reply', 'buyer question · 48 coral palm'],
          [bt(7.25), 'send', 'listing post · sea grape ln'], [bt(7.5), 'follow up', 'showing feedback']]
 SENT = [['jordan ellis', 'thanks for coming saturday'], ['priya shah', 'disclosures attached'], ['the ellises', 'second showing?']]
+REPLIES = [['jordan ellis', 'can we see it again sunday?'], ['priya shah', 'sending our offer tonight'], ['the ellises', 'sunday 2 pm works ✓']]
 PROMPT = 'follow up with everyone from saturday'
 # ---------------------------------------------------------------- audio
 y, _ = librosa.load(SONG, sr=SR, mono=False, offset=START, duration=DUR + 0.3); y = y[:, :int(DUR * SR)].T.copy(); t = np.arange(len(y)) / SR
@@ -43,9 +46,24 @@ y *= np.clip(t / 0.15, 0, 1)[:, None] ** 2                                     #
 # the instrumental rings on and releases naturally from the last beat
 voc, _ = librosa.load('analysis_v2/vocals.wav', sr=SR, mono=False, offset=START, duration=DUR + 0.3); voc = voc[:, :len(y)].T
 inst = y - voc
-voc *= np.interp(t, [0, 6.35, 6.85, DUR], [1, 1, 0, 0])[:, None]          # closes before the word that starts at the very end
-inst *= np.interp(t, [0, last_beat, DUR], [1, 1, 0])[:, None] ** 1.5
 y = inst + voc
+# the end: dry song to beat 24, then the last bar (beats 20-24) is thrown into a long hall that rings out to 12 s
+from scipy.signal import fftconvolve
+def make_ir(rt60, predelay=0.03, seed=4):
+    r = np.random.default_rng(seed); n = int(rt60 * 1.1 * SR); tt = np.arange(n) / SR
+    nz = r.standard_normal((n, 2)); mixk = np.clip(tt / (rt60 * 0.5), 0, 1)[:, None]
+    bright = sosfilt(butter(2, 9000, 'lowpass', fs=SR, output='sos'), nz, axis=0); dark = sosfilt(butter(2, 2200, 'lowpass', fs=SR, output='sos'), nz, axis=0)
+    ir = (bright * (1 - mixk) + dark * mixk) * np.exp(-6.9 * tt / rt60)[:, None]; ir[:int(0.004 * SR)] *= np.linspace(0, 1, int(0.004 * SR))[:, None]
+    ir = np.concatenate([np.zeros((int(predelay * SR), 2)), ir]); return ir / np.sqrt((ir ** 2).sum(0).mean())
+cut = int(DRY_CUT_BEAT * B * SR); a0 = int((DRY_CUT_BEAT - 4) * B * SR)
+throw = y[a0:cut].copy() * np.linspace(0.25, 1, cut - a0)[:, None] ** 2
+throw = sosfilt(butter(2, 200, 'highpass', fs=SR, output='sos'), throw, axis=0)
+IR = make_ir(3.8)
+wet = np.stack([fftconvolve(throw[:, c], IR[:, c]) for c in range(2)], 1)
+tail = np.zeros_like(y); n_ = min(len(y) - a0, len(wet)); tail[a0:a0 + n_] = wet[:n_]
+tail *= np.interp(t, [0, (DRY_CUT_BEAT - 2) * B, DRY_CUT_BEAT * B, DUR - 0.6, DUR], [0, 0, 1, 0.55, 0])[:, None] ** 1.2
+dry_env = np.interp(t, [0, DRY_CUT_BEAT * B - 0.01, DRY_CUT_BEAT * B + 0.03, DUR], [1, 1, 0, 0])
+y = y * dry_env[:, None] + tail * (np.sqrt(np.mean(y[a0:cut] ** 2)) / (np.sqrt(np.mean(tail[cut:cut + SR] ** 2)) + 1e-9)) * 0.55
 rng = np.random.default_rng(16)
 def envl(N, a, d): e = np.ones(N); na = max(1, int(a * SR)); e[:na] = np.linspace(0, 1, na); e[na:] = np.exp(-np.arange(N - na) / (d * SR)); return e
 def tap():
@@ -73,7 +91,8 @@ for it in range(6):
     I, TP = measure('public/audio/mix_v2.wav'); print(f'loudness pass {it}: {I} LUFS, peak {TP} dBFS')
     if abs(I + 14) < 0.15: break
     gain += (-14 - I)
-out = {'hits': hits, 'fps': FPS, 'duration': DUR, 'bpm': BPM, 'beat': round(B, 5), 'songStart': round(START, 3), 'songEnd': round(START + DUR, 3), 'beats': beats, 'downbeats': down,
+hits = [h for h in hits if h[0] < DRY_CUT_BEAT * B + 0.02]
+out = {'replies': REPLIES, 'hits': hits, 'fps': FPS, 'duration': DUR, 'bpm': BPM, 'beat': round(B, 5), 'songStart': round(START, 3), 'songEnd': round(START + DUR, 3), 'beats': beats, 'downbeats': down,
        'cues': cues, 'events': EVENTS, 'notes': NOTES, 'sent': SENT, 'prompt': PROMPT, 'bass': [round(float(v), 3) for v in env]}
 json.dump(out, open('src/beats_v2.json', 'w'), indent=1)
 print('window', round(START, 3), '->', round(START + DUR, 3), '| drop in video', cues['drop'], '| downbeats', down)
