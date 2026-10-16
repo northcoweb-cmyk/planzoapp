@@ -1,0 +1,50 @@
+[
+ {
+  "drop": 39.974,
+  "start": 35.473,
+  "end": 42.473,
+  "drop_in_window": 4.501,
+  "start_on_downbeat": false,
+  "vocal_at_start_db": -41.6,
+  "vocal_at_end_db": -72.5,
+  "vocal_level_db": -22.8,
+  "breath_db": -0.7,
+  "build_db": -17.3,
+  "payoff_db": -10.8,
+  "jump_db": 16.09,
+  "score": 18.09,
+  "preview": "previews/window1_35.47-42.47s.wav"
+ },
+ {
+  "drop": 183.979,
+  "start": 179.479,
+  "end": 186.479,
+  "drop_in_window": 4.5,
+  "start_on_downbeat": false,
+  "vocal_at_start_db": -18.1,
+  "vocal_at_end_db": -16.6,
+  "vocal_level_db": -18.9,
+  "breath_db": 1.5,
+  "build_db": -14.5,
+  "payoff_db": -10.3,
+  "jump_db": 11.81,
+  "score": 13.81,
+  "preview": "previews/window2_179.48-186.48s.wav"
+ },
+ {
+  "drop": 71.975,
+  "start": 67.475,
+  "end": 74.475,
+  "drop_in_window": 4.5,
+  "start_on_downbeat": false,
+  "vocal_at_start_db": -20.5,
+  "vocal_at_end_db": -26.9,
+  "vocal_level_db": -18.3,
+  "breath_db": -1.7,
+  "build_db": -12.4,
+  "payoff_db": -11.2,
+  "jump_db": 5.28,
+  "score": 7.28,
+  "preview": "previews/window3_67.47-74.47s.wav"
+ }
+]

@@ -14,7 +14,7 @@ def snap(target, step=1.0):
 cues = {'weekend': snap(0.6), 'openHouses': snap(1.4), 'showings': snap(1.9), 'monday': snap(2.6), 'breath': snap(D - 1.0), 'drop': D,
         'typeStart': round(snap(D - 1.0) + 0.05, 4), 'typeEnd': round(D - 0.16, 4), 'mila': snap(5.5), 'tagline': snap(6.0), 'cta': snap(6.25, 0.5)}
 # notification cards on successive beat subdivisions, tightening toward the breath (1/2 then 1/4 beats)
-notes_t = [cues['monday'] + 0.25, cues['monday'] + 0.5, cues['monday'] + 0.75, cues['monday'] + 0.875, cues['breath'] - 0.125]
+notes_t = [cues['monday'] + 0.25, cues['monday'] + 0.5, cues['monday'] + 0.75, cues['monday'] + 0.875, cues['breath'] - 0.0625]
 NOTES = ['follow up: 12 visitors', 'reply: buyer question', 'send: listing post', 'follow up: showing feedback', 'reply: offer question']
 CAL = [['open house', 'sat · 1–4 pm', 610, 360, 0.35], ['showing', 'sat · 10:00 am', 60, 1060, 0.6], ['open house', 'sun · 12–3 pm', 640, 1180, 1.0],
        ['showing', 'sun · 11:30 am', 90, 300, 0.2], ['showing', 'sat · 4:30 pm', 520, 1420, 0.45]]
@@ -33,7 +33,10 @@ g_db = np.zeros(len(t))
 if need_duck:
     b0, b1 = cues['breath'], D
     g_db = np.interp(t, [0, b0 - 0.04, b0 + 0.06, b1 - 0.03, b1, DUR], [0, 0, -20, -20, 0, 0])
-y *= (10 ** (g_db / 20))[:, None]
+# duck the INSTRUMENTAL only (song minus the separated vocal stem), so the vocal pickup into the drop stays whole
+voc, _ = librosa.load('analysis/vocals.wav', sr=SR, mono=False, offset=start, duration=DUR + 0.5); voc = voc[:, :len(y)].T
+inst = y - voc
+y = inst * (10 ** (g_db / 20))[:, None] + voc
 y *= np.clip(t / 0.15, 0, 1)[:, None] ** 2                                  # 0.15 s fade in
 tail = np.clip((DUR - t) / 0.08, 0, 1)[:, None]; y *= tail                 # the window ends ON a beat: just an 80 ms release, no mid-note cut
 # sound design ~15 dB under the song
@@ -58,11 +61,17 @@ song_ref = np.sqrt(np.mean(y[int(D * SR):] ** 2))
 fx *= song_ref * 10 ** (-15 / 20) / rms(fx)
 mix = y + np.stack([fx, fx], 1) * 0.9
 sf.write('public/audio/premaster.wav', mix.astype(np.float32), SR, subtype='FLOAT')
-def ln(x=''): return f'loudnorm=I=-14:TP=-1.0:LRA=11{x}'
-p = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', 'public/audio/premaster.wav', '-af', ln(':print_format=json'), '-f', 'null', '-'], capture_output=True, text=True)
-m = json.loads(re.search(r'\{[^{}]*"input_i"[^{}]*\}', p.stderr, re.S).group(0))
-second = ln(f":measured_I={m['input_i']}:measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true")
-subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', 'public/audio/premaster.wav', '-af', second + f',aresample={SR},alimiter=limit=0.89:level=false:latency=true', '-ar', str(SR), '-c:a', 'pcm_s24le', 'public/audio/mix.wav'], check=True)
+# loudness: measured gain + true-peak limiter, iterated until the integrated loudness is -14 LUFS (ceiling -1 dBTP)
+def measure(path):
+    p = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', path, '-af', 'ebur128=peak=true', '-f', 'null', '-'], capture_output=True, text=True).stderr
+    return float(re.findall(r'I:\s+(-?[\d.]+) LUFS', p)[-1]), float(re.findall(r'Peak:\s+(-?[\d.]+) dBFS', p)[-1])
+gain = 0.0
+for it in range(6):
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', 'public/audio/premaster.wav', '-af', f'volume={gain}dB,alimiter=limit=0.891:level=false:latency=true,aresample={SR}',
+                    '-ar', str(SR), '-c:a', 'pcm_s24le', 'public/audio/mix.wav'], check=True)
+    I, TP = measure('public/audio/mix.wav'); print(f'pass {it}: gain {gain:+.2f} dB -> {I} LUFS, peak {TP} dBFS')
+    if abs(I + 14) < 0.15: break
+    gain += (-14 - I)
 out = {'fps': FPS, 'duration': DUR, 'bpm': A['bpm'], 'songStart': start, 'songEnd': start + DUR, 'beats': beats, 'downbeats': down, 'cues': cues, 'ducked': bool(need_duck),
        'notes': [[round(a, 4), s] for a, s in zip(notes_t, NOTES)], 'calendar': CAL, 'sent': SENT, 'prompt': PROMPT, 'bass': [round(float(v), 3) for v in env]}
 json.dump(out, open('src/beats.json', 'w'), indent=1)

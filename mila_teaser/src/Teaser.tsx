@@ -3,16 +3,22 @@
 import React from 'react';
 import { AbsoluteFill, Audio, Img, staticFile, useCurrentFrame, useVideoConfig, interpolate, Easing } from 'remotion';
 import { CameraMotionBlur } from '@remotion/motion-blur';
-import { loadFont as loadSerif } from '@remotion/google-fonts/InstrumentSerif';
-import { loadFont as loadInter } from '@remotion/google-fonts/Inter';
+import { loadFont } from '@remotion/fonts';
 import beats from './beats.json';
 
-const serif = loadSerif('normal', { weights: ['400'], subsets: ['latin'] }).fontFamily;
-const inter = loadInter('normal', { weights: ['300', '400'], subsets: ['latin'] }).fontFamily;
+// Google Fonts (Instrument Serif 400, Inter 300/400, latin), downloaded from fonts.google.com and served locally so the
+// render never depends on the network
+const serif = 'Instrument Serif', inter = 'Inter';
+loadFont({ family: serif, url: staticFile('fonts/instrument-serif-400.woff2'), weight: '400' });
+loadFont({ family: inter, url: staticFile('fonts/inter-300.woff2'), weight: '300' });
+loadFont({ family: inter, url: staticFile('fonts/inter-400.woff2'), weight: '400' });
 
 const NAVY = '#1A1A2E', PERI = '#8E9BFF', LAV = '#C9B6FF', SOFT = '#F7F5FF';
 const EASE = Easing.bezier(0.22, 1, 0.36, 1);
 const C = beats.cues;
+const CAL = beats.calendar as [string, string, number, number, number][];
+const NOTES = beats.notes as [number, string][];
+const SENT = beats.sent as [number, string][];
 // progress helpers (always eased, never linear)
 const p = (t: number, a: number, b: number, ease = EASE) => interpolate(t, [a, b], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: ease });
 const pin = (t: number, a: number, b: number) => p(t, a, b, Easing.bezier(0.64, 0, 0.78, 0));            // ease-in for exits
@@ -34,7 +40,7 @@ const Glass: React.FC<{ style: React.CSSProperties; children?: React.ReactNode; 
     boxShadow: 'inset 0 1px 0 rgba(247,245,255,.12), inset 0 0 24px rgba(201,182,255,.06), 0 30px 60px -24px rgba(5,5,15,.7)', color: SOFT, ...style }}>{children}</div>
 );
 
-const Stage: React.FC = () => {
+const Stage: React.FC<{ layer: 'bg' | 'fg' }> = ({ layer }) => {
   const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const t = frame / fps;
   const bass = bassAt(frame), beatBob = (k = 4) => -k * decay(t, lastBeat(t), 9);
   const push = 1 + 0.04 * p(t, 0, beats.duration, Easing.bezier(0.45, 0, 0.55, 1));
@@ -44,12 +50,12 @@ const Stage: React.FC = () => {
   const preAura = 0.30 + 0.10 * bass;
   const auraScale = 1 + 0.03 * bass;
   return (
-    <AbsoluteFill style={{ backgroundColor: NAVY, transform: `scale(${push})` }}>
+    <AbsoluteFill style={{ backgroundColor: layer === 'bg' ? NAVY : 'transparent', transform: `scale(${push})` }}>
       {/* back light */}
-      <AbsoluteFill style={{ opacity: preAura * (1 - bloom), transform: `scale(${auraScale})`, filter: `brightness(${1 + 0.15 * bass})` }}>
-        <div style={{ position: 'absolute', left: -200, top: 300, width: 1100, height: 1100, borderRadius: '50%', background: `radial-gradient(closest-side, ${PERI}55, transparent)` }} />
-        <div style={{ position: 'absolute', left: 300, top: 900, width: 1000, height: 1000, borderRadius: '50%', background: `radial-gradient(closest-side, ${LAV}40, transparent)` }} />
-      </AbsoluteFill>
+      {layer === 'bg' && <AbsoluteFill style={{ opacity: Math.min(1, preAura * 1.6) * (1 - bloom), transform: `scale(${auraScale})`, filter: `brightness(${1 + 0.15 * bass})` }}>
+        <Img src={staticFile('light/dark_aura.png')} style={{ width: 1080, height: 1920 }} />
+      </AbsoluteFill>}
+      {layer === 'fg' && <>
       {/* 1 · the light sweep + "your weekend:" */}
       {t < C.openHouses + 0.2 && (() => {
         const s = p(t, 0, C.weekend + 0.15);
@@ -59,7 +65,7 @@ const Stage: React.FC = () => {
       {t < C.openHouses + 0.1 && <Resolve t={t} at={C.weekend} out={C.openHouses - 0.12} style={{ top: 690, fontFamily: serif, fontSize: 128, color: SOFT }}>your weekend:</Resolve>}
       {/* 2 · the weekend fills: phrase per beat, glass calendar cards drifting at depth */}
       {t >= C.openHouses - 0.5 && t < C.monday && (<>
-        {beats.calendar.map(([lab, sub, x, y, z], i) => {
+        {CAL.map(([lab, sub, x, y, z], i) => {
           const a = p(t, C.openHouses - 0.4 + i * 0.12, C.openHouses + 0.3 + i * 0.12), drift = (t - C.openHouses) * (40 + z * 60), out = pin(t, C.monday - 0.18, C.monday);
           return <Glass key={i} style={{ left: x, top: y - drift + beatBob(3), width: 300 * (0.7 + z * 0.4), padding: `${18 * (0.7 + z * 0.4)}px ${22 * (0.7 + z * 0.4)}px`,
             opacity: a * (0.25 + 0.5 * z) * (1 - out), filter: `blur(${(1 - z) * 7 + (z > 0.9 ? 2 : 0)}px)`, transform: `scale(${0.7 + z * 0.4})`, zIndex: z > 0.9 ? 3 : 0 }}>
@@ -71,13 +77,13 @@ const Stage: React.FC = () => {
       </>)}
       {/* 3 · "monday:" and the pile-up behind it (each card on a beat subdivision, tightening) */}
       {t >= C.monday - 0.4 && t < C.breath + 0.1 && (<>
-        {beats.notes.map(([at, txt], i) => {
-          const a = p(t, at, at + 0.22), n = beats.notes.filter(([b2]) => t >= b2).length, depth = n - 1 - i, gone = pin(t, C.breath - 0.06, C.breath);
+        {NOTES.map(([at, txt], i) => {
+          const a = p(t, at, at + 0.22), n = NOTES.filter(([b2]) => t >= b2).length, depth = n - 1 - i, gone = pin(t, C.breath - 0.06, C.breath);
           if (t < at) return null;
           return <Glass key={i} radius={24} style={{ left: 170, width: 740, padding: '22px 28px', top: 900 - depth * 74 - (1 - a) * 80 + beatBob(2), opacity: a * Math.max(0, 1 - depth * 0.16) * (1 - gone),
             filter: `blur(${depth * 4.5 + gone * 12}px)`, transform: `scale(${(1 - depth * 0.05) * (1 - gone * 0.15)})`, zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><div style={{ width: 10, height: 10, borderRadius: 5, background: LAV, boxShadow: `0 0 12px ${LAV}` }} />
-              <div style={{ fontFamily: inter, fontWeight: 300, fontSize: 30, letterSpacing: '0.01em' }}>{txt}</div></div></Glass>;
+              <div style={{ fontFamily: inter, fontWeight: 300, fontSize: 34, letterSpacing: '0.01em' }}>{txt}</div></div></Glass>;
         })}
         <Resolve t={t} at={C.monday} dur={0.4} style={{ top: 560, fontFamily: serif, fontSize: 132, color: SOFT, zIndex: 4, opacity: 1 }}>
           <span style={{ opacity: 1 - pin(t, C.breath - 0.08, C.breath) }}>monday:</span></Resolve>
@@ -97,14 +103,14 @@ const Stage: React.FC = () => {
               boxShadow: `0 0 18px 4px ${PERI}`, opacity: t < D ? 0.65 + 0.35 * Math.sin(t * 12) : 0 }} />
           </div></Glass>;
       })()}
+      </>}
       {/* 5 · THE DROP: light blooms out of the bar into a full aura; sent cards fly outward */}
-      {t >= D - 0.02 && (
+      {layer === 'bg' && t >= D - 0.02 && (
         <AbsoluteFill style={{ opacity: bloom }}>
-          <div style={{ position: 'absolute', left: 540 - 1600, top: 960 - 1600, width: 3200, height: 3200, borderRadius: '50%',
-            transform: `scale(${(0.08 + 0.92 * bloom) * (1 + 0.025 * bass * settle)})`, filter: `brightness(${1 + 0.06 * bass * settle})`,
-            background: `radial-gradient(closest-side, ${SOFT} 0%, ${LAV} 30%, ${PERI} 62%, #5d63c9 82%, ${NAVY} 100%)` }} />
+          <Img src={staticFile('light/bloom.png')} style={{ position: 'absolute', left: 540 - 1600, top: 960 - 1600, width: 3200, height: 3200,
+            transform: `scale(${(0.08 + 0.92 * bloom) * (1 + 0.025 * bass * settle)})`, filter: `brightness(${1 + 0.06 * bass * settle})` }} />
         </AbsoluteFill>)}
-      {t >= D && t < D + 1.2 && beats.sent.map(([ang, lab], i) => {
+      {layer === 'fg' && t >= D && t < D + 1.2 && SENT.map(([ang, lab], i) => {
         const f = p(t, D + i * 0.025, D + 0.9 + i * 0.025, Easing.bezier(0.22, 1, 0.36, 1)), r = 60 + f * 1100, rad = (ang * Math.PI) / 180;
         return <Glass key={i} radius={22} style={{ left: 540 + Math.cos(rad) * r - 150, top: 960 + Math.sin(rad) * r - 34, width: 300, padding: '16px 22px',
           opacity: (1 - p(t, D + 0.5, D + 1.1)) * p(t, D, D + 0.06), transform: `rotate(${ang > 90 && ang < 270 ? -6 : 6}deg) scale(${0.85 + 0.25 * f})`,
@@ -112,7 +118,7 @@ const Stage: React.FC = () => {
           <div style={{ fontFamily: inter, fontWeight: 400, fontSize: 22 }}>{lab}</div></Glass>;
       })}
       {/* 6 · Mila */}
-      {t >= C.mila - 0.6 && (<>
+      {layer === 'fg' && t >= C.mila - 0.6 && (<>
         <Resolve t={t} at={C.mila} dur={0.55} style={{ top: 620, fontFamily: serif, fontSize: 250, color: NAVY, lineHeight: 1 }}>Mila</Resolve>
         <Resolve t={t} at={C.tagline} dur={0.4} style={{ top: 900, fontFamily: serif, fontStyle: 'normal', fontSize: 72, color: NAVY }}>say it once.</Resolve>
         <Resolve t={t} at={C.cta} dur={0.3} style={{ top: 1040, fontFamily: inter, fontWeight: 300, fontSize: 34, color: NAVY, opacity: 0.85 }}>comment MILA for your 7-day free trial</Resolve>
@@ -125,10 +131,12 @@ export const Teaser: React.FC<{ withAudio: boolean }> = ({ withAudio }) => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{ backgroundColor: NAVY }}>
-      <CameraMotionBlur samples={6} shutterAngle={180}><Stage /></CameraMotionBlur>
+      {/* the light layers stay out of the motion-blur stack (they barely move, and averaging 8-bit samples would band them) */}
+      <Stage layer="bg" />
+      <CameraMotionBlur samples={6} shutterAngle={180}><Stage layer="fg" /></CameraMotionBlur>
       {/* gentle vignette + animated film grain (~2.5%) */}
       <AbsoluteFill style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(5,5,16,.55) 100%)', mixBlendMode: 'multiply' }} />
-      <AbsoluteFill style={{ opacity: 0.05, mixBlendMode: 'overlay' }}>
+      <AbsoluteFill style={{ opacity: 0.13, mixBlendMode: 'overlay' }}>
         <Img src={staticFile(`grain/g${String(frame % 12).padStart(2, '0')}.png`)} style={{ width: 1080, height: 1920, imageRendering: 'auto' }} />
       </AbsoluteFill>
       {withAudio && <Audio src={staticFile('audio/mix.wav')} />}
