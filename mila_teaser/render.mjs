@@ -16,12 +16,18 @@ if (args[0] === '--stills') {
     console.log(out);
   }
 } else {
-  for (const [withAudio, name] of [[true, 'mila_teaser_music'], [false, 'mila_teaser_silent']]) {
+  // one render (with audio); the silent file is the identical picture with the audio track removed
+  for (const [withAudio, name] of [[true, 'mila_teaser_music']]) {
     const c = await comp(withAudio), tmp = `out_${name}.mp4`;
     await renderMedia({ composition: c, serveUrl, codec: 'h264', crf: 14, pixelFormat: 'yuv420p', audioBitrate: '320k', muted: !withAudio,
       outputLocation: tmp, inputProps: { withAudio }, browserExecutable, concurrency: 4, chromiumOptions: { gl: 'swangle' },
       onProgress: ({ progress }) => { if (Math.round(progress * 100) % 10 === 0) process.stdout.write(`\r${name} ${Math.round(progress * 100)}%`); } });
-    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', tmp, '-c', 'copy', '-movflags', '+faststart', `${name}.mp4`]);
-    execFileSync('rm', [tmp]); console.log(`\nwrote ${name}.mp4`);
+    // Remotion tags the stream full-range (yuvj420p): convert to tv-range yuv420p BT.709, trim to exactly 7.000 s, AAC 320k, +faststart
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', tmp, '-i', 'public/audio/mix.wav', '-map', '0:v', '-map', '1:a', '-t', '7.0',
+      '-vf', 'scale=in_range=full:out_range=tv:flags=accurate_rnd+full_chroma_int,format=yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '14',
+      '-profile:v', 'high', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
+      '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-movflags', '+faststart', `${name}.mp4`]);
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', `${name}.mp4`, '-c:v', 'copy', '-an', '-movflags', '+faststart', 'mila_teaser_silent.mp4']);
+    execFileSync('rm', [tmp]); console.log(`\nwrote ${name}.mp4 and mila_teaser_silent.mp4`);
   }
 }
