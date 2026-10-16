@@ -1,16 +1,30 @@
-"""v2 teaser build ("AD LA – Nicole Kidman"): local beat grid around the chosen drop -> beats_v2.json + the music mix.
+"""v2 teaser build ("AD LA – Nicole Kidman", main drop at 0:19.7): local beat grid around the chosen drop -> beats_v2.json + the music mix.
 Window: start on a beat 11 beats before the drop (drop ~4.68 s in); 7.0 s is 16.46 beats at 141 BPM, so the end gets a short
 natural release starting on the last beat inside the window."""
 import json, re, subprocess, numpy as np, soundfile as sf, librosa
 from scipy.signal import butter, sosfilt, sosfiltfilt
 SONG, FPS, DUR, SR = '../music/track_v2.mp3', 60, 7.0, 48000
-BPM, DROP = 141.12, 132.807                     # local fit around the drop (anchored on the drop kick, see README)
+BPM, DROP = 140.88, 19.698                      # the song's MAIN drop (0:19.7, out of the intro): local grid fit anchored on the drop hit
 B = 60 / BPM; START = DROP - 11 * B
 beats = [round(k * B, 4) for k in range(0, 17) if k * B <= DUR + 1e-6]
 down = [round(b, 4) for k, b in enumerate(beats) if (k - 11) % 4 == 0]
-bt = lambda k: round(k * B, 4)                                                  # time of beat k (fractions = subdivisions)
+# the real hits in the window (kick + clap/snare onsets), so every accent lands on something you can HEAR
+_y, _ = librosa.load(SONG, sr=44100, mono=True, offset=START, duration=DUR)
+HITS = []
+for band, q in (((30, 120), 96), ((1500, 6000), 96)):
+    xb = sosfiltfilt(butter(4, band, 'bandpass', fs=44100, output='sos'), _y)
+    oe = librosa.onset.onset_strength(y=xb, sr=44100, hop_length=128); ot = librosa.frames_to_time(np.arange(len(oe)), sr=44100, hop_length=128)
+    pk = librosa.util.peak_pick(oe, pre_max=8, post_max=8, pre_avg=20, post_avg=20, delta=np.percentile(oe, 90) * 0.5, wait=20)
+    HITS += [(float(ot[i]), float(oe[i] / oe.max())) for i in pk if oe[i] > np.percentile(oe, q) * 0.6]
+HITS.sort(); hits = []
+for h in HITS:
+    if not hits or h[0] - hits[-1][0] > 0.06: hits.append([round(h[0], 4), round(h[1], 3)])
+def bt(k):
+    """beat k, snapped to the nearest real hit within 1/8 beat"""
+    g = k * B; near = [h[0] for h in hits if abs(h[0] - g) < B / 8]
+    return round(min(near, key=lambda x: abs(x - g)) if near else g, 4)
 cues = {'grid': bt(0), 'weekend': bt(1), 'openHouses': bt(3), 'showings': bt(4), 'monday': bt(6), 'breath': bt(8),
-        'typeStart': round(bt(8) + 0.08, 4), 'typeEnd': round(bt(10.6), 4), 'drop': bt(11), 'sent': [bt(11.5), bt(12), bt(12.5)],
+        'typeStart': round(bt(8) + 0.08, 4), 'typeEnd': round(10.6 * B, 4), 'drop': round(11 * B, 4), 'sent': [bt(11.5), bt(12), bt(12.5)],
         'mila': bt(13), 'tagline': bt(14), 'cta': bt(15)}
 EVENTS = [[bt(3), 'sat', 13, 3, 'open house', '1–4 pm', 'peri'], [bt(3.5), 'sun', 12, 3, 'open house', '12–3 pm', 'peri'],
           [bt(4), 'sat', 9.5, 1, 'showing', '9:30 am', 'lav'], [bt(4.5), 'sun', 16, 1, 'showing', '4:00 pm', 'lav'], [bt(5), 'sat', 17, 1, 'showing', '5:00 pm', 'lav']]
@@ -25,11 +39,11 @@ env = np.array([np.sqrt(np.mean(lo[int(f / FPS * SR):int((f + 1) / FPS * SR)] **
 env = np.convolve(env, np.ones(5) / 5, 'same'); env = (env - env.min()) / (env.max() - env.min() + 1e-9)
 last_beat = max(b for b in beats if b <= DUR - 0.05)
 y *= np.clip(t / 0.15, 0, 1)[:, None] ** 2                                     # 0.15 s fade in
-# the vocal: a new word starts at 6.75 s and would be cut, so the vocal stem closes in the gap before it (6.30-6.70 s, ~-34 dB);
+# the vocal: a new word starts right at the end of the window, so the vocal stem closes just before it;
 # the instrumental rings on and releases naturally from the last beat
 voc, _ = librosa.load('analysis_v2/vocals.wav', sr=SR, mono=False, offset=START, duration=DUR + 0.3); voc = voc[:, :len(y)].T
 inst = y - voc
-voc *= np.interp(t, [0, 6.30, 6.62, DUR], [1, 1, 0, 0])[:, None]
+voc *= np.interp(t, [0, 6.35, 6.85, DUR], [1, 1, 0, 0])[:, None]          # closes before the word that starts at the very end
 inst *= np.interp(t, [0, last_beat, DUR], [1, 1, 0])[:, None] ** 1.5
 y = inst + voc
 rng = np.random.default_rng(16)
@@ -54,12 +68,12 @@ def measure(path):
     return float(re.findall(r'I:\s+(-?[\d.]+) LUFS', p)[-1]), float(re.findall(r'Peak:\s+(-?[\d.]+) dBFS', p)[-1])
 gain = 0.0
 for it in range(6):
-    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', 'public/audio/premaster_v2.wav', '-af', f'volume={gain}dB,alimiter=limit=0.891:level=false:latency=true,aresample={SR}',
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', 'public/audio/premaster_v2.wav', '-af', f'volume={gain}dB,alimiter=limit=0.84:level=false:latency=true,aresample={SR}',
                     '-ar', str(SR), '-c:a', 'pcm_s24le', 'public/audio/mix_v2.wav'], check=True)
     I, TP = measure('public/audio/mix_v2.wav'); print(f'loudness pass {it}: {I} LUFS, peak {TP} dBFS')
     if abs(I + 14) < 0.15: break
     gain += (-14 - I)
-out = {'fps': FPS, 'duration': DUR, 'bpm': BPM, 'beat': round(B, 5), 'songStart': round(START, 3), 'songEnd': round(START + DUR, 3), 'beats': beats, 'downbeats': down,
+out = {'hits': hits, 'fps': FPS, 'duration': DUR, 'bpm': BPM, 'beat': round(B, 5), 'songStart': round(START, 3), 'songEnd': round(START + DUR, 3), 'beats': beats, 'downbeats': down,
        'cues': cues, 'events': EVENTS, 'notes': NOTES, 'sent': SENT, 'prompt': PROMPT, 'bass': [round(float(v), 3) for v in env]}
 json.dump(out, open('src/beats_v2.json', 'w'), indent=1)
 print('window', round(START, 3), '->', round(START + DUR, 3), '| drop in video', cues['drop'], '| downbeats', down)

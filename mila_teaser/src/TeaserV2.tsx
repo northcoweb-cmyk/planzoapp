@@ -20,7 +20,11 @@ const SENT = B.sent as [string, string][];
 const OUT = Easing.bezier(0.22, 1, 0.36, 1), IN = Easing.bezier(0.64, 0, 0.78, 0);
 const p = (t: number, a: number, b: number, e = OUT) => interpolate(t, [a, b], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: e });
 const decay = (t: number, T: number, k = 9) => (t >= T ? Math.exp(-(t - T) * k) : 0);
-const lastBeat = (t: number) => { let b = -9; for (const x of B.beats) if (x <= t) b = x; return b; };
+// accents = the real kick/clap hits you can hear (strong ones, at most one per half beat): everything pulses on THESE
+const ACC: [number, number][] = [];
+for (const [ht, w] of B.hits as [number, number][]) if (w > 0.3 && (!ACC.length || ht - ACC[ACC.length - 1][0] > BEAT * 0.45)) ACC.push([ht, w]);
+const lastBeat = (t: number) => { let b = -9; for (const [x] of ACC) if (x <= t) b = x; return b; };
+const accent = (t: number, k = 10) => { let v = 0; for (const [x, w] of ACC) if (x <= t) v = Math.max(v, Math.min(1, w * 1.4) * Math.exp(-(t - x) * k)); return v; };
 
 /** a line of type revealed by a hard mask wipe (rises out of its own baseline), exits the same way */
 const Wipe: React.FC<{ t: number; at: number; out?: number; dur?: number; style: React.CSSProperties; children: React.ReactNode }> = ({ t, at, out, dur = 0.32, style, children }) => {
@@ -34,7 +38,7 @@ const Label: React.FC<{ style: React.CSSProperties; children: React.ReactNode }>
 
 const Fg: React.FC = () => {
   const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const t = frame / fps;
-  const bob = -3 * decay(t, lastBeat(t), 10);
+  const bob = -6 * decay(t, lastBeat(t), 12);
   const D = C.drop, gone = t >= C.breath;                        // the breath clears the stage
   // ---------------- 1 · the hairline grid draws itself on the first beats
   const g1 = p(t, 0, BEAT * 1.2), clr = p(t, C.monday - 0.1, C.monday + 0.15, IN);
@@ -47,10 +51,10 @@ const Fg: React.FC = () => {
       {!gone && rules}
       {!gone && <Label style={{ left: 80, top: 330, opacity: g1 * (1 - clr) }}>{t < C.monday ? 'sat 14 — sun 15' : ''}</Label>}
       {/* "your weekend:" */}
-      {t < C.monday && <Wipe t={t} at={C.weekend} out={C.openHouses - 0.1} style={{ left: 80, top: 400, fontFamily: serif, fontSize: 150, color: SOFT, lineHeight: 1 }}>your weekend:</Wipe>}
+      {t < C.monday && <Wipe t={t} at={C.weekend} out={C.openHouses - 0.2} style={{ left: 80, top: 400, fontFamily: serif, fontSize: 150, color: SOFT, lineHeight: 1 }}>your weekend:</Wipe>}
       {/* the weekend fills up */}
       {t >= C.openHouses - 0.2 && t < C.monday + 0.15 && (<>
-        <Wipe t={t} at={C.openHouses} out={C.monday - 0.12} style={{ left: 80, top: 400, fontFamily: serif, fontSize: 120, color: SOFT, lineHeight: 1 }}>2 open houses.</Wipe>
+        <Wipe t={t} at={C.openHouses + 0.02} out={C.monday - 0.12} style={{ left: 80, top: 400, fontFamily: serif, fontSize: 120, color: SOFT, lineHeight: 1 }}>2 open houses.</Wipe>
         <Wipe t={t} at={C.showings} out={C.monday - 0.12} style={{ left: 80, top: 520, fontFamily: serif, fontSize: 120, color: SOFT, lineHeight: 1 }}>3 showings.</Wipe>
         <div style={{ position: 'absolute', left: CX, top: CY + 60, width: CW, height: 10 * ROW + 60, opacity: calIn * (1 - calOut), transform: `translateY(${(1 - calIn) * 40 + bob}px)` }}>
           {['sat', 'sun'].map((d, i) => <Label key={d} style={{ left: 90 + i * COLW + 6, top: 0, color: SOFT }}>{d} <span style={{ fontFamily: serif, fontSize: 40, letterSpacing: 0 }}>{14 + i}</span></Label>)}
@@ -130,9 +134,9 @@ const Bg: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: NAVY }}>
       {/* a fine dot grid: structure, not decoration */}
-      <AbsoluteFill style={{ backgroundImage: 'radial-gradient(rgba(247,245,255,.10) 1.2px, transparent 1.3px)', backgroundSize: '40px 40px', opacity: 0.8 }} />
+      <AbsoluteFill style={{ backgroundImage: 'radial-gradient(rgba(247,245,255,.10) 1.2px, transparent 1.3px)', backgroundSize: '40px 40px', opacity: 0.55 + 0.9 * accent(t, 9) }} />
       {/* a single breathing band of light at the bottom edge, driven by the bass (kept small and graphic) */}
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6 + 10 * bass, background: `linear-gradient(90deg, ${PERI}, ${LAV})`, opacity: t < D ? 0.9 : 0 }} />
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6 + 10 * bass + 30 * accent(t, 12), background: `linear-gradient(90deg, ${PERI}, ${LAV})`, opacity: t < D ? 0.9 : 0 }} />
       {t >= D && <div style={{ position: 'absolute', left: sx - r, top: sy - r, width: r * 2, height: r * 2, borderRadius: '50%', background: toLav > 0 ? `color-mix(in srgb, ${PERI} ${100 - toLav * 100}%, ${LAV})` : PERI }} />}
       {t >= D && [0, 1, 2].map(i => { const q = p(t, D + i * 0.06, D + 0.7 + i * 0.06); const rr = 40 + q * 1500;
         return <div key={i} style={{ position: 'absolute', left: sx - rr, top: sy - rr, width: rr * 2, height: rr * 2, borderRadius: '50%', border: `2px solid ${i % 2 ? LAV : SOFT}`, opacity: (1 - q) * 0.9 }} />; })}
@@ -145,7 +149,7 @@ const Bg: React.FC = () => {
 export const TeaserV2: React.FC<{ withAudio: boolean }> = ({ withAudio }) => {
   const frame = useCurrentFrame(); const t = frame / 60;
   const push = 1 + 0.04 * p(t, 0, B.duration, Easing.bezier(0.45, 0, 0.55, 1));
-  const kick = 1 + 0.012 * decay(t, C.drop, 8);                 // one physical punch on the drop
+  const kick = 1 + 0.03 * decay(t, C.drop, 7) + 0.008 * accent(t, 14);   // the big punch on the drop + a small one on every hit
   return (
     <AbsoluteFill style={{ backgroundColor: NAVY }}>
       <AbsoluteFill style={{ transform: `scale(${push * kick})` }}>
