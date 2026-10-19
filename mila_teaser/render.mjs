@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 const browserExecutable = '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell';
 const args = process.argv.slice(2);
-const V2 = args.includes('--v2'); const ID = V2 ? 'MilaTeaserV2' : 'MilaTeaser', SUF = V2 ? '_v2' : '';
+const V3 = args.includes('--delay'), V2 = args.includes('--v2'); const ID = V3 ? 'MilaDelay' : V2 ? 'MilaTeaserV2' : 'MilaTeaser', SUF = V3 ? '_delay' : V2 ? '_v2' : '';
 const serveUrl = await bundle({ entryPoint: path.resolve('src/index.ts') });
 const comp = async (withAudio) => selectComposition({ serveUrl, id: ID, inputProps: { withAudio }, browserExecutable });
 if (args.includes('--stills')) {
@@ -24,7 +24,7 @@ if (args.includes('--stills')) {
       outputLocation: tmp, inputProps: { withAudio }, browserExecutable, concurrency: 4, chromiumOptions: { gl: 'swangle' },
       onProgress: ({ progress }) => { if (Math.round(progress * 100) % 10 === 0) process.stdout.write(`\r${name} ${Math.round(progress * 100)}%`); } });
     // Remotion tags the stream full-range (yuvj420p): convert to tv-range yuv420p BT.709, trim to exactly 7.000 s, AAC 320k, +faststart
-    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', tmp, '-i', V2 ? 'public/audio/mix_v2.wav' : 'public/audio/mix.wav', '-map', '0:v', '-map', '1:a', '-t', String(c.durationInFrames / c.fps),
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', tmp, '-i', V3 ? 'public/audio/mix_v3.wav' : V2 ? 'public/audio/mix_v2.wav' : 'public/audio/mix.wav', '-map', '0:v', '-map', '1:a', '-t', String(c.durationInFrames / c.fps),
       '-vf', 'scale=in_range=full:out_range=tv:flags=accurate_rnd+full_chroma_int,format=yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '14',
       '-profile:v', 'high', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
       '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-movflags', '+faststart', `${name}.mp4`]);
