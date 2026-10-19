@@ -4,3 +4,4 @@ public/audio/
 previews/
 *.mp4
 out_*.mp4
+analysis*/*.wav
