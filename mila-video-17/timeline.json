@@ -1,0 +1,330 @@
+{
+ "beat": 0.4720692368214005,
+ "fps": 60,
+ "songStart": 158.7468922108576,
+ "totalBeats": 44,
+ "duration": 20.771046420141623,
+ "drop": 16,
+ "words": [
+  [
+   "Smarter.",
+   8,
+   "cliff_sunset"
+  ],
+  [
+   "Faster.",
+   9,
+   "nassau_living"
+  ],
+  [
+   "Sharper.",
+   10,
+   "malibu_pool"
+  ]
+ ],
+ "strobe": [
+  [
+   11.0,
+   "palm_estate"
+  ],
+  [
+   11.25,
+   "nyc_night"
+  ],
+  [
+   11.5,
+   "sarasota_bridgepool"
+  ],
+  [
+   11.75,
+   "conservatory"
+  ]
+ ],
+ "feats": [
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  23,
+  24
+ ],
+ "montage": [
+  [
+   25.0,
+   "cliff_pool",
+   "MALIBU · CA"
+  ],
+  [
+   25.5,
+   "nassau_living",
+   "NEW YORK · NY"
+  ],
+  [
+   26.0,
+   "hero_waterfront",
+   "NAPLES · FL"
+  ],
+  [
+   26.5,
+   "austin_ext",
+   "AUSTIN · TX"
+  ],
+  [
+   27.0,
+   "palm_estate",
+   "MALIBU · CA"
+  ],
+  [
+   27.5,
+   "chelsea_living",
+   "NEW YORK · NY"
+  ],
+  [
+   28.0,
+   "lauderdale_tiki",
+   "FT. LAUDERDALE · FL"
+  ],
+  [
+   28.5,
+   "cliff_sunset",
+   "MALIBU · CA"
+  ]
+ ],
+ "kicker": [
+  [
+   "Listings.",
+   29,
+   "cliff_pool"
+  ],
+  [
+   "Leads.",
+   30,
+   "nyc_loft"
+  ],
+  [
+   "Showings.",
+   31,
+   "sarasota_bridgepool"
+  ],
+  [
+   "Handled.",
+   32,
+   "conservatory"
+  ]
+ ],
+ "sorryB": 0,
+ "notB": 2,
+ "dateB": 4,
+ "flipB": 5,
+ "reasonB": 6,
+ "hang1": 12,
+ "hang2": 13,
+ "pick1": 14,
+ "pick2": 15,
+ "worth": 33,
+ "logo": 34.5,
+ "loopTail": [
+  42,
+  44
+ ],
+ "sfx": [
+  [
+   2,
+   "whip"
+  ],
+  [
+   4,
+   "card"
+  ],
+  [
+   5,
+   "flip"
+  ],
+  [
+   6,
+   "whip"
+  ],
+  [
+   8,
+   "hit"
+  ],
+  [
+   9,
+   "hit"
+  ],
+  [
+   10,
+   "hit"
+  ],
+  [
+   11.0,
+   "shutter"
+  ],
+  [
+   11.25,
+   "shutter"
+  ],
+  [
+   11.5,
+   "shutter"
+  ],
+  [
+   11.75,
+   "shutter"
+  ],
+  [
+   12,
+   "air"
+  ],
+  [
+   13.5,
+   "riser"
+  ],
+  [
+   16,
+   "boom"
+  ],
+  [
+   16,
+   "bloom"
+  ],
+  [
+   16,
+   "sparkle"
+  ],
+  [
+   17,
+   "whip"
+  ],
+  [
+   18,
+   "whip"
+  ],
+  [
+   19,
+   "whip"
+  ],
+  [
+   20,
+   "whip"
+  ],
+  [
+   21,
+   "whip"
+  ],
+  [
+   22,
+   "whip"
+  ],
+  [
+   23,
+   "whip"
+  ],
+  [
+   24,
+   "whip"
+  ],
+  [
+   18.05,
+   "shutter"
+  ],
+  [
+   20.3,
+   "pop"
+  ],
+  [
+   20.55,
+   "pop"
+  ],
+  [
+   21.2,
+   "chime"
+  ],
+  [
+   22.2,
+   "pop"
+  ],
+  [
+   22.45,
+   "pop"
+  ],
+  [
+   24.5,
+   "tap"
+  ],
+  [
+   24.5,
+   "chime_hi"
+  ],
+  [
+   24.5,
+   "sparkle"
+  ],
+  [
+   25.0,
+   "whip"
+  ],
+  [
+   25.5,
+   "whip"
+  ],
+  [
+   26.0,
+   "whip"
+  ],
+  [
+   26.5,
+   "whip"
+  ],
+  [
+   27.0,
+   "whip"
+  ],
+  [
+   27.5,
+   "whip"
+  ],
+  [
+   28.0,
+   "whip"
+  ],
+  [
+   28.5,
+   "whip"
+  ],
+  [
+   29,
+   "hit"
+  ],
+  [
+   30,
+   "hit"
+  ],
+  [
+   31,
+   "hit"
+  ],
+  [
+   32,
+   "hit"
+  ],
+  [
+   33,
+   "boom"
+  ],
+  [
+   33,
+   "bloom"
+  ],
+  [
+   34.5,
+   "chime"
+  ],
+  [
+   36,
+   "chime"
+  ]
+ ]
+}
