@@ -136,7 +136,7 @@ export const Delay: React.FC<{ withAudio: boolean }> = ({ withAudio }) => {
         <Bg t={t} />
         <CameraMotionBlur samples={6} shutterAngle={180}><FgFrame /></CameraMotionBlur>
       </AbsoluteFill>
-      <AbsoluteFill style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0) 60%, rgba(5,5,16,.32) 100%)', mixBlendMode: 'multiply' }} />
+      <AbsoluteFill style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0) 62%, rgba(5,5,16,.32) 100%)', mixBlendMode: 'multiply', opacity: t < C.drop ? 1 : 0.35 }} />
       <AbsoluteFill style={{ opacity: 0.08, mixBlendMode: 'overlay' }}>
         <Img src={staticFile(`grain/g${String(frame % 12).padStart(2, '0')}.png`)} style={{ width: 1080, height: 1920 }} />
       </AbsoluteFill>

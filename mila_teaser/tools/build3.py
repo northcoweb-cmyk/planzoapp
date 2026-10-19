@@ -7,7 +7,7 @@ SONG, FPS, DUR, SR = '../music/track_v3.mp3', 60, 12.0, 48000
 BPM, DROP = 127.10, 166.300                     # the big drop after the breakdown: local grid fit anchored on the drop hit
 B = 60 / BPM; START = DROP - 11 * B
 beats = [round(k * B, 4) for k in range(0, 40) if k * B <= DUR + 1e-6]
-DRY_CUT_BEAT = 24            # the song plays dry to beat 24 (10.22 s, in a vocal gap), then the last bar rings out in a hall to 12 s
+DRY_CUT_BEAT = 22            # dry to beat 22 (10.39 s), then the last bar rings out in a hall to 12 s
 down = [round(b, 4) for k, b in enumerate(beats) if (k - 11) % 4 == 0]
 # the real hits in the window (kick + clap/snare onsets), so every accent lands on something you can HEAR
 _y, _ = librosa.load(SONG, sr=44100, mono=True, offset=START, duration=DUR)
