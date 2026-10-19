@@ -1,7 +1,7 @@
 /* Mila film #17 — "Worth the Wait" (launch delay, 4:5 feed).
  * render(t) is a pure function of time; cues are beats b of "Da Fonk" at 127.1 BPM (0.47207 s).
  * BUILD (letterboxed, dark, the song's breakdown): "Sorry." photo-in-type b0 · "Mila isn't launching this week." b2 ·
- *   the date flips OCT 19 → OCT 23 b4-6 · "But there's a reason." b6 · photo-in-type Smarter./Faster./Sharper. b8-10 ·
+ *   the date flips OCT 20 → OCT 23 (tomorrow → Friday) b4-6 · "But there's a reason." b6 · photo-in-type Smarter./Faster./Sharper. b8-10 ·
  *   photo strobe b11 · the song drops out: "She's getting" / "an upgrade." with a reverb hang b12-14 · pickup flashes b14, b15 ·
  * DROP b16: bars snap open, bright world, "Way better." · one feature per beat b17-24 · "Coming 10.23" montage b25-29 ·
  *   kicker words b29-32 · "Worth the wait." b33 · end card b34.5 · loop tail b42-44 to the exact frame 0.
@@ -47,15 +47,16 @@
     s.el.querySelector('.mtx').style.backgroundPosition = `${40 + 15 * P(b, 0, 2)}% 50%`;
   }, { hook: true });
   // b2-4: the news
-  shot(2, 4, `${dark('nassau_living', 0.38)}<div class="serifW" style="top:600px;font-size:108px">Mila isn’t launching<br>this week.</div>`, (b, s) => {
+  shot(2, 4, `${dark('nassau_living', 0.38)}<div class="serifW" style="top:600px;font-size:108px">Mila isn’t dropping<br>tomorrow.</div>`, (b, s) => {
     const k = E.outExpo(P(b, 2, 2.35)); set(s.el.querySelector('.serifW'), { opacity: k, transform: `translate(-50%,-50%) translateY(${(1 - k) * 40}px)` });
     s.el.querySelector('.ph').style.transform = `scale(${1.1 - 0.05 * P(b, 2, 4)})`;
   }, { cut: true });
   // b4-6: the date flips 19 -> 23
-  shot(4, 6, `${dark('palm_estate', 0.34)}<div class="mono" style="position:absolute;left:0;right:0;top:330px;text-align:center;color:rgba(255,255,255,.75)">New launch date</div>
+  shot(4, 6, `${dark('palm_estate', 0.34)}<div class="mono" style="position:absolute;left:0;right:0;top:330px;text-align:center;color:rgba(255,255,255,.75)">New launch date · this Friday</div>
     <div class="flipwrap"><div class="fmon">OCT</div><div class="fcard" id="fA"></div><div class="fcard" id="fB"></div></div><div class="fstrike" id="fstrike"></div>`, (b, s) => {
     const k = E.outExpo(P(b, 4, 4.35)); set(s.el.querySelector('.flipwrap'), { opacity: k, transform: `translate(-50%,-50%) scale(${0.9 + 0.1 * k})` });
-    flip($('#fA'), '1', '2', b, TL.flipB); flip($('#fB'), '9', '3', b, TL.flipB + 0.12);
+    flip($('#fA'), '2', '2', b, TL.flipB); flip($('#fB'), '0', '3', b, TL.flipB + 0.06);
+    $('#fstrike').style.left = '425px'; $('#fstrike').style.width = '515px';
     const st = P(b, 4.3, 4.85) * (1 - P(b, TL.flipB - 0.05, TL.flipB + 0.1)); set($("#fstrike"), { transform: `translateY(-50%) scaleX(${st})` });
     s.el.querySelector('.ph').style.transform = `scale(${1.1 - 0.05 * P(b, 4, 6)})`;
   }, { cut: true });
