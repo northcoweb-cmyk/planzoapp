@@ -40,69 +40,82 @@
   const shot = (a, b, html, upd, opts = {}) => { const el = document.createElement('div'); el.className = 'full'; el.innerHTML = html; $('#shots').appendChild(el); const s = { a, b, el, upd, ...opts }; SH.push(s); return s; };
   const dark = (n, bri = 0.42) => `<div class="ph" style="background-image:${img(n)};filter:brightness(${bri}) saturate(.85) blur(${bri < 0.4 ? 6 : 0}px)"></div>`;
 
-  // ================= BUILD: the DIY agent (b0-16). A node graph: the agent in the middle, the models it runs on above,
-  // the tools it is wired to below. The wires go live on the beat (b2-3.5), then fail one per beat (b4-7).
+  // ================= BUILD (b0-16): quick device cuts. Laptop + phone screens, a cut every half beat, whip / zoom / glitch
+  // transitions. The models are fine — it's the DIY plumbing (logins, webhooks, keys, rate limits) that keeps breaking.
   const LOGOS = [['claude', 'Claude'], ['openai', 'ChatGPT'], ['gemini', 'Gemini'], ['agent', 'Agent app']];
-  const TOOLS = TL.wires.map(w => w[1]);
-  const TX = [180, 420, 660, 900], LX = [180, 420, 660, 900], LY = 400, AY = 665, TY = 925;
-  const svgW = (x1, y1, x2, y2, id) => `<path id="${id}" d="M${x1},${y1} C${x1},${(y1 + y2) / 2} ${x2},${(y1 + y2) / 2} ${x2},${y2}" fill="none" stroke-width="4" stroke-linecap="round"/>`;
-  const GRAPH = shot(-9, 8, `<div class="ph" style="background-image:${img('nyc_night')};filter:brightness(.22) saturate(.6) blur(8px)"></div>
-    <svg class="wires" width="1080" height="1350" viewBox="0 0 1080 1350">
-      ${LX.map((x, i) => svgW(x, LY + 70, 540, AY - 80, 'm' + i)).join('')}
-      ${TX.map((x, i) => svgW(540, AY + 80, x, TY - 60, 'w' + i)).join('')}
-      ${TX.map((x, i) => `<circle id="p${i}" r="9" fill="#9ff0c4"/>`).join('')}
-    </svg>
-    ${LOGOS.map(([f, n], i) => `<div class="lnode" style="left:${LX[i]}px;top:${LY}px"><div class="lchip"><img src="assets/logos/${f}.png"></div><div class="lname">${n}</div></div>`).join('')}
-    <div class="anode" id="anode"><div class="agl">my-agent.py</div><div class="ags" id="ags">● running</div></div>
-    ${TOOLS.map((n, i) => `<div class="tnode" id="t${i}" style="left:${TX[i]}px;top:${TY}px"><div class="tic">${['✉', '▦', '◎', '⌂'][i]}</div><div class="tnm">${n}</div></div>`).join('')}
-    ${TL.fails.map(([, tool, err, sub], i) => `<div class="err" id="e${i}"><div class="ex">✕</div><div><div class="et">${tool} · ${err}</div><div class="es">${sub}</div></div></div>`).join('')}
-    <div class="serifW" id="gH" style="top:260px;font-size:84px"></div>`, (b, s) => {
-    const head = b < 2 ? 'So you built your own AI agent.' : b < 4 ? 'Wired it to everything.' : 'And then…';
-    const gH = $('#gH'); if (gH.textContent !== head) gH.textContent = head;
-    const hk = b < 2 ? 1 : E.outExpo(P(b % 2, 0, 0.35)); set(gH, { opacity: hk, transform: `translate(-50%,-50%) translateY(${(1 - hk) * 30}px)`, fontSize: (b < 2 ? 78 : 84) + 'px' });
-    // model wires: always on (the models are fine — it's the plumbing that breaks)
-    LX.forEach((x, i) => { const p = $('#m' + i); p.setAttribute('stroke', 'rgba(201,182,255,.55)'); p.setAttribute('stroke-dasharray', '10 12'); p.setAttribute('stroke-dashoffset', -b * 40); });
-    TL.wires.forEach(([at], i) => {
-      const w = $('#w' + i), L = w.getTotalLength(), on = E.outExpo(P(b, at, at + 0.4)), fail = TL.fails[i][0], broken = b >= fail;
-      w.setAttribute('stroke', broken ? '#ff5a6e' : '#9ff0c4'); w.setAttribute('stroke-dasharray', broken ? '14 18' : `${L}`);
-      w.setAttribute('stroke-dashoffset', broken ? (b * 30) % 32 : L * (1 - on)); w.style.opacity = broken ? 0.5 + 0.5 * Math.abs(Math.sin(b * 9 + i)) : 1;
-      const pt = $('#p' + i), u = ((b * 0.9 + i * 0.27) % 1); const q = w.getPointAtLength(L * u); pt.setAttribute('cx', q.x); pt.setAttribute('cy', q.y);
-      pt.style.opacity = !broken && b >= at + 0.3 ? 1 : 0;
-      const tn = $('#t' + i); tn.classList.toggle('bad', broken); set(tn, { opacity: P(b, at - 0.1, at + 0.1) * 0.6 + 0.4, transform: `translate(-50%,-50%) translateX(${broken ? Math.sin(b * 80) * 8 * pulseAt(b, fail, 6) : 0}px)` });
-    });
-    $$('.lnode', s.el).forEach((d, i) => { const a = E.outBack(P(b, i * 0.12 - 0.5, i * 0.12 - 0.1)); set(d, { transform: `translate(-50%,-50%) scale(${b < 0 ? clamp(a, 0, 1.2) : 1})` }); });
-    const nf = TL.fails.filter(f => b >= f[0]).length; $('#ags').textContent = nf ? `● ${nf} error${nf > 1 ? 's' : ''}` : '● running'; $('#ags').style.color = nf ? '#ff8a98' : '#9ff0c4';
-    set($('#anode'), { transform: `translate(-50%,-50%) translateX(${nf ? Math.sin(b * 70) * 6 * Math.max(...TL.fails.map(f => pulseAt(b, f[0], 6))) : 0}px)`, borderColor: nf ? 'rgba(255,90,110,.6)' : 'rgba(255,255,255,.25)' });
-    TL.fails.forEach(([at], i) => { const e = $('#e' + i); vis(e, b >= at); if (b < at) return;
-      let slot = 0; TL.fails.forEach(([a2], j) => { if (j > i) slot += E.outCubic(P(b, a2, a2 + 0.25)); });
-      const a = E.spring(P(b, at, at + 0.45)); set(e, { top: (1046 - slot * 16) + 'px', transform: `translateX(-50%) translateY(${(1 - a) * 120}px) scale(${(0.9 + 0.1 * a) * (1 - slot * 0.05)})`, opacity: clamp(a * 2) * (1 - slot * 0.22), zIndex: 10 + i }); });
-    s.el.querySelector('.ph').style.transform = `scale(${1.08 - 0.04 * P(b, 0, 8)})`;
+  const lap = (inner, x = 70, y = 330, w = 940) => `<div class="lap" style="left:${x}px;top:${y}px;width:${w}px"><div class="lscr">${inner}</div><div class="lbase"></div></div>`;
+  const phn = (inner, x = 350, y = 330) => `<div class="phn" style="left:${x}px;top:${y}px"><div class="pscr">${inner}<div class="pisl"></div></div></div>`;
+  const bgp = (p, bri = 0.3) => `<div class="ph" style="background-image:${img(p)};filter:brightness(${bri}) saturate(.7) blur(10px)"></div>`;
+  const cap = (txt, top = 250, size = 88) => `<div class="serifW cap" style="top:${top}px;font-size:${size}px">${txt}</div>`;
+  // transitions: each cut enters with one of these, alternating, so no two cuts in a row feel the same
+  function enter(el, b, a, kind) {
+    const k = E.outExpo(P(b, a, a + 0.32)), dev = el.querySelector('.lap,.phn,.wall,.bigw') || el;
+    if (kind === 'whipL' || kind === 'whipR') { const d = kind === 'whipL' ? 1 : -1; set(dev, { transform: `translateX(${(1 - k) * 700 * d}px)`, filter: k < 0.98 ? `blur(${(1 - k) * 24}px)` : 'none' }); }
+    else if (kind === 'zoom') set(dev, { transform: `scale(${1.6 - 0.6 * k})`, filter: k < 0.98 ? `blur(${(1 - k) * 18}px)` : 'none', opacity: clamp(k * 3) });
+    else if (kind === 'drop') set(dev, { transform: `translateY(${(1 - k) * -500}px) rotate(${(1 - k) * -6}deg)`, filter: k < 0.98 ? `blur(${(1 - k) * 14}px)` : 'none' });
+    else if (kind === 'glitch') { const g = 1 - P(b, a, a + 0.18); set(dev, { transform: `translateX(${Math.sin(b * 300) * 30 * g}px)`, filter: g > 0.02 ? `drop-shadow(${-14 * g}px 0 0 rgba(255,50,80,.8)) drop-shadow(${14 * g}px 0 0 rgba(60,200,255,.7))` : 'none' }); }
+    const c = el.querySelector('.cap'); if (c) { const q = E.outExpo(P(b, a + 0.04, a + 0.3)); set(c, { opacity: q, transform: `translate(-50%,-50%) translateY(${(1 - q) * 26}px)` }); }
+  }
+  const CUTS = [];
+  const cut = (a, b, kind, html, upd = () => {}, o = {}) => { const s = shot(a, b, html, (bb, sh) => { enter(sh.el, bb, a, kind); upd(bb, sh); }, { cut: true, ...o }); CUTS.push(a); return s; };
+  const EDITOR = `<div class="ed"><div class="edside"><div class="edh">MODELS</div>${LOGOS.map(([f, n]) => `<div class="edm"><img src="assets/logos/${f}.png">${n}</div>`).join('')}
+    <div class="edh" style="margin-top:22px">TOOLS</div>${['gmail.py', 'calendar.py', 'crm.py', 'mls.py'].map(n => `<div class="edm f">${n}</div>`).join('')}</div>
+    <div class="edcode"><div class="edtab">my-agent.py</div>${['<b>from</b> agents <b>import</b> Agent, Tool', '', 'agent = Agent(', '  model=<i>"best-available"</i>,', '  tools=[gmail, calendar,', '         crm, mls_feed],', '  retries=<i>3</i>,', ')', '', 'agent.run(<i>"follow up with everyone"</i>)']
+      .map((l, i) => `<div><span class="ln2">${i + 1}</span>${l}</div>`).join('')}</div></div>`;
+  // b0-1 HOOK (loop frame): the laptop, the code, the models
+  cut(-9, 1, 'none', `${bgp('nyc_night', 0.25)}${cap('Built your own AI agent?')}${lap(EDITOR)}`, (b, s) => {
+    const k = 1 + 0.05 * P(b, 0, 1); s.el.querySelector('.lap').style.transform = `scale(${k})`; s.el.querySelector('.cap').style.opacity = 1; s.el.querySelector('.cap').style.transform = 'translate(-50%,-50%)';
   }, { hook: true });
-  // b8-11: 3 AM — the log
-  shot(8, 11, `<div style="position:absolute;inset:0;background:#07070d"></div><div class="term" id="term"><div class="tbar"><i></i><i></i><i></i><span>zsh — my-agent</span></div><div class="tlog" id="tlog"></div></div>
-    <div class="serifW" id="late" style="top:250px;font-size:96px"></div>`, (b) => {
-    const n = Math.min(TL.log.length, Math.floor((b - 8) * 4) + 1);
-    $('#tlog').innerHTML = TL.log.slice(0, n).map(l => `<div class="${l.includes('✕') ? 'r' : ''}">${l}</div>`).join('');
-    const k = E.outExpo(P(b, 8, 8.3)); set($('#term'), { opacity: k, transform: `translateY(${(1 - k) * 60}px)` });
-    const txt = b < TL.lateB ? '3:07 AM.' : 'Re-auth. Re-deploy. Repeat.'; if ($('#late').textContent !== txt) $('#late').textContent = txt;
-    const h = E.outExpo(P(b, b < TL.lateB ? 8.1 : TL.lateB, (b < TL.lateB ? 8.1 : TL.lateB) + 0.3)); set($('#late'), { opacity: h, transform: `translate(-50%,-50%) translateY(${(1 - h) * 30}px)` });
-  }, { cut: true });
-  // b11-12: glitch strobe through the logos
-  [0, 1, 2, 3].forEach(i => shot(11 + i * 0.25, 11.25 + i * 0.25, `<div style="position:absolute;inset:0;background:#07070d"></div><div class="glitchlogo"><img src="assets/logos/${LOGOS[i][0]}.png"></div>
-    <div class="mono" style="position:absolute;left:0;right:0;top:1000px;text-align:center;color:#ff8a98">CONNECTION FAILED</div>`, (b, s) => {
-    const k = P(b, 11 + i * 0.25, 11.25 + i * 0.25); set(s.el.querySelector('.glitchlogo'), { transform: `translate(-50%,-50%) scale(${1.15 - 0.15 * k}) translateX(${Math.sin(b * 200) * 10}px)` });
+  // b1-1.5: the phone — the agent says it's connecting
+  cut(1, 1.5, 'whipL', `${bgp('cliff_sunset', 0.28)}${cap('Wired it to everything.')}${phn(`<div class="chat"><div class="chd2"><img src="assets/logos/agent.png">my-agent</div>
+    <div class="cb out">connect my tools</div><div class="cb in">Connecting Gmail, Calendar, CRM, MLS…</div></div>`)}`);
+  // b1.5-3.5: the dashboard — each connection goes green on the beat, the camera punches in each time
+  const CONN = [['Gmail', 1.5], ['Calendar', 2], ['CRM', 2.5], ['MLS feed', 3]];
+  cut(1.5, 3.5, 'zoom', `${bgp('nyc_loft', 0.25)}${cap('Gmail. Calendar. CRM. MLS.')}${lap(`<div class="dash"><div class="dh">Integrations</div>${CONN.map(([n]) => `<div class="drow"><span>${n}</span><i class="sw2"><b></b></i><em>connecting…</em></div>`).join('')}</div>`)}`, (b, s) => {
+    $$('.drow', s.el).forEach((r, i) => { const on = b >= CONN[i][1]; r.classList.toggle('on', on); r.querySelector('em').textContent = on ? 'connected' : 'connecting…'; });
+    const T = CONN.filter(c => b >= c[1]).pop(); s.el.querySelector('.lscr').style.transform = `scale(${1 + 0.05 * (T ? pulseAt(b, T[1], 6) : 0)})`;
+  });
+  // b3.5-4: all green (the calm before)
+  cut(3.5, 4, 'whipR', `${bgp('palm_estate', 0.3)}${cap('All connected.')}${phn(`<div class="lock"><div class="lt">9:41</div><div class="nt ok"><b>my-agent</b>All 4 tools connected ✓</div></div>`)}`);
+  // b4-7: it breaks — a failure every half beat, alternating phone / laptop
+  cut(4, 4.5, 'glitch', `${bgp('nyc_night', 0.22)}${cap('Then it breaks.')}${phn(`<div class="lock"><div class="lt">3:02</div>
+    ${[['my-agent', 'Gmail · 401 Unauthorized'], ['my-agent', 'OAuth token expired'], ['my-agent', 'Retrying… (2/3)']].map(([a2, t2]) => `<div class="nt bad"><b>${a2}</b>${t2}</div>`).join('')}</div>`)}`, (b, s) => {
+    $$('.nt', s.el).forEach((d, i) => { const a = E.spring(P(b, 4 + i * 0.1, 4.3 + i * 0.1)); set(d, { transform: `translateY(${(1 - a) * -60}px)`, opacity: clamp(a * 2) }); });
+  });
+  cut(4.5, 5, 'zoom', `${bgp('nyc_loft', 0.2)}${lap(`<div class="modal"><div class="mx">!</div><div class="mt">Webhook timed out</div><div class="ms">calendar.sync · 504 after 30,000 ms</div><div class="mb">Try again</div></div>`)}`);
+  cut(5, 5.5, 'whipL', `${bgp('chelsea_living', 0.25)}${cap('Clients get ghosted.')}${phn(`<div class="chat"><div class="chd2 plain">Jordan Ellis</div><div class="cb in">Did you get my email?? Still want to tour Saturday</div>
+    <div class="cb out bad">Sure, Saturday works!</div><div class="nd">Not Delivered ⓘ</div></div>`)}`);
+  cut(5.5, 6, 'glitch', `${bgp('nyc_night', 0.2)}${lap(`<div class="tlog2">${['$ python my-agent.py', '✕ crm.update  invalid_api_key', '✕ mls.fetch  429 Too Many Requests', '✕ followups.queue  undefined is not a function', '✕ agent crashed (exit code 1)']
+      .map(l => `<div class="${l.startsWith('✕') ? 'r' : ''}">${l}</div>`).join('')}</div>`)}`);
+  cut(6, 6.5, 'drop', `${bgp('sarasota_bridgepool', 0.25)}${cap('Showings disappear.')}${phn(`<div class="cal2"><div class="ch2">Saturday</div>${['10:00 Showing · Jordan', '11:30 Showing · Priya', '2:00 Open house'].map(e => `<div class="ce">${e}</div>`).join('')}
+    <div class="banner2">⚠︎ Sync failed · events may be missing</div></div>`)}`);
+  cut(6.5, 7, 'zoom', `${bgp('nyc_loft', 0.2)}${lap(`<div class="modal"><div class="mx">!</div><div class="mt">API key revoked</div><div class="ms">crm · re-authenticate to continue</div><div class="mb">Generate new key</div></div>`)}`);
+  // b7-8: glitch strobe through the models on quarter beats
+  LOGOS.forEach(([f], i) => shot(7 + i * 0.25, 7.25 + i * 0.25, `<div style="position:absolute;inset:0;background:#07070d"></div><div class="glitchlogo"><img src="assets/logos/${f}.png"></div>
+    <div class="mono" style="position:absolute;left:0;right:0;top:1000px;text-align:center;color:#ff8a98">TOOL CONNECTION FAILED</div>`, (b, s) => {
+    const k = P(b, 7 + i * 0.25, 7.25 + i * 0.25); set(s.el.querySelector('.glitchlogo'), { transform: `translate(-50%,-50%) scale(${1.15 - 0.15 * k}) translateX(${Math.sin(b * 200) * 10}px)` });
   }));
-  // b12-16: the turn, the ask, the hang
-  shot(12, 16, `<div style="position:absolute;inset:0;background:#05050a"></div><div class="serifW" id="orT" style="top:470px;font-size:140px">Or…</div>
-    <div class="serifW" id="skipT" style="top:620px;font-size:110px"><span class="gtx" style="font-style:italic">skip the setup.</span></div>
-    <div id="composer" class="dglass" style="top:860px"><span id="typed"></span><span id="caret"></span><div class="send"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18.5V5.5M6 11.5 12 5.5l6 6"/></svg></div></div>`, (b) => {
-    const o = E.outExpo(P(b, 12, 12.35)), k2 = E.outExpo(P(b, 13, 13.35)), hang = E.inCubic(P(b, 15.5, 16));
+  // b8-10: the wall — every screen red at once, pulling back
+  const TILES = ['401 Unauthorized', 'Webhook timed out', 'API key revoked', '429 Rate limit', 'Sync failed', 'Not Delivered', 'exit code 1', 'token expired', 'Retrying… 3/3'];
+  cut(8, 10, 'zoom', `<div style="position:absolute;inset:0;background:#07070d"></div><div class="wall">${TILES.map((t2, i) => `<div class="tile ${i % 3 === 1 ? 'p' : ''}"><div class="tx">✕</div><div>${t2}</div></div>`).join('')}</div>${cap('3:07 AM.', 250, 110)}`, (b, s) => {
+    const k = E.inOut(P(b, 8, 10)); s.el.querySelector('.wall').style.transform = `scale(${1.5 - 0.42 * k}) rotate(${-3 + 3 * k}deg)`;
+    $$('.tile', s.el).forEach((d, i) => { d.style.opacity = b >= 8 + i * 0.12 ? 1 : 0.15; d.style.boxShadow = `0 0 ${40 * pulseAt(b, 8 + i * 0.12, 6)}px rgba(255,80,100,.9)`; });
+  });
+  // b10-11.5: three words, one per half beat
+  [['Re-auth.', 10, 'nyc_night'], ['Re-deploy.', 10.5, 'nyc_loft'], ['Repeat.', 11, 'chelsea_living']].forEach(([w, a, p], i) =>
+    cut(a, a + 0.5, i % 2 ? 'whipR' : 'whipL', `${bgp(p, 0.22)}<div class="bigw" style="color:${i === 2 ? '#ff7a8a' : '#fff'}">${w}</div>`));
+  // b11.5-12: crash to black
+  cut(11.5, 12, 'glitch', `<div style="position:absolute;inset:0;background:#000"></div><div class="mono" style="position:absolute;left:0;right:0;top:660px;text-align:center;color:#ff7a8a;font-size:26px">agent crashed · exit code 1</div>`);
+  // b12-16: the turn — the phone, Mila, one sentence, send, the hang
+  shot(12, 16, `<div style="position:absolute;inset:0;background:#05050a"></div><div class="serifW" id="orT" style="top:250px;font-size:100px">Or… <span class="gtx" style="font-style:italic">skip the setup.</span></div>
+    ${phn(`<div class="mchat"><div class="mh2"><i class="orbS"></i>Mila</div><div class="mready">Ready. Nothing to connect.</div>
+      <div id="composer2"><span id="typed"></span><span id="caret"></span><b class="snd"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18.5V5.5M6 11.5 12 5.5l6 6"/></svg></b></div></div>`, 350, 330)}`, (b, s) => {
+    const o = E.outExpo(P(b, 12, 12.35)), hang = E.inCubic(P(b, 15.5, 16));
     set($('#orT'), { opacity: o * (1 - hang), transform: `translate(-50%,-50%) translateY(${(1 - o) * 30}px)` });
-    set($('#skipT'), { opacity: k2 * (1 - hang), transform: `translate(-50%,-50%) translateY(${(1 - k2) * 30}px)` });
+    const ph = s.el.querySelector('.phn'), c = E.spring(P(b, 12.5, 13.1)); set(ph, { transform: `translateY(${(1 - c) * 500}px) scale(${1 + 0.06 * hang})`, filter: hang > 0.01 ? `blur(${hang * 6}px)` : 'none' });
     const [a0, a1] = TL.askB, n = Math.floor(TL.ask.length * P(b, a0, a1)); $('#typed').textContent = TL.ask.slice(0, n);
     $('#caret').style.opacity = b >= TL.send ? 0 : (n < TL.ask.length || b % 0.5 < 0.3 ? 1 : 0);
-    const c = E.spring(P(b, 13.6, 14.1)); set($('#composer'), { opacity: clamp(c * 2) * (1 - hang * 0.6), transform: `translateY(${(1 - c) * 80}px) scale(${1 + 0.05 * hang})`, filter: hang > 0.01 ? `blur(${hang * 6}px)` : 'none',
-      boxShadow: b >= TL.send ? `0 0 ${80 * pulseAt(b, TL.send, 2)}px rgba(166,140,255,.95)` : '' });
+    set($('#composer2'), { boxShadow: b >= TL.send ? `0 0 ${80 * pulseAt(b, TL.send, 2)}px rgba(166,140,255,.95)` : 'none' });
   });
 
   /* ---------------- after the drop: the bright world */
@@ -183,7 +196,7 @@
   vis($('#counter'), false);
   const grain = $('#grain'), gctx = grain.getContext('2d'), NOISE = [];
   { const r = rng(99); for (let k = 0; k < 8; k++) { const c = document.createElement('canvas'); c.width = 540; c.height = 675; const x = c.getContext('2d'), id = x.createImageData(540, 675); for (let i = 0; i < id.data.length; i += 4) { const v = 128 + (r() - 0.5) * 110; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; } x.putImageData(id, 0, 0); NOISE.push(c); } }
-  const CUT_T = [...TL.fails.map(f => f[0]), 8, 11, 11.25, 11.5, 11.75, 12, 16, ...TL.feats, ...TL.montage.map(m => m[0]), ...TL.kicker.map(k => k[1]), 33, 34.5];
+  const CUT_T = [...CUTS.filter(x => x > 0), 7, 7.25, 7.5, 7.75, 12, 16, ...TL.feats, ...TL.montage.map(m => m[0]), ...TL.kicker.map(k => k[1]), 33, 34.5];
 
   /* ================================================================ RENDER */
   function render(t) {
@@ -218,8 +231,8 @@
     const leakT = [16, 25, 29, 33, 34.5].find(T => b >= T && b < T + 0.8);
     vis(R.leak, leakT !== undefined && !tail);
     if (leakT !== undefined) { const p = P(b, leakT, leakT + 0.8); set(R.leak, { transform: `translateX(${lerp(-1100, 1100, E.inOut(p))}px)`, opacity: Math.sin(p * Math.PI) }); }
-    const fl = tail ? 0 : Math.max(b >= 15.9 && b < 16 ? P(b, 15.9, 16) : 0, 0.95 * pulseAt(b, 16, 5), ...TL.fails.map(f => 0.22 * pulseAt(b, f[0], 10)), 0.5 * pulseAt(b, 33, 6), 0.35 * pulseAt(b, 34.5, 6),
-      b >= 11 && b < 12 ? 0.3 * pulseAt(b % 0.25, 0, 30) : 0, ...TL.kicker.map(k => 0.35 * pulseAt(b, k[1], 10)));
+    const fl = tail ? 0 : Math.max(b >= 15.9 && b < 16 ? P(b, 15.9, 16) : 0, 0.95 * pulseAt(b, 16, 5), ...[4, 4.5, 5, 5.5, 6, 6.5].map(x => 0.18 * pulseAt(b, x, 12)), 0.5 * pulseAt(b, 33, 6), 0.35 * pulseAt(b, 34.5, 6),
+      b >= 7 && b < 8 ? 0.3 * pulseAt(b % 0.25, 0, 30) : 0, ...TL.kicker.map(k => 0.35 * pulseAt(b, k[1], 10)));
     R.flash.style.opacity = fl; vis(R.flash, fl > 0.002);
     R.vig.style.opacity = lightWorld ? 0.35 : 1;
     const fi = Math.floor(t * 60), nz = NOISE[fi % 8], gx = (fi * 137) % 540, gy = (fi * 251) % 675;
@@ -227,7 +240,7 @@
     grain.style.opacity = lightWorld ? 0.14 : 0.24;
   }
   window.renderFrame = render; window.DURATION = DUR;
-  for (const tw of [0, 2.6, 4.5, 6.5, 7.5, 9, 10.5, 11.3, 12.5, 14.5, 15.7, 16.4, 17.5, 18.5, 19.5, 20.5, 21.5, 22.5, 23.5, 24.6, 25.3, 27.2, 29.5, 31.5, 33.5, 37, 43.5, 43.95]) render(tw * BEAT);
+  for (const tw of [0, 1.2, 2.2, 3.7, 4.2, 4.7, 5.2, 5.7, 6.2, 6.7, 7.1, 9, 10.2, 10.7, 11.2, 11.7, 12.5, 14.5, 15.7, 16.4, 17.5, 18.5, 19.5, 20.5, 21.5, 22.5, 23.5, 24.6, 25.3, 27.2, 29.5, 31.5, 33.5, 37, 43.5, 43.95]) render(tw * BEAT);
   render(0); window.__ready = true;
   if (!RENDER) {
     const aud = $('#aud'), pp = $('#pp'), scrub = $('#scrub'), tc = $('#tc'); scrub.max = DUR; let playing = false;

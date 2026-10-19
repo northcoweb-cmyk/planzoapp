@@ -20,8 +20,9 @@ tl = {"beat": BEAT, "fps": FPS, "songStart": SONG_START, "totalBeats": TOTAL_B, 
       "wires": WIRES, "fails": FAILS, "log": LOG, "feats": FEATS, "montage": MONTAGE, "kicker": KICKER,
       "logB": 8, "lateB": 10, "glitch": [11, 12], "orB": 12, "skipB": 13, "ask": "Mila, handle my follow-ups.", "askB": [14.1, 15.0], "send": 15.2, "hang": 15.5,
       "worth": 33, "logo": 34.5, "loopTail": [42, 44],
-      "sfx": [*[[w[0], "tick"] for w in WIRES], *[[f[0], "error"] for f in FAILS], *[[f[0], "hit"] for f in FAILS], [8, "whip"], *[[8 + i * 0.25, "tick"] for i in range(12)],
-              *[[11 + i * 0.25, "glitch"] for i in range(4)], [12, "air"], [13, "whip"], [15.2, "send"], [16, "boom"], [16, "bloom"], [16, "sparkle"],
+      "sfx": [[1, "whip"], [1.5, "whip"], *[[x, "tick"] for x in (1.5, 2, 2.5, 3)], [3.5, "whip"], [3.55, "chime"], *[[x, "error"] for x in (4, 4.5, 5, 5.5, 6, 6.5)], *[[x, "glitch"] for x in (4, 5.5)],
+              *[[x, "whip"] for x in (4.5, 5, 6, 6.5)], *[[7 + i * 0.25, "glitch"] for i in range(4)], [8, "boom"], *[[8 + i * 0.12, "tick"] for i in range(9)], *[[x, "hit"] for x in (10, 10.5, 11)],
+              *[[x, "whip"] for x in (10, 10.5, 11)], [11.5, "glitch"], [12, "air"], [12.5, "whip"], [15.2, "send"], [16, "boom"], [16, "bloom"], [16, "sparkle"],
               *[[b, "whip"] for b in FEATS], [18.05, "shutter"], [20.3, "pop"], [20.55, "pop"], [21.2, "chime"], [22.2, "pop"], [22.45, "pop"], [24.5, "tap"], [24.5, "chime_hi"], [24.5, "sparkle"],
               *[[m[0], "whip"] for m in MONTAGE], *[[k[1], "hit"] for k in KICKER], [33, "boom"], [33, "bloom"], [34.5, "chime"], [36, "chime"]]}
 json.dump(tl, open("timeline.json", "w"), indent=1, ensure_ascii=False)
