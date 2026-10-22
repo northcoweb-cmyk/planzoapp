@@ -1,0 +1,472 @@
+{
+ "beat": 0.46875,
+ "fps": 60,
+ "songStart": 68.227,
+ "totalBeats": 44,
+ "duration": 20.625,
+ "drop": 16,
+ "notifs": [
+  [
+   2.5,
+   "Leads",
+   "12 new leads · sorted overnight"
+  ],
+  [
+   3.0,
+   "Showings",
+   "3 showings · confirmed for today"
+  ],
+  [
+   3.5,
+   "Mila",
+   "Your morning brief is ready ☀"
+  ]
+ ],
+ "brief": [
+  [
+   4.25,
+   "9:30",
+   "Showing · 48 Coral Palm Way"
+  ],
+  [
+   4.75,
+   "11:00",
+   "Listing photos due · Sea Grape Ln"
+  ],
+  [
+   5.25,
+   "2:00",
+   "Buyer call · Maya Chen"
+  ],
+  [
+   5.75,
+   "5:30",
+   "Open house prep · Sunday"
+  ]
+ ],
+ "hours": [
+  [
+   8,
+   "7:00 AM",
+   "village_kitchen"
+  ],
+  [
+   8.5,
+   "8:00 AM",
+   "nassau_dining"
+  ],
+  [
+   9,
+   "9:00 AM",
+   "cliff_pool"
+  ],
+  [
+   9.5,
+   "10:00 AM",
+   "palm_estate"
+  ]
+ ],
+ "feats": [
+  [
+   17,
+   "8:02 AM"
+  ],
+  [
+   18,
+   "9:15 AM"
+  ],
+  [
+   19,
+   "10:30 AM"
+  ],
+  [
+   20,
+   "11:45 AM"
+  ],
+  [
+   21,
+   "1:00 PM"
+  ],
+  [
+   22,
+   "2:30 PM"
+  ],
+  [
+   23,
+   "4:00 PM"
+  ],
+  [
+   24,
+   "6:00 PM"
+  ]
+ ],
+ "montage": [
+  [
+   25.0,
+   "cliff_pool",
+   "8 AM · MALIBU"
+  ],
+  [
+   25.5,
+   "nassau_living",
+   "10 AM · NEW YORK"
+  ],
+  [
+   26.0,
+   "hero_waterfront",
+   "12 PM · NAPLES"
+  ],
+  [
+   26.5,
+   "austin_ext",
+   "2 PM · AUSTIN"
+  ],
+  [
+   27.0,
+   "sarasota_bridgepool",
+   "4 PM · SARASOTA"
+  ],
+  [
+   27.5,
+   "chelsea_living",
+   "6 PM · NEW YORK"
+  ],
+  [
+   28.0,
+   "malibu_sunset",
+   "7 PM · MALIBU"
+  ],
+  [
+   28.5,
+   "nyc_night",
+   "9 PM · NEW YORK"
+  ]
+ ],
+ "kicker": [
+  [
+   "Morning.",
+   29,
+   "village_kitchen"
+  ],
+  [
+   "Noon.",
+   30,
+   "cliff_pool"
+  ],
+  [
+   "Night.",
+   31,
+   "nyc_night"
+  ],
+  [
+   "Tomorrow.",
+   32,
+   "cliff_sunset"
+  ]
+ ],
+ "alarm": 1,
+ "stop": 10,
+ "day1": 11,
+ "flipB": 12,
+ "dial": 13,
+ "day2": 14,
+ "ask": "Mila, run my day.",
+ "askB": [
+  14.1,
+  14.9
+ ],
+ "send": 15.0,
+ "hang": 15.5,
+ "worth": 33,
+ "logo": 34.5,
+ "loopTail": [
+  42,
+  44
+ ],
+ "sfx": [
+  [
+   1,
+   "chime"
+  ],
+  [
+   2,
+   "whip"
+  ],
+  [
+   2.5,
+   "notif"
+  ],
+  [
+   3.0,
+   "notif"
+  ],
+  [
+   3.5,
+   "notif"
+  ],
+  [
+   4,
+   "whip"
+  ],
+  [
+   4.25,
+   "pop"
+  ],
+  [
+   4.75,
+   "pop"
+  ],
+  [
+   5.25,
+   "pop"
+  ],
+  [
+   5.75,
+   "pop"
+  ],
+  [
+   6,
+   "whip"
+  ],
+  [
+   8,
+   "whip"
+  ],
+  [
+   8.5,
+   "whip"
+  ],
+  [
+   9,
+   "whip"
+  ],
+  [
+   9.5,
+   "whip"
+  ],
+  [
+   8,
+   "tick"
+  ],
+  [
+   8.5,
+   "tick"
+  ],
+  [
+   9,
+   "tick"
+  ],
+  [
+   9.5,
+   "tick"
+  ],
+  [
+   10,
+   "hit"
+  ],
+  [
+   11,
+   "air"
+  ],
+  [
+   12,
+   "tick"
+  ],
+  [
+   12.55,
+   "chime_hi"
+  ],
+  [
+   13,
+   "whip"
+  ],
+  [
+   15.0,
+   "send"
+  ],
+  [
+   16,
+   "boom"
+  ],
+  [
+   16,
+   "bloom"
+  ],
+  [
+   16,
+   "sparkle"
+  ],
+  [
+   17,
+   "whip"
+  ],
+  [
+   18,
+   "whip"
+  ],
+  [
+   19,
+   "whip"
+  ],
+  [
+   20,
+   "whip"
+  ],
+  [
+   21,
+   "whip"
+  ],
+  [
+   22,
+   "whip"
+  ],
+  [
+   23,
+   "whip"
+  ],
+  [
+   24,
+   "whip"
+  ],
+  [
+   17.05,
+   "tick"
+  ],
+  [
+   18.05,
+   "tick"
+  ],
+  [
+   19.05,
+   "tick"
+  ],
+  [
+   20.05,
+   "tick"
+  ],
+  [
+   21.05,
+   "tick"
+  ],
+  [
+   22.05,
+   "tick"
+  ],
+  [
+   23.05,
+   "tick"
+  ],
+  [
+   24.05,
+   "tick"
+  ],
+  [
+   18.05,
+   "shutter"
+  ],
+  [
+   20.3,
+   "pop"
+  ],
+  [
+   20.55,
+   "pop"
+  ],
+  [
+   21.3,
+   "pop"
+  ],
+  [
+   21.55,
+   "pop"
+  ],
+  [
+   22.2,
+   "chime"
+  ],
+  [
+   23.2,
+   "pop"
+  ],
+  [
+   23.45,
+   "pop"
+  ],
+  [
+   24.5,
+   "tap"
+  ],
+  [
+   24.5,
+   "chime_hi"
+  ],
+  [
+   24.5,
+   "sparkle"
+  ],
+  [
+   25.0,
+   "whip"
+  ],
+  [
+   25.5,
+   "whip"
+  ],
+  [
+   26.0,
+   "whip"
+  ],
+  [
+   26.5,
+   "whip"
+  ],
+  [
+   27.0,
+   "whip"
+  ],
+  [
+   27.5,
+   "whip"
+  ],
+  [
+   28.0,
+   "whip"
+  ],
+  [
+   28.5,
+   "whip"
+  ],
+  [
+   29,
+   "hit"
+  ],
+  [
+   30,
+   "hit"
+  ],
+  [
+   31,
+   "hit"
+  ],
+  [
+   32,
+   "hit"
+  ],
+  [
+   33,
+   "boom"
+  ],
+  [
+   33,
+   "bloom"
+  ],
+  [
+   34.5,
+   "chime"
+  ],
+  [
+   36,
+   "chime"
+  ]
+ ]
+}
