@@ -1,0 +1,212 @@
+{
+ "beat": 0.4477277815088427,
+ "fps": 60,
+ "songStart": 123.73979986568168,
+ "totalBeats": 56,
+ "duration": 25.07275576449519,
+ "drop": 36,
+ "voice": [
+  [
+   "l1",
+   0.35,
+   0.782,
+   "Hey Mila, new listing. 21 Sea Cliff Drive, Malibu. Six beds, eleven-nine."
+  ],
+  [
+   "l2",
+   6.2,
+   13.848,
+   "Um, actually… make that twelve-five."
+  ],
+  [
+   "l3",
+   8.85,
+   19.766,
+   "Open house Saturday, one to four."
+  ],
+  [
+   "l4",
+   11.1,
+   24.792,
+   "Private showing Sunday at ten. Oh, wait, no, make it eleven."
+  ],
+  [
+   "l5",
+   15.28,
+   34.128,
+   "Mila… it sold."
+  ],
+  [
+   "l6",
+   17.4,
+   38.863,
+   "Make me a Just Sold post."
+  ]
+ ],
+ "drone1": [
+  0,
+  6.5,
+  0
+ ],
+ "drone2": [
+  36,
+  40.5,
+  175
+ ],
+ "droneN": 296,
+ "addr": 2.6,
+ "beds": 4.2,
+ "price1": 5.0,
+ "price2": 17.45,
+ "oh": 29.259,
+ "eleven": 32.051,
+ "uc": 33.9,
+ "loopTail": [
+  54.3,
+  56
+ ],
+ "slides": [
+  42,
+  43,
+  44,
+  45
+ ],
+ "sfx": [
+  [
+   5.807,
+   "pop"
+  ],
+  [
+   9.381,
+   "pop"
+  ],
+  [
+   11.167,
+   "tick"
+  ],
+  [
+   6.5,
+   "whip"
+  ],
+  [
+   6.5,
+   "shutter"
+  ],
+  [
+   13.5,
+   "whip"
+  ],
+  [
+   17.45,
+   "tick"
+  ],
+  [
+   17.6,
+   "chime"
+  ],
+  [
+   19.5,
+   "whip"
+  ],
+  [
+   20.2,
+   "pop"
+  ],
+  [
+   20.7,
+   "pop"
+  ],
+  [
+   21.2,
+   "pop"
+  ],
+  [
+   21.7,
+   "chime"
+  ],
+  [
+   24.5,
+   "whip"
+  ],
+  [
+   25.2,
+   "pop"
+  ],
+  [
+   29.9,
+   "tap"
+  ],
+  [
+   32.05,
+   "tick"
+  ],
+  [
+   32.3,
+   "chime"
+  ],
+  [
+   33.5,
+   "whip"
+  ],
+  [
+   33.9,
+   "stamp"
+  ],
+  [
+   36,
+   "boom"
+  ],
+  [
+   36,
+   "stamp"
+  ],
+  [
+   36,
+   "bloom"
+  ],
+  [
+   36,
+   "sparkle"
+  ],
+  [
+   40.5,
+   "whip"
+  ],
+  [
+   41.2,
+   "card"
+  ],
+  [
+   42,
+   "whip"
+  ],
+  [
+   43,
+   "whip"
+  ],
+  [
+   44,
+   "whip"
+  ],
+  [
+   45,
+   "whip"
+  ],
+  [
+   46.3,
+   "chime"
+  ],
+  [
+   50,
+   "whip"
+  ],
+  [
+   50.2,
+   "chime_hi"
+  ],
+  [
+   51.5,
+   "chime"
+  ]
+ ]
+}
