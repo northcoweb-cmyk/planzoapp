@@ -243,7 +243,7 @@ function buildCrowd() {
   crowdDirty = false;
   const occ = occCur = occupancy(), cs = {};
   for (const k in crowd) { cs[k] = crowd[k].getContext('2d'); cs[k].clearRect(0, 0, CB.w, CB.h); cs[k].translate(0, 0); }
-  const ac = awayCol();
+  const ac = awayCol(), rb = Math.max(S.prices.beer / BASE.beer, S.prices.food / BASE.food);
   for (const s of SEATS) {
     if (s.lvl === 1 && LV > 0) continue;
     if (s.h >= occ[s.sec]) continue;
@@ -252,6 +252,7 @@ function buildCrowd() {
     b.fillStyle = shirt; b.fillRect(X - 1, Y - 3.6, 2, 2.2);
     b.fillStyle = skin; b.fillRect(X - 0.7, Y - 5.2, 1.4, 1.5);
     b.fillStyle = HAIR[(s.idx * 3) % HAIR.length]; b.fillRect(X - 0.7, Y - 5.5, 1.4, 0.7);
+    if (G && !away && rb > personaFrom(s.idx).tol) { b.fillStyle = '#ff3b3b'; b.fillRect(X - 0.4, Y - 8.4, 0.8, 1.7); b.fillRect(X - 0.4, Y - 6.5, 0.8, 0.8); }          // priced out: this person is mad about the prices
     const arm = away ? cs.armsA : cs.armsH; arm.fillStyle = skin; arm.fillRect(X - 2.2, Y - 8.6, 1.1, 4.6); arm.fillRect(X + 1.1, Y - 8.6, 1.1, 4.6); arm.fillStyle = shirt; arm.fillRect(X - 2.2, Y - 4.2, 1.1, 1); arm.fillRect(X + 1.1, Y - 4.2, 1.1, 1);
     if (!away) { const g = cs.angry; g.fillStyle = skin; g.fillRect(X + 1.1, Y - 7.6, 1.1, 4); g.fillStyle = '#c0392b'; g.fillRect(X + 0.9, Y - 8.9, 1.5, 1.5); g.fillStyle = '#e0503a'; g.fillRect(X - 0.7, Y - 5.2, 1.4, 1.5); g.fillStyle = '#ff2d2d'; g.fillRect(X - 0.4, Y - 8.2, 0.8, 1.7); g.fillRect(X - 0.4, Y - 6.2, 0.8, 0.7); }
   }
@@ -672,6 +673,7 @@ function render() {
     default: if (e.t >= 20) drawDecor(e);
   }
   if (isPeriod() || phK() === 'SO') { const [X, Y] = iso(puck.x, puck.y, puck.owner ? 1 : 2.5); c.fillStyle = '#000'; c.fillRect(X - 1.2, Y - 1, 2.4, 1.6); }
+  if (inspected && inspected.kind === 'fan') { const f = inspected, x = f.a ? f.a.x : f.seat.x, y = f.a ? f.a.y : f.seat.y, zz = f.a ? zAt(x, y) : f.seat.z, [X, Y] = iso(x, y, zz); c.strokeStyle = '#4da3ff'; c.lineWidth = 0.9; c.beginPath(); c.ellipse(X, Y - 4.5, 4 + Math.sin(performance.now() / 200) * 0.6, 6, 0, 0, TAU); c.stroke(); txtC(c, f.p.name, X, Y - 13, '#ffffff', 5); }
   if (S.jumbotron) drawJumbo();
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];

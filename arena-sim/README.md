@@ -10,6 +10,11 @@ Run a hockey arena: walk it, watch the game, grow the business. Open `index.html
 | `ui.js` | Controls, HUD, menus, boot |
 | `index.html` | Page layout and styles |
 
+## People & social media
+* Every seat holds the same person every game: a name, a handle and a personality (die-hard, casual, foodie, big spender, penny pincher, grump, family, college kid) with loyalty, temper, patience and a **price tolerance**. Click any fan to see them.
+* Raise prices and the people who can't stomach them refuse to buy, get mad, post about it, and show a red **!** over their head in the crowd.
+* **Chirp** (tab or `K`): live fan posts, trending hashtags and a sentiment meter. Net buzz moves hype and reputation after each game.
+
 ## Controls
 WASD walk (Shift run) · click ground to walk · click/E inspect · wheel zoom · O overview · **L cycle stadium levels** · V fan-mood heat map · B/P/M/F menus · Space pause · 1-4 speed · N skip downtime/intermissions.
 

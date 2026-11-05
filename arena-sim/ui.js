@@ -10,7 +10,7 @@ addEventListener('keydown', e => {
   if (k === ' ') { setSpeed(speed ? 0 : 1); e.preventDefault(); }
   if (k === 'e') { const n = nearestThing(); if (n) inspect(n); }
   if (k === 'b') openMenu('build'); if (k === 'p') openMenu('prices'); if (k === 'm') openMenu('maint'); if (k === 'f') openMenu('fin'); if (k === 'h') openMenu('help');
-  if (k === 'l') cycleLevels(); if (k === 'v') toggleHeat(); if (k === 'o') toggleOverview(); if (k === 'n') doSkip();
+  if (k === 'l') cycleLevels(); if (k === 'k') setTab(tab === 'social' ? 'sales' : 'social'); if (k === 'v') toggleHeat(); if (k === 'o') toggleOverview(); if (k === 'n') doSkip();
   if (k === 'escape') closeInsp();
   if (k === '1') setSpeed(1); if (k === '2') setSpeed(2); if (k === '3') setSpeed(4); if (k === '4') setSpeed(8);
   if (k === '=' || k === '+') cam.zt = clamp(cam.zt * 1.2, 0.22, 5); if (k === '-') cam.zt = clamp(cam.zt / 1.2, 0.22, 5);
@@ -26,7 +26,7 @@ addEventListener('pointermove', e => {
 });
 addEventListener('pointerup', e => {
   if (drag && !drag.moved && e.target === cv) {
-    const w = toWorld(e.clientX, e.clientY), t = thingAt(w);
+    const w = toWorld(e.clientX, e.clientY), fan = cam.z > 0.85 ? fanAt(e.clientX, e.clientY) : null, t = fan || thingAt(w);
     if (t) inspect(t); else { me.tx = w.x; me.ty = w.y; cam.follow = true; }
   }
   drag = null;
@@ -43,6 +43,15 @@ function movePlayer(dt) {
   me.x = clamp(me.x + wx / l * sp * dt, 0, W); me.y = clamp(me.y + wy / l * sp * dt, 0, H);
   if (wx || wy) me.face = Math.atan2(wy, wx);
   if (cam.follow) { cam.x += (me.x - cam.x) * Math.min(1, dt * 5); cam.y += (me.y - cam.y) * Math.min(1, dt * 5); }
+}
+function fanAt(sx, sy) {
+  const [cx, cy] = camIso(), X = (sx / PX - CW / 2) / cam.z + cx, Y = (sy / PX - CH / 2) / cam.z + cy;
+  let best = null, bd = 4.4;
+  for (const a of agents) { if (a.state === 'pending' || a.state === 'done' || (a.state === 'seated' && !heat)) continue; const [ix, iy] = iso(a.x, a.y, zAt(a.x, a.y)), d = Math.hypot(ix - X, iy - 6 - Y); if (d < bd) { bd = d; best = { kind: 'fan', a, p: a.p, x: a.x, y: a.y }; } }
+  if (best) return best;
+  bd = 2.7;
+  for (const s of SEATS) { if ((s.lvl === 1 && LV > 0) || s.h >= (occCur[s.sec] || 0)) continue; const [ix, iy] = iso(s.x, s.y, s.z), d = Math.hypot(ix - X, iy - 4.6 - Y); if (d < bd) { bd = d; best = { kind: 'fan', seat: s, p: personaFrom(s.idx), x: s.x, y: s.y }; } }
+  return best;
 }
 function allThings() {
   const out = [];
@@ -87,9 +96,23 @@ document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => setSpeed(+
 $('skip').onclick = doSkip;
 function doSkip() {
   const k = phK();
-  if (k === 'DOWN' || k === 'EGRESS') { if (k === 'EGRESS') G.moodFinal = moodNow(); nextPhase(); }
+  if (k === 'DOWN' || k === 'EGRESS') { nextPhase(); }
   else if (k.startsWith('INT') || k === 'SO') nextPhase();
   else toast('Can\'t skip live play — use 8× fast forward');
+}
+let tab = 'sales';
+function setTab(t) { tab = t; $('salesView').style.display = t === 'sales' ? '' : 'none'; $('socialView').style.display = t === 'social' ? '' : 'none'; document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t)); if (t === 'social') renderSocial(); }
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab)); $('socialBtn').onclick = () => setTab(tab === 'social' ? 'sales' : 'social');
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function renderSocial() {
+  const rec = social.slice(0, 40), pos = rec.filter(p => p.s > 0).length, neg = rec.filter(p => p.s < 0).length, tot = Math.max(1, pos + neg), pct = Math.round(pos / tot * 100);
+  const tags = {}; rec.forEach(p => { if (p.tag) tags[p.tag] = (tags[p.tag] || 0) + 1; });
+  const top = Object.entries(tags).sort((a, b) => b[1] - a[1]).slice(0, 4), followers = Math.round(1200 + S.rep * 180 + S.hype * 90 + S.day * 35);
+  const ago = p => { const s = Math.max(0, Math.round(T - p.t)); return s < 60 ? s + 's' : Math.round(s / 60) + 'm'; };
+  $('buzzdot').style.color = !rec.length ? '#8d97a8' : pct > 60 ? '#3fcf7a' : pct < 40 ? '#ff5c5c' : '#ffb340';
+  $('socialView').innerHTML = '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>Fan sentiment (last 40 posts)</span><b style="color:' + (pct > 60 ? 'var(--good)' : pct < 40 ? 'var(--bad)' : 'var(--warn)') + '">' + (rec.length ? pct + '% positive' : '—') + '</b></div><div class="sbar"><i style="width:' + (rec.length ? pct : 50) + '%"></i></div>' +
+    '<div style="font-size:11px;color:var(--dim);margin-bottom:4px">' + followers.toLocaleString() + ' followers · trending: ' + (top.length ? top.map(([t, n]) => '<span class="tagc">' + t + ' ×' + n + '</span>').join('') : 'nothing yet') + '</div>' +
+    (social.length ? social.slice(0, 13).map(p => '<div class="post"><span class="av" style="background:' + p.color + '">' + esc(p.name[0]) + '</span><div><b>' + esc(p.name) + '</b>' + (p.verified ? ' <span style="color:#4da3ff">✔</span>' : '') + ' <span class="h">' + esc(p.handle) + ' · ' + ago(p) + '</span><div class="t">' + esc(p.text) + '</div><div class="m">♥ ' + p.likes + '</div></div></div>').join('') : '<div style="padding:10px 0;color:var(--dim);font-size:12px">No posts yet. Fans start chirping when doors open — raise the beer price and watch what happens.</div>');
 }
 const LV_NAMES = ['All 3 levels', 'Lower + club (upper deck hidden)', 'Lower bowl only (see the concourse)'];
 function cycleLevels() { setLevelView((LV + 1) % 3); $('lvl').classList.toggle('on', LV > 0); toast('Levels: ' + LV_NAMES[LV]); }
@@ -135,6 +158,7 @@ function hud() {
   // hint
   const n = nearestThing();
   if (n && n.r) { $('hint').style.display = 'block'; $('hint').textContent = 'E — inspect ' + n.name; } else $('hint').style.display = 'none';
+  if (tab === 'social') renderSocial();
   if (inspected) liveInsp();
 }
 function timeLeft() { const r = Math.max(0, PH[ph].d - pt); return ((r / 60) | 0) + ':' + String((r % 60) | 0).padStart(2, '0'); }
@@ -196,6 +220,9 @@ function renderInspStatic() {
     h = '<h3>Parking</h3><h2>Parking Lots</h2><div class="btns">' + (!S.lotB ? '<button class="buy" data-a="lotB">Buy & pave Lot B (+864 cars) $200k</button>' : '') + (!S.garage ? '<button class="buy" data-a="garage">Build garage (+1,600 cars) $600k</button>' : '') + '</div><p style="color:var(--dim);font-size:12px">About 2 in 3 fans drive. When the lots fill, some fans give up and go home.</p>';
   } else if (t.kind === 'transit') {
     h = '<h3>City</h3><h2>Transit Center</h2><div class="btns">' + (!S.transit ? '<button class="buy" data-a="transit">Transit partnership ($120k)</button>' : '<span class="tag">Partnership active</span>') + '</div><p style="color:var(--dim);font-size:12px">Free rides with a game ticket cut the share of drivers from 66% to 50%, easing parking.</p>';
+  } else if (t.kind === 'fan') {
+    const p = t.p;
+    h = '<h3>' + (t.a ? 'Fan on the concourse' : 'Fan in Sec ' + (101 + t.seat.sec) + ' · ' + (t.seat.lvl ? 'upper' : 'lower') + ' bowl, row ' + (t.seat.r + 1)) + '</h3><h2>' + p.name + ' <span class="tag" style="background:' + p.color + '33;color:' + p.color + '">' + p.label + '</span></h2><div style="color:var(--dim);font-size:12px">' + p.handle + (t.a && t.a.away ? ' · visiting fan' : '') + '</div>';
   } else if (t.kind === 'sec') {
     h = '<h3>Seating bowl</h3><h2>' + t.name + '</h2>';
   }
@@ -206,6 +233,21 @@ function renderInspStatic() {
 function liveInsp() {
   const t = inspected, el = $('inspLive'); let h = '';
   const meter = (v, c) => '<div class="meter"><i style="width:' + clamp(v, 0, 100) + '%;background:' + (c || satCol(v)) + '"></i></div>';
+  if (t.kind === 'fan') {
+    const a = t.a, p = t.p; if (a && a.state === 'done') { closeInsp(); return; }
+    const rb = S.prices.beer / BASE.beer, rf = S.prices.food / BASE.food, vipMul = a && a.vip ? 1.35 : 1;
+    let mood;
+    if (a) mood = a.sat; else { const fs = agents.filter(x => x.sec === t.seat.sec && x.state !== 'pending' && x.state !== 'done'); mood = fs.length ? fs.reduce((s, x) => s + x.sat, 0) / fs.length : 70; }
+    const over = Math.max(rb, rf) > p.tol * vipMul, verdict = x => x > p.tol * vipMul ? '<b style="color:var(--bad)">refuses</b>' : x > p.tol * vipMul * 0.85 ? '<b style="color:var(--warn)">grumbles</b>' : '<b style="color:var(--good)">fine</b>';
+    const quote = a ? thought(a) : thought({ p, sat: over ? Math.min(mood, 45) : mood, state: 'seated', why: over ? 'prices' : null });
+    const bar = (v, c) => '<div class="meter"><i style="width:' + clamp(v, 0, 100) + '%;background:' + c + '"></i></div>';
+    h = '<div style="margin:6px 0;padding:6px 8px;background:#ffffff0d;border-radius:6px;font-style:italic">“' + quote + '”</div>' +
+      '<div class="kv"><span>Mood</span><b style="color:' + satCol(mood) + '">' + Math.round(mood) + '%</b></div>' + bar(mood, satCol(mood)) +
+      '<div class="kv"><span>Loyalty to the team</span><b>' + Math.round(p.loy * 100) + '%</b><span>Temper</span><b>' + (p.temper > 1.35 ? 'short fuse' : p.temper < 0.95 ? 'easy-going' : 'average') + '</b><span>Patience in lines</span><b>' + (p.pat > 1.15 ? 'high' : p.pat < 0.85 ? 'low' : 'average') + '</b>' +
+      '<span>Will pay up to</span><b>$' + Math.round(BASE.beer * p.tol * vipMul) + ' beer · $' + Math.round(BASE.food * p.tol * vipMul) + ' food</b><span>Today\'s beer $' + Math.round(S.prices.beer) + '</span>' + verdict(rb) + '<span>Today\'s food $' + Math.round(S.prices.food) + '</span>' + verdict(rf) +
+      (a ? '<span>Spent tonight</span><b style="color:var(--good)">' + money(a.spent) + '</b><span>Doing</span><b>' + ({ seated: 'in their seat', queue: 'waiting in line', gateQ: 'waiting to get in', toStand: 'heading to a stand', back: 'heading back', toSeat: 'finding their seat', leave: 'heading home', arrive: 'arriving' }[a.state] || a.state) + '</b>' : '') + '</div>';
+    el.innerHTML = h; return;
+  }
   if (t.kind === 'stand') {
     const st = t.st; if (!S.stands.includes(st)) { closeInsp(); return; }
     const q = st._q ? st._q.length : 0, served = st._served || 0;
@@ -349,7 +391,7 @@ function openMenu(which) {
   M.oninput = e => {
     const k = e.target.dataset.p; if (!k) return;
     if (k === 'ticket' || k === 'vip') { if (inGame()) { toast('Ticket prices lock once doors open'); e.target.value = S.prices[k]; return; } }
-    S.prices[k] = +e.target.value; $('pv_' + k).textContent = money(S.prices[k]);
+    S.prices[k] = +e.target.value; $('pv_' + k).textContent = money(S.prices[k]); crowdDirty = true;
     const f = demandForecast(); const fc = $('fcast'); if (fc) fc.innerHTML = 'Next-game ticket forecast: <b>' + f.demand.toLocaleString() + '</b> (cap ' + S.capacity.toLocaleString() + '). Ticket prices lock when doors open.';
     save();
   };
@@ -373,7 +415,7 @@ function showReport(g) {
     '<div class="kv"><span>Attendance</span><b>' + g.att.toLocaleString() + ' / ' + S.capacity.toLocaleString() + '</b><span>Fans turned away (parking)</span><b>' + g.turned + '</b>' +
     '<span>Ticket & VIP revenue</span><b>' + money(tr) + '</b><span>Concessions & store</span><b>' + money(con) + '</b><span>Parking</span><b>' + money(g.rev.parking) + '</b><span>Ads & sponsors</span><b>' + money(g.rev.ads) + '</b>' +
     '<span>Cost of goods sold</span><b style="color:var(--bad)">−' + money(g.cogs) + '</b>' +
-    Object.entries(G.expBreak).map(([k, v]) => '<span>' + k + '</span><b style="color:var(--bad)">−' + money(v) + '</b>').join('') +
+    Object.entries(g.expBreak || {}).map(([k, v]) => '<span>' + k + '</span><b style="color:var(--bad)">−' + money(v) + '</b>').join('') +
     (g.early ? '<span>Fans who left early (blowout)</span><b style="color:var(--warn)">' + g.early.toLocaleString() + '</b>' : '') + '<span>Sales lost to long lines</span><b style="color:var(--warn)">' + money(g.lost) + '</b>' +
     '<span style="font-size:15px;color:var(--text)">Game profit</span><b style="font-size:15px;color:' + (g.profit < 0 ? 'var(--bad)' : 'var(--good)') + '">' + money(g.profit) + '</b>' +
     '<span>Fan mood → Reputation</span><b>' + g.mood + '% → ' + Math.round(S.rep) + '</b></div>' +

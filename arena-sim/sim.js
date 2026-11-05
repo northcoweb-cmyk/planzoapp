@@ -64,7 +64,7 @@ function freshState() {
     capacity: 8000, vipSeats: 400, parking: 480, lotB: false, garage: false,
     lanes: [2, 3, 2, 2], jumbotron: false, crew: 2, marketing: 0, transit: false,
     weather: 0, ice: 92, building: 90, clean: 100,
-    prices: { ticket: 55, vip: 175, food: 11, beer: 12, merch: 45, parking: 25 },
+    prices: { ticket: 55, vip: 175, food: 10, beer: 11, merch: 40, parking: 25 },
     stands: [
       { slot: 0, type: 'hotdog' }, { slot: 2, type: 'restroom' }, { slot: 3, type: 'bar' },
       { slot: 4, type: 'store' }, { slot: 5, type: 'bar' }, { slot: 7, type: 'pizza' },
@@ -160,6 +160,108 @@ const DECOR = {
   neon:      { name: 'LED ribbons & neon signs', cost: 30000, d: 'The concourse glows at night. Hype +0.5 per game.' },
   mobile:    { name: 'Mobile-order pickup lockers', cost: 120000, d: 'Fans order from their seat. Every stand serves 15% faster.' },
 };
+
+/* ====================================================================
+   PEOPLE — every fan has a personality, and a social-media voice
+   ==================================================================== */
+const FN = ['Mike', 'Sarah', 'Jake', 'Emma', 'Chris', 'Dani', 'Luis', 'Priya', 'Tom', 'Aisha', 'Ben', 'Mia', 'Carlos', 'Hana', 'Owen', 'Zoe', 'Ravi', 'Kim', 'Noah', 'Lena', 'Dave', 'Rosa', 'Sam', 'Tess', 'Omar', 'Gwen', 'Pete', 'Yuki', 'Brad', 'Nora'];
+const LN = ['R.', 'S.', 'K.', 'T.', 'M.', 'P.', 'D.', 'L.', 'H.', 'B.', 'C.', 'W.', 'N.', 'J.', 'F.'];
+// tol = how far above the "fair" price they'll pay (1.0 = market price). temper = how hard bad things hit their mood. loy = how much the score moves them.
+const ARCH = {
+  diehard: { label: 'Die-hard fan',  w: 0.12, loy: [0.85, 1.0], temper: [1.1, 1.5], tol: [1.3, 1.8], pat: [0.9, 1.2], app: { food: 1, beer: 1.1, merch: 1.8 }, chat: 0.7, color: '#d42a44' },
+  casual:  { label: 'Casual fan',    w: 0.28, loy: [0.35, 0.65], temper: [0.8, 1.1], tol: [1.08, 1.5], pat: [0.9, 1.2], app: { food: 1, beer: 1, merch: 0.7 }, chat: 0.3, color: '#4da3ff' },
+  foodie:  { label: 'Foodie',        w: 0.12, loy: [0.4, 0.7], temper: [0.9, 1.2], tol: [1.3, 1.9], pat: [0.8, 1.1], app: { food: 2.2, beer: 0.8, merch: 0.4 }, chat: 0.5, color: '#e39a2e' },
+  spender: { label: 'Big spender',   w: 0.08, loy: [0.5, 0.8], temper: [0.7, 1.0], tol: [1.6, 2.3], pat: [0.7, 1.0], app: { food: 1.4, beer: 1.6, merch: 2.4 }, chat: 0.4, color: '#f0c94a' },
+  penny:   { label: 'Penny pincher', w: 0.14, loy: [0.4, 0.8], temper: [1.1, 1.5], tol: [0.88, 1.1], pat: [1.0, 1.4], app: { food: 0.7, beer: 0.6, merch: 0.2 }, chat: 0.55, color: '#3fcf7a' },
+  grump:   { label: 'Grump',         w: 0.08, loy: [0.3, 0.7], temper: [1.5, 2.1], tol: [1.02, 1.3], pat: [0.55, 0.8], app: { food: 0.9, beer: 1.2, merch: 0.3 }, chat: 0.8, color: '#9a7a5a' },
+  family:  { label: 'Family fan',    w: 0.10, loy: [0.5, 0.8], temper: [0.8, 1.2], tol: [1.05, 1.35], pat: [1.1, 1.5], app: { food: 1.5, beer: 0.4, merch: 1.4 }, chat: 0.35, color: '#c9a56b' },
+  student: { label: 'College kid',   w: 0.08, loy: [0.5, 0.9], temper: [1.0, 1.4], tol: [0.96, 1.25], pat: [0.6, 0.9], app: { food: 1.2, beer: 1.9, merch: 0.3 }, chat: 0.9, color: '#7a55cc' },
+};
+const PCACHE = new Map();
+function rngSeed(seed) { let t = ((seed * 2654435761) + 1013904223) >>> 0; return () => { t = (t + 0x6D2B79F5) >>> 0; let r = Math.imul(t ^ (t >>> 15), 1 | t); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; }
+function personaFrom(seed) {                       // the same seat always holds the same person
+  if (PCACHE.has(seed)) return PCACHE.get(seed);
+  const r = rngSeed(seed), rg = ([a, b]) => a + r() * (b - a);
+  let x = r(), key = 'casual'; for (const k in ARCH) { x -= ARCH[k].w; if (x <= 0) { key = k; break; } }
+  const A = ARCH[key], first = FN[(r() * FN.length) | 0], last = LN[(r() * LN.length) | 0];
+  const p = { key, label: A.label, name: first + ' ' + last, handle: '@' + first.toLowerCase() + (r() < 0.5 ? '_' + last[0].toLowerCase() : ((r() * 90 + 10) | 0)), loy: rg(A.loy), temper: rg(A.temper), tol: rg(A.tol), pat: rg(A.pat), app: A.app, chat: A.chat, color: A.color };
+  PCACHE.set(seed, p); return p;
+}
+function priceVerdict(a, cat) {                    // would THIS person pay today's price?
+  const key = cat === 'vip' ? 'beer' : cat, ratio = S.prices[key] / BASE[key];
+  const tol = a.p.tol * (a.vip ? 1.35 : 1) * (cat === 'merch' ? (a.p.app.merch > 1 ? 1.15 : 0.9) : 1);
+  if (ratio <= tol * 0.85) return 'ok';
+  if (ratio <= tol) return R() < 0.5 ? 'grumble' : 'ok';
+  return 'refuse';
+}
+function thought(a) {                              // what they'd say if you asked
+  const p = a.p;
+  if (a.state === 'queue' && a.qt > 25) return 'This line is taking forever.';
+  if (a.state === 'gateQ' && a.gw > 25) return 'Come on, let me in already!';
+  if (a.why === 'prices' && a.sat < 60) return p.tol < 1.1 ? 'Everything here costs a fortune.' : 'OK these prices are getting silly.';
+  if (a.why === 'losing' && a.sat < 55) return 'Defense is asleep tonight...';
+  if (a.sat < 35) return 'Not a great night at the arena.';
+  if (a.sat > 80) return p.key === 'diehard' ? 'LET\'S GO LYNX!!!' : 'This place is awesome tonight.';
+  return p.key === 'foodie' ? 'Where\'s the good food at?' : p.key === 'student' ? 'Anybody got a cheap beer?' : 'Good game so far.';
+}
+
+/* ---------- social media: "Chirp" ---------- */
+let social = [], chirpCD = {};
+const NEWS = [{ name: 'Lakeview Daily', handle: '@LakeviewDaily', verified: 1, color: '#2f63e0' }, { name: 'Puck Insider', handle: '@PuckInsider', verified: 1, color: '#12a39c' }, { name: 'Lynx Official', handle: '@LakeviewLynx', verified: 1, color: '#d42a44' }];
+const TAG = { price: '#OverpricedLynx', priceOk: '#EatAtLynx', line: '#LineNightmare', gate: '#SecurityLine', gateFast: '#SmoothEntry', parking: '#NoParking', goalHome: '#GoLynx', goalAway: '#LynxDown', penHome: '#BadCall', penAway: '#PowerPlay', win: '#LynxWin', loss: '#LynxLose', leave: '#Embarrassing', dirty: '#GrossArena', clean: '#CleanArena', food: '#EatAtLynx', decor: '#LynxArena', ticket: '#TicketPrices', auto: '#LynxFamily', ot: '#OvertimeThriller', hat: '#HatTrick', wave: '#TheWave' };
+const CDS = { price: 5, priceOk: 40, line: 7, gate: 6, gateFast: 90, parking: 5, goalHome: 3, goalAway: 3, penHome: 12, penAway: 12, win: 1, loss: 1, leave: 14, dirty: 25, clean: 90, food: 30, decor: 30, ticket: 8, auto: 5, ot: 1, hat: 1, wave: 60 };
+const TPL = {
+  price: [['{pr} for a {item}?? 😤', -1], ['Not paying {pr} for a {item}. I\'m out.', -1], ['{item}: {pr}. Highway robbery.', -1], ['My wallet just cried. {pr} {item} 💸', -1], ['{pr}?! for a {item}?! no thanks', -1], ['Lynx arena prices are a joke. {pr} {item}.', -1]],
+  priceOk: [['{item} for only {pr}! Best deal in the league', 1], ['Fair prices at the Lynx — {pr} {item}, no complaints', 1]],
+  line: [['been in line {n} min and I\'m missing the game 😡', -1], ['why is there only one register open at the {stand}?!', -1], ['the {stand} line is out of control', -1], ['gave up on the {stand}. {n} min wait. unreal.', -1]],
+  gate: [['security line is around the block... {n} min and counting', -1], ['{n} minutes to get through the metal detector 🙄', -1], ['Add more lanes @LakeviewLynx!! puck drop is soon', -1]],
+  gateFast: [['In and in my seat in 3 minutes. Smooth entry tonight!', 1], ['Security lanes moving fast — nice work @LakeviewLynx', 1]],
+  parking: [['parking lot FULL. turned around and went home 🤦', -1], ['no parking = no ticket money from me', -1], ['Lot A is jammed. Missed the first period!', -1]],
+  goalHome: [['GOOOOAL!!! {scorer} 🚨🚨', 1], ['{scorer} scores!! this place is LOUD 🔥', 1], ['LYNX SCORE!! can\'t hear a thing 😂', 1]],
+  goalAway: [['ugh. {opp} score. 😩', -1], ['defense asleep again.', -1], ['{opp} on the board. bad vibes in here', -1]],
+  penHome: [['that\'s a soft call 🙄', -1], ['ref is blind!!', -1]],
+  penAway: [['FINALLY a call our way!', 1], ['power play time!! 💪', 1]],
+  win: [['LYNX WIN!!! {score} 🎉', 1], ['what a game! best night at the arena', 1], ['{score}. I love this team', 1]],
+  loss: [['{score}. brutal.', -1], ['tough one. see you next game I guess', -1], ['{score}... we have to be better', -1]],
+  leave: [['leaving early. this is embarrassing.', -1], ['gonna beat the traffic. {score} isn\'t worth it', -1], ['I\'ve seen enough. out.', -1]],
+  dirty: [['bathrooms are disgusting 🤢', -1], ['trash everywhere on the concourse', -1], ['@LakeviewLynx clean this place up please', -1]],
+  clean: [['arena is spotless tonight, nice job', 1]],
+  food: [['best {item} I\'ve had at a game 😋', 1], ['the {stand} is 🔥 tonight', 1]],
+  decor: [['love the new {thing}! 🙌', 1], ['the {thing} is so cool', 1]],
+  ticket: [['{pr} for a ticket?? lol', -1], ['Ticket prices are insane now. {pr}!', -1], ['gonna skip this one, {pr} is too much', -1]],
+  auto: [['got #{n} to sign my jersey!!! 🥹', 1], ['the players stayed to sign for everyone 🙌', 1], ['best fan night ever', 1]],
+  ot: [['OVERTIME!!! my heart can\'t take it', 1]], hat: [['HAT TRICK!!! hats everywhere 🎩', 1]], wave: [['the wave is going around!! 🌊', 1]],
+};
+const ITEMS = { food: ['hot dog', 'pretzel', 'nachos', 'pizza slice', 'wings'], beer: ['beer', 'seltzer', 'cocktail', 'tall can'], merch: ['jersey', 'hat', 'hoodie', 'scarf'] };
+function postObj(author, text, tag, s) {
+  const likes = Math.floor(rr(0, 14) * (1 + (author.chat || 0.5) * 3) * (R() < 0.05 ? 25 : 1));
+  const p = { t: T, name: author.name, handle: author.handle, color: author.color, verified: author.verified, text, tag, s, likes, id: social.length ? social[0].id + 1 : 1 };
+  social.unshift(p); if (social.length > 140) social.pop();
+  if (G) { G.sentSum = (G.sentSum || 0) + s; G.sentN = (G.sentN || 0) + 1; }
+  return p;
+}
+function chirp(topic, a, ctx) {
+  ctx = ctx || {}; if (T < (chirpCD[topic] || 0)) return;
+  const author = a && a.p ? a.p : personaFrom((R() * 1e6) | 0);
+  if (R() > 0.2 + author.chat * 0.8) return;
+  chirpCD[topic] = T + (CDS[topic] || 6) * rr(0.6, 1.4);
+  const [tpl, s] = pick(TPL[topic]);
+  const text = tpl.replace('{pr}', '$' + Math.round(ctx.price || (ctx.cat ? S.prices[ctx.cat === 'vip' ? 'beer' : ctx.cat] : S.prices.ticket)))
+    .replace('{item}', ctx.cat ? pick(ITEMS[ctx.cat === 'vip' ? 'beer' : ctx.cat]) : pick(ITEMS.food)).replace('{n}', ctx.n || 5).replace('{stand}', ctx.stand ? TYPES[ctx.stand.type].label.toLowerCase() : 'bar')
+    .replace('{scorer}', ctx.scorer || 'our guy').replace('{opp}', G ? G.opp.name : 'they').replace('{score}', ctx.score || '').replace('{thing}', ctx.thing || 'concourse');
+  return postObj(author, text + ' ' + (TAG[topic] || ''), TAG[topic] || '', s);
+}
+function official(text, who, s, tag) { return postObj(NEWS[who || 0], text, tag || '', s || 0); }
+function someFan() { for (let i = 0; i < 12; i++) { const a = agents[(R() * agents.length) | 0]; if (a && (a.state === 'seated' || a.state === 'queue' || a.state === 'back')) return a; } return null; }
+function socialPhase(k) {
+  const opp = G ? G.opp : OPPS[S.opp % OPPS.length], sc = HOME.short + ' ' + score[0] + '–' + score[1] + ' ' + opp.short;
+  if (k === 'DOORS') official('Doors are open at Lakeview Arena! ' + HOME.name + ' host the ' + opp.name + ' tonight. 🏒', 2, 1, '#GoLynx');
+  if (k === 'INT1' || k === 'INT2') official('End of ' + (k === 'INT1' ? '1st' : '2nd') + ' period: ' + sc + '. Shots ' + shotsOn[0] + '–' + shotsOn[1] + '.', 1, 0, '#LynxHockey');
+  if (k === 'OT') { official('We\'re going to OVERTIME in Lakeview! ' + sc, 1, 1, '#OvertimeThriller'); chirpCD.ot = 0; chirp('ot', someFan()); }
+  if (k === 'EGRESS' && G) { official('FINAL: ' + sc + (G.dec ? ' (' + G.dec + ')' : '') + '. Attendance ' + G.att.toLocaleString() + '.', 0, score[0] > score[1] ? 1 : -1, '#LynxHockey'); chirpCD.win = chirpCD.loss = 0; for (let i = 0; i < 3; i++) { chirpCD.win = chirpCD.loss = 0; chirp(score[0] > score[1] ? 'win' : 'loss', someFan(), { score: sc }); } }
+  if (k === 'DOWN') { const o = OPPS[S.opp % OPPS.length], f = demandForecast(); official('Up next: ' + HOME.name + ' vs ' + o.name + '. Ticket demand looks like ' + f.demand.toLocaleString() + ' fans. 🎟️', 2, 0, '#NextGame'); if (S.prices.ticket / BASE.ticket > 1.25) { chirpCD.ticket = 0; chirp('ticket', null, { price: S.prices.ticket }); chirpCD.ticket = 0; chirp('ticket', null, { price: S.prices.ticket }); } }
+}
+
 
 /* ---------------- parking ---------------- */
 function buildStalls() {
@@ -361,7 +463,7 @@ function callPenalty() {
   const team = t === 0 ? HOME : G.opp, nm = pick(PENALTIES);
   banner = { t: 3, text: 'PENALTY', sub: team.short + ' #' + p.num + ' ' + p.name + ' · ' + nm + ' · 2:00', col: '#9a7a14' };
   feed('Penalty on ' + team.short + ' #' + p.num + ' (' + nm + ') — power play for ' + (t ? HOME.short : G.opp.short), 0, 'x');
-  react = { type: t === 0 ? 'boo' : 'cheerPen', t: 2.6 };
+  react = { type: t === 0 ? 'boo' : 'cheerPen', t: 2.6 }; chirp(t === 0 ? 'penHome' : 'penAway', someFan());
   for (const a of agents) if (a.state === 'seated') a.sat += (t === 0) === !a.away ? -1.5 : 1.5;
   faceoff();
 }
@@ -457,15 +559,17 @@ function goal(t, by) {
   if (phK() === 'OT') otWin = true;
   for (const a of agents) if (a.state === 'seated') {
     const mine = (t === 0) === !a.away;                         // is this fan's team the one that scored?
-    a.sat = clamp(a.sat + (mine ? 4 : -5), 0, 100); if (mine) a.jump = 1.6;
+    a.sat = clamp(a.sat + (mine ? 4 * a.p.loy * 1.5 : -5 * a.p.temper), 0, 100); if (mine) a.jump = 1.6; else a.why = 'losing';
   }
   if (t === 0) {
     horn = 2.5; G.merchBoost = 70; S.hype = clamp(S.hype + 1.2, 0, 100);
+    for (let k = 0; k < 3; k++) { chirpCD.goalHome = 0; chirp('goalHome', someFan(), { scorer: '#' + by.num + ' ' + by.name }); }
     react = { type: 'homeGoal', t: 5 };
     feed('GOAL ' + HOME.short + ' — crowd erupts, merch interest up', 0, 'goal');
-    if (by.g === 3) { hats(); setTimeout(() => showEvent(EVT.hattrick, { p: by }), 900); }
+    if (by.g === 3) { hats(); chirpCD.hat = 0; chirp('hat', someFan()); setTimeout(() => showEvent(EVT.hattrick, { p: by }), 900); }
   } else {
     react = { type: 'awayGoal', t: 5 };
+    for (let k = 0; k < 2; k++) { chirpCD.goalAway = 0; chirp('goalAway', someFan()); }
     feed(G.opp.short + ' scores — the home crowd groans', 0, 'x');
   }
   crowdDirty = true;
@@ -503,6 +607,7 @@ function enterPhase(i) {
   if (k === 'EGRESS') endGame();
   if (k === 'DOWN') settle();
   nextEvent = rr(35, 80); crowdDirty = true;
+  socialPhase(k);
   toast(PH[ph].n);
 }
 function nextPhase() {
@@ -555,7 +660,7 @@ function startGame() {
   }
   G.totSec = new Array(NSEC).fill(0); for (const a of agents) G.totSec[a.sec]++;
   G.turned = turned * FPA; G.carAgents = used;
-  if (turned) feed(turned * FPA + ' fans turned away — parking full', 0, 'x');
+  if (turned) { feed(turned * FPA + ' fans turned away — parking full', 0, 'x'); for (let k = 0; k < Math.min(3, turned); k++) { chirpCD.parking = 0; chirp('parking', null); } }
   S.marketing = 0; S.weather = 0;
 }
 function edgePoint() {
@@ -570,8 +675,9 @@ function mkAgent(vip) {
   const away = !vip && R() < 0.14;
   let sec = 0;
   if (!vip) { if (away) sec = pick(AWAY_SEC); else do sec = 1 + ((R() * (NSEC - 1)) | 0); while (AWAY_SEC.includes(sec)); }
+  const seat = randSeat(sec);
   return {
-    x: 0, y: 0, path: [], state: 'pending', vip, away, sec, seat: randSeat(sec), lane: rr(-22, -2),
+    x: 0, y: 0, path: [], state: 'pending', vip, away, sec, seat, p: personaFrom(seat.idx >= 0 ? seat.idx : (R() * 1e6 | 0)), spent: 0, why: null, lane: rr(-22, -2),
     arrive: Math.max(0, (vip ? rr(20, 150) : (rr(0, 1) + rr(0, 1) + rr(0, 1)) / 3 * 170 + (R() < 0.06 ? rr(120, 300) : 0))),
     spd: rr(30, 42), sat: 72 + rr(-6, 6), gw: 0, qt: 0, stall: -1, home: null, target: null, pre: false, jump: 0, need: R(), trips: 0, gate: 0, gl: 0,
   };
@@ -608,12 +714,14 @@ function settle() {
   G.exp = ops + teamShare + standStaff + crew;
   S.cash -= G.exp;
   const totalRev = Object.values(G.rev).reduce((a, b) => a + b, 0);
-  const mood = G.moodFinal || moodNow();
+  const mood = G.moodT ? G.moodSum / G.moodT : 70;
   const early = Math.min(4, (G.earlyLeavers || 0) * FPA / Math.max(1, G.att) * 10);
   S.rep = clamp(S.rep + (mood - 62) * 0.22 - (G.turned > 300 ? 2 : 0) - early + (S.decor.photo ? 0.8 : 0) + (S.decor.garden ? 0.3 : 0), 0, 100);
-  S.hype = clamp(S.hype + (S.decor.banners ? 0.4 : 0) + (S.decor.neon ? 0.5 : 0), 0, 100);
+  const buzz = G.sentN ? G.sentSum / G.sentN : 0, angry = clamp((G.priceBalks || 0) / Math.max(1, (G.totSec || []).reduce((x, y) => x + y, 0)) * 3, 0, 3);
+  S.rep = clamp(S.rep + buzz * 0.8 - angry, 0, 100);
+  S.hype = clamp(S.hype + buzz * 1.5 + (S.decor.banners ? 0.4 : 0) + (S.decor.neon ? 0.5 : 0), 0, 100);
   S.building = Math.max(0, S.building - rr(2, 5));
-  S.history.push({ day: S.day, opp: G.opp.short, score: score.slice(), res: G.result, att: G.att, rev: { ...G.rev }, cogs: Math.round(G.cogs), exp: G.exp, profit: Math.round(totalRev - G.cogs - G.exp), mood: Math.round(mood), turned: G.turned, lost: Math.round(G.lostSales), early: (G.earlyLeavers || 0) * FPA, so: G.dec });
+  S.history.push({ day: S.day, opp: G.opp.short, score: score.slice(), res: G.result, att: G.att, rev: { ...G.rev }, cogs: Math.round(G.cogs), exp: G.exp, profit: Math.round(totalRev - G.cogs - G.exp), mood: Math.round(mood), turned: G.turned, lost: Math.round(G.lostSales), early: (G.earlyLeavers || 0) * FPA, so: G.dec, expBreak: G.expBreak, buzz: Math.round(buzz * 100), refusals: (G.priceBalks || 0) * FPA });
   if (S.history.length > 30) S.history.shift();
   for (const st of stalls) st.car = null;
   agents = [];
@@ -674,27 +782,29 @@ function stepAgents(dt) {
       else { a.x += dx / d * sp; a.y += dy / d * sp; }
       continue;
     }
-    if (a.state === 'gateQ') { a.gw += dt; if (a.gw > 35) a.sat -= dt * 0.25; }
+    if (a.state === 'gateQ') { a.gw += dt; if (a.gw > 35) a.sat -= dt * 0.25 * a.p.temper; if (a.gw > 45 && !a.postedGate) { a.postedGate = true; a.why = 'security'; chirp('gate', a, { n: Math.round(a.gw / 4) }); } }
     else if (a.state === 'queue') {
       a.qt += dt;
       const st = a.target;
       if (a.qt > 28) a.sat -= dt * 0.18;
       if (st.type !== 'restroom' && a.qt > a.patience) {
         st._q.splice(st._q.indexOf(a), 1); st._lost++; G.walkaways++;
-        const v = estSpend(st); G.lostSales += v; a.sat -= 10;
+        const v = estSpend(st); G.lostSales += v; a.sat -= 10 * a.p.temper; a.why = 'lines'; chirp('line', a, { n: Math.round(a.qt / 5), stand: st });
         if (R() < 0.3) feed('Fan gave up in line at ' + st.type.toUpperCase() + ' — lost ' + money(v), 0, 'x');
         goBack(a, st);
       }
     } else if (a.state === 'seated') {
-      if (clean < 55) a.sat -= dt * 0.02;
+      if (clean < 55) { a.sat -= dt * 0.02 * a.p.temper; if (R() < dt * 0.002) chirp('dirty', a); } else if (clean > 92 && R() < dt * 0.0003) chirp('clean', a);
+      const rb = Math.max(S.prices.beer / BASE.beer, S.prices.food / BASE.food); if (rb > a.p.tol) { a.sat -= dt * 0.014 * a.p.temper * (rb - a.p.tol); a.why = 'prices'; }
       if (S.ice < 55 && isPeriod()) a.sat -= dt * 0.006;
       const rate = isInt() ? 0.0125 : isPeriod() ? 0.0013 : k === 'DOORS' ? 0.004 : 0;
       if (a.trips < 4 && R() < rate * dt) tripFrom(a);
       if (!a.vip) {                                   // blowouts: the losing side's fans head for the exits
         const late = k === 'P3' || k === 'INT2' || (k === 'P2' && pt > 150), pain = a.away ? diff - 2 : -diff - 2;
-        if (late && pain > 0 && R() < dt * 0.0007 * pain * (k === 'P3' ? 1.6 : 1) * (a.sat < 45 ? 1.8 : 1)) {
+        if (late && pain > 0 && R() < dt * 0.0007 * pain * (k === 'P3' ? 1.6 : 1) * (a.sat < 45 ? 1.8 : 1) * (1.7 - a.p.loy)) {
           a.early = true; G.earlyLeavers = (G.earlyLeavers || 0) + 1; crowdDirty = true;
           if (G.earlyLeavers % 12 === 1) feed('Fans heading for the exits (Sec ' + (101 + a.sec) + ') — ' + (a.away ? G.opp.short : HOME.short) + ' trailing by ' + Math.abs(diff), 0, 'x');
+          chirp('leave', a, { score: HOME.short + ' ' + score[0] + '–' + score[1] });
           startLeave(a);
         }
       }
@@ -718,7 +828,7 @@ function reached(a) {
     case 'toStand': {
       const st = a.target;
       if (!st.open || st._closedT > 0 || !S.stands.includes(st)) { goBack(a, st); break; }
-      a.state = 'queue'; a.qt = 0; a.patience = rr(55, 110) * patienceMul(); st._q.push(a); break;
+      a.state = 'queue'; a.qt = 0; a.patience = rr(55, 110) * patienceMul() * a.p.pat; st._q.push(a); break;
     }
     case 'leave':
       if (a.path.length === 0) {
@@ -770,11 +880,16 @@ function willing(cat) {
 }
 function chooseStand(a, fromA) {
   const intN = isInt() ? 1 : 0;
-  let w = { food: 0.4, beer: a.away ? 0.3 : 0.36, merch: 0.08 + (G.merchBoost > 0 ? 0.14 : 0) + (G.result === 'W' ? 0.1 : 0), restroom: 0.22 + intN * 0.1 };
+  const ap = a.p.app;
+  let w = { food: 0.4 * ap.food, beer: (a.away ? 0.3 : 0.36) * ap.beer, merch: (0.08 + (G.merchBoost > 0 ? 0.14 : 0) + (G.result === 'W' ? 0.1 : 0)) * ap.merch, restroom: 0.22 + intN * 0.1 };
   if (a.vip) w = { vip: 0.8, restroom: 0.2 };
   let r = R() * Object.values(w).reduce((x, y) => x + y, 0), cat = 'food';
   for (const k in w) { r -= w[k]; if (r <= 0) { cat = k; break; } }
-  if (cat !== 'restroom' && R() > willing(cat)) { G.priceBalks = (G.priceBalks || 0) + 1; return null; }
+  if (cat !== 'restroom') {
+    const v = priceVerdict(a, cat);
+    if (v === 'refuse') { G.priceBalks = (G.priceBalks || 0) + 1; a.sat = clamp(a.sat - 5 * a.p.temper, 0, 100); a.why = 'prices'; chirp('price', a, { cat }); return null; }
+    if (v === 'grumble') { a.sat -= 2 * a.p.temper; a.why = 'prices'; }
+  }
   let best = null, bs = 1e9;
   for (const st of S.stands) {
     const t = TYPES[st.type];
@@ -814,10 +929,12 @@ function serve(st, a) {
   a.sat += a.qt < 20 ? 4 : a.qt < 45 ? 0 : -4;
   if (t.cat !== 'restroom') {
     const key = t.cat === 'vip' ? 'beer' : t.cat;
-    if (S.prices[key] > BASE[key] * 1.25) a.sat -= 3;
+    if (S.prices[key] > BASE[key] * 1.25) { a.sat -= 3 * a.p.temper; a.why = 'prices'; }
+    else if (S.prices[key] < BASE[key] * 0.95 && a.sat > 65) chirp('priceOk', a, { cat: key });
     let v = estSpend(st) * rr(0.75, 1.3);
     const qty = Math.max(1, Math.round(v / (S.prices[key] * (t.cat === 'vip' ? 2.3 : 1))));
-    v = Math.round(v); st._rev += v;
+    v = Math.round(v); st._rev += v; a.spent += v / FPA;
+    if (a.sat > 72 && R() < 0.04) chirp('food', a, { stand: st, cat: key });
     const catKey = t.cat === 'vip' ? 'vip' : t.cat;
     if (catKey === 'vip') G.rev.other += v; else G.rev[catKey] += v;
     const cg = v * COGS[catKey]; G.cogs += cg;
@@ -984,12 +1101,16 @@ function update(dt) {
   if (react.t > 0) react.t -= dt;
   if (zam) { zam.t += dt; S.ice = Math.min(100, S.ice + dt * 0.05); if (zam.t > 70) zam = null; }
   if (G && inGame()) { stepAgents(dt); stepGates(dt); stepStands(dt); }
-  if (G && phK() === 'EGRESS' && pt > PH[ph].d - 2) G.moodFinal = moodNow();
+  if (G && (isPeriod() || isInt())) { G.moodAcc = (G.moodAcc || 0) + dt; if (G.moodAcc > 0.5) { G.moodSum = (G.moodSum || 0) + moodNow() * G.moodAcc; G.moodT = (G.moodT || 0) + G.moodAcc; G.moodAcc = 0; } }   // average mood while the building is full
   stepJanitors(dt);
   for (const t of traffic) { t.p += t.dir * t.s * dt; const L = t.vert ? 2128 : W; if (t.p < -30) t.p = L + 20; if (t.p > L + 30) t.p = -20; }
   for (const st of stalls) if (st.car) { st.car.t += dt; if (st.car.leaving) { st.car.lt = (st.car.lt || 0) + dt; if (st.car.lt > 2) st.car = null; } }
   for (const f of scanFx) f.t -= dt; scanFx = scanFx.filter(f => f.t > 0);
   if (exitShow) { exitShow.t += dt; if (exitShow.t > 175) exitShow = null; }
   if (horn > 0) horn -= dt;
+  for (let i = 0; i < Math.min(6, social.length); i++) if (R() < dt * 0.6 * (1 + (social[i].likes > 60 ? 3 : 0))) social[i].likes++;
+  if (G && inGame() && R() < dt * 0.0006 * (Object.keys(S.decor).length)) { const ks = Object.keys(S.decor); chirp('decor', someFan(), { thing: DECOR[pick(ks)].name.split(' ').slice(-2).join(' ').toLowerCase() }); }
+  if (exitShow && (Math.abs(exitShow.t - 30) < dt || Math.abs(exitShow.t - 48) < dt)) { chirpCD.auto = 0; chirp('auto', null, { n: players.length ? pick(players.filter(p => p.t === 0)).num : 19 }); }
+  if (G && phK() === 'DOORS' && pt > 100 && !G.gfChecked) { G.gfChecked = true; if (gates.every(g => gateLen(g) < 6)) { chirpCD.gateFast = 0; chirp('gateFast', someFan()); } }
   maybeEvent(dt);
 }
