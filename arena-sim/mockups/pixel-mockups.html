@@ -1,0 +1,285 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Arena Tycoon pixel mockups</title>
+<style>
+body{margin:0;background:#7cc6ec00;display:flex;flex-direction:column;gap:20px;padding:20px;align-items:flex-start}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges}
+</style></head><body>
+<canvas id="icon" width="32" height="32" style="width:320px;height:320px"></canvas>
+<canvas id="game" width="320" height="180" style="width:1280px;height:720px"></canvas>
+<canvas id="conc" width="320" height="180" style="width:1280px;height:720px"></canvas>
+<canvas id="city" width="320" height="180" style="width:1280px;height:720px"></canvas>
+<script>
+/* ---------- shared pixel helpers (edit colors / sprites here) ---------- */
+const PAL = {
+  W: '#ffffff', S: '#e0a46c', s: '#b97a48', V: '#c9e6ff', K: '#1c1c22', G: '#9aa3ad', B: '#8a5a2b',
+  R: '#e8590c', r: '#8c1c13',   // home team (orange like the reference icon)
+  U: '#2f63e0', u: '#173a8a',   // away team (blue)
+};
+// big player sprite (icon) — each char is one pixel; '.' = empty
+const BIG = [
+  '....WWWWW.......',
+  '...WWWWWWW......',
+  '...WWWSSVV......',
+  '...WWSSSVV......',
+  '....SSSSS.......',
+  '..WRRRRRRRW.....',
+  '.WRRRRrRRRRW....',
+  '.SRRRRrRRRRS....',
+  '.SSRRRrRRRSS..B.',
+  '..SRRRrRRRS..B..',
+  '....RRrRR...B...',
+  '....KKKKK..B....',
+  '....KK.KK.B.....',
+  '....RR.RR.B.....',
+  '....WW.WW.B.....',
+  '....RR.RR.B.....',
+  '...KKK.KKKB.....',
+  '...GGG.GGGGG....',
+];
+// small player sprite (on the ice)
+const SMALL = [
+  '.WWW.',
+  '.WSV.',
+  'RRRRR',
+  'SRrRS',
+  '.RrR.',
+  '.KKK.',
+  '.R.R.',
+  'KK.KK',
+];
+function sprite(c, rows, x, y, swap = {}, flip = false) {
+  rows.forEach((row, j) => [...row].forEach((ch, i) => {
+    if (ch === '.') return;
+    c.fillStyle = PAL[swap[ch] || ch];
+    c.fillRect(x + (flip ? row.length - 1 - i : i), y + j, 1, 1);
+  }));
+}
+const AWAY = { R: 'U', r: 'u' };
+const rect = (c, x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+// 3x5 pixel font
+const F = {A:'010101111101101',B:'110101110101110',C:'011100100100011',D:'110101101101110',E:'111100110100111',F:'111100110100100',G:'011100101101011',H:'101101111101101',I:'111010010010111',J:'001001001101010',K:'101101110101101',L:'100100100100111',M:'101111111101101',N:'110101101101101',O:'010101101101010',P:'110101110100100',Q:'010101101110011',R:'110101110101101',S:'011100010001110',T:'111010010010010',U:'101101101101111',V:'101101101101010',W:'101101111111101',X:'101101010101101',Y:'101101010010010',Z:'111001010100111',
+  0:'111101101101111',1:'010110010010111',2:'110001010100111',3:'110001010001110',4:'101101111001001',5:'111100110001110',6:'011100111101111',7:'111001010010010',8:'111101111101111',9:'111101111001110',
+  '$':'011110010011110','-':'000000111000000',':':'000010000010000','.':'000000000000010','!':'010010010000010','+':'000010111010000','/':'001001010100100','%':'101001010100101',' ':'000000000000000'};
+function txt(c, s, x, y, col, sc = 1) {
+  x = Math.round(x); y = Math.round(y);
+  c.fillStyle = col;
+  [...s.toUpperCase()].forEach((ch, k) => { const g = F[ch] || F[' ']; for (let i = 0; i < 15; i++) if (g[i] === '1') c.fillRect(x + (k * 4 + i % 3) * sc, y + ((i / 3) | 0) * sc, sc, sc); });
+}
+const tw = (s, sc = 1) => s.length * 4 * sc - sc;
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+function crowd(c, x0, y0, w, h, rows) {
+  for (let j = 0; j < rows; j++) {
+    rect(c, x0, y0 + j * (h / rows), w, h / rows - 1, j % 2 ? '#2b2236' : '#33283f');
+    for (let x = x0 + 1 + (j % 2) * 2; x < x0 + w - 2; x += 4) {
+      if (rnd() < 0.12) continue;
+      const yy = y0 + j * (h / rows) + 1;
+      const shirt = rnd() < 0.8 ? PAL.R : rnd() < 0.5 ? PAL.U : '#f0c94a';
+      rect(c, x, yy + 2, 3, 2, shirt); rect(c, x + 1, yy, 1, 2, pick(['#e0a46c', '#b97a48', '#f1d3b5', '#7a4a2a']));
+    }
+  }
+}
+const pick = a => a[(rnd() * a.length) | 0];
+function hud(c, title) {
+  rect(c, 0, 0, 320, 13, '#0d0f14'); rect(c, 0, 13, 320, 1, '#e8590c');
+  txt(c, '$412,550', 4, 4, '#4ee07a');
+  txt(c, title, 160 - tw(title) / 2, 4, '#ffffff');
+  txt(c, 'P2 3:12', 316 - tw('P2 3:12'), 4, '#ffd34a');
+}
+function bottomBar(c) {
+  rect(c, 0, 168, 320, 12, '#0d0f14');
+  const b = ['BUILD', 'PRICES', 'FIX', 'MONEY', '2X', 'SKIP'];
+  let x = 6;
+  b.forEach(s => { const w = tw(s) + 8; rect(c, x, 170, w, 9, '#2a3242'); rect(c, x, 178, w, 1, '#11151d'); txt(c, s, x + 4, 172, '#fff'); x += w + 5; });
+}
+function circle(c, cx, cy, r, col) { c.fillStyle = col; for (let a = 0; a < 6.283; a += 0.03) c.fillRect(Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), 1, 1); }
+
+/* ---------- 1. app icon ---------- */
+(() => {
+  const c = icon.getContext('2d');
+  // rounded square
+  rect(c, 3, 0, 26, 32, '#7cc6ec'); rect(c, 0, 3, 32, 26, '#7cc6ec'); rect(c, 1, 1, 30, 30, '#7cc6ec');
+  rect(c, 3, 26, 26, 3, '#4f9fcc'); rect(c, 5, 25, 20, 1, '#4f9fcc');
+  sprite(c, BIG, 8, 8);
+  rect(c, 22, 25, 2, 1, PAL.K); // puck
+})();
+
+/* ---------- 2. game view (angled "3D" stadium) ---------- */
+const MED = [
+  '..WWW..',
+  '.WWWWV.',
+  '..SSS..',
+  '.RRRRR.',
+  'SRRrRRS',
+  'S.RrR.S',
+  '..RRR..',
+  '..KKK..',
+  '..R.R..',
+  '..W.W..',
+  '.KK.KK.',
+];
+function fan(c, x, y, shirt, cheer, skin) {
+  rect(c, x, y + 2, 3, 2, shirt);            // body
+  rect(c, x + 1, y, 1, 2, skin);             // head
+  if (cheer) { rect(c, x - 1, y - 1, 1, 2, skin); rect(c, x + 3, y - 1, 1, 2, skin); } // arms up!
+}
+(() => {
+  const c = game.getContext('2d');
+  rect(c, 0, 0, 320, 180, '#120f1a');
+  // roof lights
+  for (let i = 0; i < 9; i++) { rect(c, 20 + i * 36, 15, 6, 2, '#fff6c8'); c.fillStyle = '#fff6c80a'; c.beginPath(); c.moveTo(20 + i * 36, 17); c.lineTo(10 + i * 36, 70); c.lineTo(36 + i * 36, 70); c.fill(); }
+  // ---- far upper + lower bowl (rows get wider as they go up = 3D bowl) ----
+  const SK = ['#e0a46c', '#b97a48', '#f1d3b5', '#7a4a2a'];
+  const rows = 13;
+  for (let j = 0; j < rows; j++) {
+    const y = 68 - j * 4 - (j > 7 ? 3 : 0);
+    const hw = 120 + j * 9;
+    rect(c, 160 - hw, y, hw * 2, 3, j > 7 ? (j % 2 ? '#2a2140' : '#31264a') : (j % 2 ? '#3a2236' : '#45293f'));
+    rect(c, 160 - hw, y + 3, hw * 2, 1, '#00000066');
+    if (j === 8) { rect(c, 160 - hw, y + 4, hw * 2, 3, '#1c1826'); for (let x = 160 - hw; x < 160 + hw; x += 14) rect(c, x, y + 5, 8, 1, '#e8590c'); }
+    for (let x = 160 - hw + 2; x < 160 + hw - 3; x += 4) {
+      if (rnd() < 0.1) continue;
+      const vip = j < 2 && Math.abs(x - 160) < 40;
+      const shirt = vip ? '#f0c94a' : rnd() < 0.8 ? PAL.R : rnd() < 0.6 ? PAL.U : '#ffffff';
+      fan(c, x, y - 2, shirt, rnd() < 0.45, pick(SK));
+    }
+  }
+  // aisles
+  for (let k = -3; k <= 3; k++) { c.fillStyle = '#00000055'; c.beginPath(); c.moveTo(160 + k * 38, 70); c.lineTo(160 + k * 64, 18); c.lineTo(160 + k * 64 + 2, 18); c.lineTo(160 + k * 38 + 2, 70); c.fill(); }
+  // ---- rink in perspective ----
+  const P = (u, v) => ({ x: 160 + u * (104 + v * 62), y: 74 + v * 72 });
+  for (let yy = 0; yy <= 72; yy++) {
+    const v = yy / 72, hw = 104 + v * 62, cut = (v < 0.12 ? (0.12 - v) * 90 : v > 0.88 ? (v - 0.88) * 120 : 0);
+    rect(c, Math.round(160 - hw - 4 + cut), 74 + yy, Math.round((hw + 4 - cut) * 2), 1, '#f4f7fa');        // boards
+    rect(c, Math.round(160 - hw + cut), 74 + yy, Math.round((hw - cut) * 2), 1, yy < 3 ? '#ffffff' : (yy % 9 === 0 ? '#dcecf6' : '#e6f3fb')); // ice
+  }
+  // glass shine on far boards
+  rect(c, 60, 70, 200, 4, '#9fd3ff33'); rect(c, 60, 73, 200, 1, '#ffffff');
+  const vline = (u, col, w = 1) => { for (let i = 0; i <= 70; i++) { const p = P(u, i / 70); rect(c, Math.round(p.x), Math.round(p.y), w, 1, col); } };
+  vline(0, '#d42a2a', 2); vline(-0.3, '#2f63e0', 2); vline(0.3, '#2f63e0', 2); vline(-0.86, '#d42a2a'); vline(0.86, '#d42a2a');
+  const ell = (u, v, r, col) => { for (let a = 0; a < 6.283; a += 0.02) { const p = P(u + Math.cos(a) * r, v + Math.sin(a) * r * 1.9); rect(c, Math.round(p.x), Math.round(p.y), 1, 1, col); } };
+  ell(0, 0.5, 0.12, '#2f63e0'); [[-0.6, 0.27], [-0.6, 0.73], [0.6, 0.27], [0.6, 0.73]].forEach(([u, v]) => ell(u, v, 0.1, '#d42a2a'));
+  // center logo
+  const lp = P(0, 0.5); txt(c, 'LYNX', Math.round(lp.x - tw('LYNX', 2) / 2), Math.round(lp.y - 5), '#e8590c40', 2);
+  // nets
+  [-0.86, 0.86].forEach(u => { const p = P(u, 0.5); rect(c, Math.round(p.x) + (u < 0 ? -6 : 1), Math.round(p.y) - 5, 5, 9, '#d42a2a'); rect(c, Math.round(p.x) + (u < 0 ? -5 : 2), Math.round(p.y) - 4, 3, 7, '#ffffffaa'); });
+  // players (smaller far away, bigger close up)
+  const team = [[-0.05, 0.42, 0], [0.2, 0.62, 0], [0.42, 0.3, 0], [-0.25, 0.75, 0], [-0.45, 0.5, 0], [-0.8, 0.5, 0],
+                [0.1, 0.5, 1], [0.3, 0.8, 1], [0.55, 0.55, 1], [0.62, 0.22, 1], [0.0, 0.2, 1], [0.8, 0.5, 1]];
+  team.sort((a, b) => a[1] - b[1]).forEach(([u, v, t]) => { const p = P(u, v), spr = v > 0.55 ? MED : SMALL; sprite(c, spr, Math.round(p.x - spr[0].length / 2), Math.round(p.y - spr.length), t ? AWAY : {}, t === 1); });
+  const pk = P(0.08, 0.52); rect(c, Math.round(pk.x), Math.round(pk.y), 2, 1, '#000');
+  // ---- near-side front rows (backs of heads, arms up) ----
+  for (let j = 0; j < 3; j++) {
+    const y = 150 + j * 6;
+    rect(c, 0, y, 320, 6, j % 2 ? '#3a2236' : '#45293f');
+    for (let x = 1 + j * 2; x < 318; x += 5) {
+      if (rnd() < 0.08) continue;
+      const sh = rnd() < 0.8 ? PAL.R : PAL.U, sk = pick(SK), cheer = rnd() < 0.5;
+      rect(c, x, y + 3, 4, 3, sh); rect(c, x + 1, y + 1, 2, 2, pick(['#3b2a1a', '#1c1c22', '#8a5a2b', '#e8c27a'])); // back of head (hair)
+      if (cheer) { rect(c, x - 1, y - 1, 1, 3, sk); rect(c, x + 4, y - 1, 1, 3, sk); }
+    }
+  }
+  // foam finger + sign in crowd
+  rect(c, 52, 140, 2, 10, '#ffd34a'); rect(c, 51, 138, 4, 3, '#ffd34a');
+  rect(c, 250, 142, 26, 8, '#fff'); txt(c, 'GO!', 257, 144, '#e8590c');
+  // ---- jumbotron hanging over center ice ----
+  rect(c, 159, 14, 1, 10, '#555'); rect(c, 130, 24, 60, 22, '#0b0e14'); rect(c, 130, 24, 60, 1, '#4da3ff'); rect(c, 130, 45, 60, 1, '#4da3ff');
+  txt(c, 'GOAL!', 160 - tw('GOAL!', 2) / 2, 27, '#ffd34a', 2); txt(c, 'LYNX 2-1', 160 - tw('LYNX 2-1') / 2, 39, '#fff');
+  // floating sales popping out of the stands
+  txt(c, '+$168', 28, 44, '#4ee07a'); txt(c, '+$94', 270, 30, '#4ee07a'); txt(c, '+$45', 214, 56, '#4ee07a');
+  hud(c, 'LYNX 2 - 1 BEARS');
+  bottomBar(c);
+})();
+
+/* ---------- 3. concourse (side view) ---------- */
+(() => {
+  const c = conc.getContext('2d');
+  rect(c, 0, 0, 320, 180, '#3a3f4b');
+  hud(c, 'CONCOURSE - SEC 104-108');
+  // back wall
+  rect(c, 0, 14, 320, 90, '#575d6b');
+  for (let x = 0; x < 320; x += 16) rect(c, x, 14, 1, 90, '#4d5260');
+  // floor
+  rect(c, 0, 104, 320, 64, '#a8a39a');
+  for (let x = 0; x < 320; x += 20) rect(c, x, 104, 1, 64, '#9b968c');
+  rect(c, 0, 104, 320, 2, '#7d786f');
+  const booths = [
+    { x: 8, name: 'BEER', col: '#c99a2a', q: 6 },
+    { x: 88, name: 'HOT DOGS', col: '#e39a2e', q: 9 },
+    { x: 168, name: 'SHOP', col: '#e8590c', q: 3 },
+    { x: 248, name: 'WC', col: '#5f86b3', q: 4 },
+  ];
+  booths.forEach(b => {
+    // sign
+    rect(c, b.x + 6, 22, 52, 11, '#14171e'); txt(c, b.name, b.x + 32 - tw(b.name) / 2, 25, '#ffd34a');
+    // awning stripes
+    for (let i = 0; i < 8; i++) rect(c, b.x + i * 8, 36, 8, 8, i % 2 ? '#ffffff' : b.col);
+    rect(c, b.x, 44, 64, 2, '#00000055');
+    // back counter + window
+    rect(c, b.x + 2, 46, 60, 40, '#2a2e38'); rect(c, b.x + 6, 50, 52, 20, '#ffd99a');
+    // staff
+    [[16, 54], [36, 54]].forEach(([dx, dy]) => { rect(c, b.x + dx, b.y = dy, 4, 3, '#e0a46c'); rect(c, b.x + dx - 1, dy + 3, 6, 6, '#ffffff'); rect(c, b.x + dx - 1, dy - 1, 6, 1, b.col); });
+    rect(c, b.x, 84, 64, 20, b.col); rect(c, b.x, 84, 64, 2, '#ffffff66');
+    // line of fans
+    for (let k = 0; k < b.q; k++) {
+      const fx = b.x + 10 + (k % 5) * 10, fy = 108 + ((k / 5) | 0) * 22;
+      sprite(c, SMALL, fx, fy, rnd() < 0.2 ? AWAY : {});
+    }
+    // line badge
+    const bc = b.q > 7 ? '#ff5c5c' : b.q > 4 ? '#ffb340' : '#4ee07a';
+    rect(c, b.x + 48, 110, 14, 9, bc); txt(c, String(b.q * 10), b.x + 50, 112, '#000');
+  });
+  txt(c, '+$132', 104, 96, '#4ee07a'); txt(c, '+$45', 20, 92, '#4ee07a');
+  // owner walking (you)
+  sprite(c, ['.KKK.', '.KSK.', 'KKKKK', 'SKWKS', '.KKK.', '.KKK.', '.K.K.', 'KK.KK'], 150, 150);
+  txt(c, 'YOU', 148, 143, '#ffd34a');
+  // janitor
+  sprite(c, SMALL, 230, 150, { R: 'G', r: 'K' }); rect(c, 236, 152, 1, 6, PAL.B);
+  // speech
+  rect(c, 92, 132, 70, 9, '#fff'); txt(c, 'LINE TOO LONG!', 94, 134, '#d42a2a');
+  bottomBar(c);
+})();
+
+/* ---------- 4. city / parking ---------- */
+(() => {
+  const c = city.getContext('2d');
+  rect(c, 0, 0, 320, 180, '#4f8a3a');
+  // river
+  rect(c, 0, 158, 320, 10, '#2b6fb0'); for (let x = 0; x < 320; x += 9) rect(c, x + (x % 4), 161 + (x % 5), 4, 1, '#5aa0dc');
+  // roads
+  const rx = [40, 100, 230, 290], ry = [28, 108, 150];
+  rx.forEach(x => rect(c, x - 3, 14, 6, 144, '#3a3d44'));
+  ry.forEach(y => rect(c, 0, y - 3, 320, 6, '#3a3d44'));
+  rx.forEach(x => { for (let y = 16; y < 156; y += 6) rect(c, x, y, 1, 3, '#e8d25a'); });
+  ry.forEach(y => { for (let x = 0; x < 320; x += 6) rect(c, x, y, 3, 1, '#e8d25a'); });
+  // buildings
+  const bld = (x, y, w, h, col) => { rect(c, x + 2, y + 2, w, h, '#00000044'); rect(c, x, y, w, h, col); rect(c, x, y + h - 3, w, 3, '#00000033'); for (let i = x + 2; i < x + w - 2; i += 3) for (let j = y + 2; j < y + h - 4; j += 4) if (rnd() < 0.5) rect(c, i, j, 1, 2, '#ffe9a8'); };
+  [[2, 34, 34, 30, '#6b7280'], [2, 68, 34, 36, '#7c6f64'], [46, 34, 50, 22, '#6e5a7a'], [46, 60, 50, 44, '#5d6d84'],
+   [236, 34, 50, 30, '#566070'], [236, 68, 50, 36, '#80766a'], [294, 34, 26, 70, '#6c5f6e'], [2, 114, 34, 32, '#59636b'], [294, 114, 26, 32, '#7c6f64'],
+   [46, 16, 50, 9, '#8a7f74'], [106, 16, 120, 9, '#6b7280'], [236, 16, 50, 9, '#5f6b7a']].forEach(b => bld(...b));
+  txt(c, 'HOTEL', 49, 38, '#fff'); txt(c, 'TRAIN', 49, 64, '#fff');
+  // arena plaza + building
+  rect(c, 104, 32, 122, 73, '#c9c3b6');
+  c.fillStyle = '#3b4250'; for (let y = -34; y <= 34; y++) { const w = Math.round(56 * Math.sqrt(1 - (y / 35) ** 2)); c.fillRect(165 - w, 68 + y, w * 2, 1); }
+  c.fillStyle = '#a8a39a'; for (let y = -30; y <= 30; y++) { const w = Math.round(51 * Math.sqrt(1 - (y / 31) ** 2)); c.fillRect(165 - w, 68 + y, w * 2, 1); }
+  c.fillStyle = '#3a2630'; for (let y = -24; y <= 24; y++) { const w = Math.round(42 * Math.sqrt(1 - (y / 25) ** 2)); c.fillRect(165 - w, 68 + y, w * 2, 1); }
+  for (let i = 0; i < 160; i++) { const a = rnd() * 6.28, t = 0.6 + rnd() * 0.38; rect(c, Math.round(165 + Math.cos(a) * 42 * t), Math.round(68 + Math.sin(a) * 24 * t), 1, 1, rnd() < 0.85 ? PAL.R : PAL.U); }
+  rect(c, 145, 60, 40, 17, '#e6f3fb'); rect(c, 164, 60, 1, 17, '#d42a2a'); rect(c, 155, 60, 1, 17, '#2f63e0'); rect(c, 174, 60, 1, 17, '#2f63e0');
+  txt(c, 'LYNX ARENA', 165 - tw('LYNX ARENA') / 2, 35, '#fff');
+  // parking lot
+  rect(c, 104, 112, 122, 34, '#45484e');
+  for (let row = 0; row < 3; row++) for (let k = 0; k < 28; k++) {
+    const x = 108 + k * 4, y = 115 + row * 10;
+    rect(c, x - 1, y, 1, 7, '#cfcfcf88');
+    if (rnd() < 0.8) rect(c, x, y + 1, 2, 5, pick(['#c9c9c9', '#2f3540', '#8b1d1d', '#e6e6e6', '#1d4f8b', '#d6c06a']));
+  }
+  txt(c, 'LOT A FULL', 165 - tw('LOT A FULL') / 2, 112 - 0, '#ff6b6b');
+  // vacant lot
+  rect(c, 236, 112, 50, 34, '#6b7d4f'); txt(c, 'BUY', 254, 122, '#fff'); txt(c, '$200K', 251, 130, '#ffd34a');
+  // fans walking from lot to gate
+  for (let i = 0; i < 26; i++) rect(c, 162 + (rnd() * 8 | 0), 100 + (rnd() * 12 | 0), 1, 1, PAL.R);
+  // traffic
+  [[40, 50], [43, 90], [230, 40], [60, 105], [180, 105], [120, 147], [290, 130]].forEach(([x, y], i) => rect(c, x, y, i % 2 ? 2 : 4, i % 2 ? 4 : 2, pick(['#e8590c', '#fff', '#2f63e0', '#ffd34a'])));
+  txt(c, 'LAKEVIEW', 4, 4, '#fff'); txt(c, 'DAY 3  DOORS OPEN', 316 - tw('DAY 3  DOORS OPEN'), 4, '#ffd34a');
+  bottomBar(c);
+})();
+</script></body></html>
